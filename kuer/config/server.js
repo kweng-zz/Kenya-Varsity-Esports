@@ -9,7 +9,12 @@ module.exports = ({ env }) => ({
   },
   // Production settings
   ...(env('NODE_ENV') === 'production' && {
-    url: env('STRAPI_URL', 'http://localhost:1337'),
-    proxy: env.bool('STRAPI_PROXY', false),
+    url: env('STRAPI_URL') || env('VERCEL_URL') ? `https://${env('VERCEL_URL')}` : 'http://localhost:1337',
+    proxy: env.bool('STRAPI_PROXY', true),
+  }),
+  // Vercel-specific settings
+  ...(env('VERCEL') && {
+    serveAdminPanel: false, // Disable admin panel in serverless
+    autoReload: false,
   }),
 });

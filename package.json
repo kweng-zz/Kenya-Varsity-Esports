@@ -8,7 +8,9 @@
     "dev:simple": "node start.js",
     "dev:next": "next dev --turbopack",
     "dev:strapi": "npm run strapi:dev",
-    "build": "npm run strapi:build && next build --turbopack",
+    "build": "next build --turbopack",
+    "build:local": "npm run strapi:build && next build --turbopack",
+    "build:vercel": "next build --turbopack",
     "start": "concurrently --names \"STRAPI,NEXT\" --prefix-colors \"blue,green\" \"npm run strapi:start\" \"npm run start:next\"",
     "start:next": "next start",
     "start:strapi": "npm run strapi:start",
@@ -23,7 +25,8 @@
     "setup:tournaments": "node scripts/setup-tournaments-fixed.cjs",
     "setup:participants": "node scripts/setup-participants-collection.js",
     "populate:participants": "node scripts/populate-participants.js",
-    "setup:tickets": "node scripts/setup-ticket-collections.js"
+    "setup:tickets": "node scripts/setup-ticket-collections.js",
+    "setup:strapi-deploy": "node scripts/setup-strapi-deployment.js"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

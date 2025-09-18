@@ -1,103 +1,137 @@
-import Image from "next/image";
+'use client';
+
+import { FooterSection } from "@/components/Footer";
+import  { Navigation } from "@/components/Navigation";
+import { HeroBanner } from "@/components/pages/landing/Banner";
+import { TopHighlightSection } from "@/components/pages/landing/Highlights";
+import LatestNews from "@/components/pages/landing/News";
+import { NewsletterSection } from "@/components/pages/landing/NewsLetter";
+import { ShopSection } from "@/components/pages/landing/Shop";
+import SeasonStatistics from "@/components/pages/landing/Statistics";
+import { MeetTheTeamSection } from "@/components/pages/landing/Team";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
+
+
+
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <div className="bg-black w-full min-h-screen" data-model-id="1:2">
+      <div className="w-full relative z-20">
+        <Navigation />  
+      </div>
+      <HeroBanner />
+      <SeasonStatistics />
+      <TopHighlightSection />
+      <LatestNews />
+      <MeetTheTeamSection />
+
+      {/* Community section - full width */}
+      <section className="w-full bg-[#0c0e11e6] py-6 sm:py-8 md:py-12 lg:py-16 mb-0">
+        <div className="flex flex-col lg:flex-row w-full rounded-none overflow-hidden shadow-2xl">
+          {/* Left side - Image background section */}
+          <div className="w-full lg:w-1/2 bg-[url('/images/IMG_8992.jpg')] bg-cover bg-center min-h-[250px] sm:min-h-[300px] lg:min-h-[500px] flex items-center justify-center p-4 sm:p-6 md:p-8">
+            {/* Content can be placed here over the background image if needed */}
+          </div>
+
+          {/* Right side - Red section with transparent rectangles */}
+          <div className="w-full lg:w-1/2 bg-[#B33F40] relative min-h-[300px] sm:min-h-[350px] lg:min-h-[500px] flex items-center justify-center overflow-hidden p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16">
+            {/* Background pattern of transparent rectangles - sized relative to container */}
+            <div className="absolute inset-0 z-0">
+              {/* Top row */}
+              <div className="absolute w-[15%] h-[10%] bg-white opacity-10 top-[5%] left-[5%]"></div>
+              <div className="absolute w-[20%] h-[12%] bg-white opacity-10 top-[8%] left-[30%]"></div>
+              <div className="absolute w-[12%] h-[9%] bg-white opacity-10 top-[3%] right-[15%]"></div>
+
+              {/* Middle row */}
+              <div className="absolute w-[25%] h-[18%] bg-white opacity-10 top-[25%] left-[2%]"></div>
+              <div className="absolute w-[16%] h-[12%] bg-white opacity-10 top-[30%] left-[55%]"></div>
+              <div className="absolute w-[22%] h-[15%] bg-white opacity-10 top-[20%] right-[5%]"></div>
+
+              {/* Bottom row */}
+              <div className="absolute w-[13%] h-[9%] bg-white opacity-10 bottom-[6%] left-[10%]"></div>
+              <div className="absolute w-[18%] h-[12%] bg-white opacity-10 bottom-[12%] left-[45%]"></div>
+              <div className="absolute w-[15%] h-[10%] bg-white opacity-10 bottom-[2%] right-[10%]"></div>
+              <div className="absolute w-[10%] h-[7%] bg-white opacity-10 bottom-[16%] right-[30%]"></div>
+            </div>
+
+            {/* Content (text and button) */}
+            <div className="relative z-10 flex flex-col items-center text-center max-w-md">
+              <h2 className="font-['Hind',Helvetica] font-bold text-white text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-[46px] leading-tight tracking-[1.84px] uppercase mb-6 sm:mb-8">
+                WANT TO HELP US GROW?
+                <br className="hidden sm:block" />
+                <span className="sm:hidden"> </span>
+                SPONSOR US!
+              </h2>
+
+              {/* Become A Sponsor button */}
+              <Link href="/community">
+                <Button className="w-[200px] sm:w-[220px] h-[50px] sm:h-[60px] bg-[#121315] rounded-none hover:bg-[#2a2d30] transition-colors duration-300 text-white">
+                  <span className="font-['Hind',Helvetica] font-semibold text-sm sm:text-base">
+                    Become A Sponsor
+                  </span>
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+      
+      {/* Sponsor section - full width */}
+      <section
+        className="relative w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-cover bg-center -mt-6 sm:-mt-8 md:-mt-12 lg:-mt-16"
+        style={{
+          backgroundImage:
+            "url(https://c.animaapp.com/md6ebassseX7AK/img/group-219-1.png)",
+        }}
+      >
+        <div className="container mx-auto max-w-6xl flex flex-col md:flex-row gap-8 sm:gap-10 md:gap-12 px-4 sm:px-6">
+          <div className="md:w-1/2">
+            <h2 className="font-['Hind',Helvetica] font-bold text-2xl sm:text-3xl md:text-4xl tracking-wider leading-tight">
+              <span className="text-white">
+                CONTACT US ABOUT POTENTIAL <span className="text-red-800">PARTNERSHIP</span> AND <span className="text-red-800">PRESS MATTERS</span>
+              </span>
+            </h2>
+          </div>
+
+          <div className="md:w-1/2">
+            <form className="space-y-4">
+              <Textarea
+                className="w-full h-24 sm:h-32 bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
+                placeholder="WRITE MESSAGE"
+              />
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Input
+                  className="w-full bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
+                  placeholder="YOUR NAME"
+                />
+
+                <Input
+                  className="w-full bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
+                  placeholder="YOUR EMAIL"
+                />
+              </div>
+
+              <div className="flex justify-center sm:justify-end">
+                <Button
+                  className="bg-[#961c18] hover:bg-[#7a1714] text-white font-['Hind',Helvetica] font-semibold px-8 sm:px-10 py-4 sm:py-6 rounded-none relative overflow-hidden skewed-button text-sm sm:text-base"
+                  type="submit"
+                >
+                  <span className="relative z-10">SUBMIT</span>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+      <ShopSection />
+      <NewsletterSection />
+      <FooterSection />
     </div>
-  );
+  )
 }

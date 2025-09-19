@@ -178,8 +178,14 @@ export default function AdminUsersPage() {
     const userProfile = users.find(u => u.$id === userId);
 
     try {
+      const db = initializeAppwrite();
+      if (!db) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       // First, try to update the document
-      await databases.updateDocument(
+      await db.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
         userId,
@@ -225,18 +231,21 @@ export default function AdminUsersPage() {
       
       // Refresh users to ensure UI is in sync with database
       try {
-        const response = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
-          [Query.orderDesc('$createdAt'), Query.limit(100)]
-        );
-        
-        const usersData = response.documents.map((doc: any) => ({
-          ...doc,
-          isTeamCaptain: doc.isTeamCaptain || false
-        })) as UserProfile[];
-        
-        setUsers(usersData);
+        const refreshDb = initializeAppwrite();
+        if (refreshDb) {
+          const response = await refreshDb.listDocuments(
+            process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+            process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+            [Query.orderDesc('$createdAt'), Query.limit(100)]
+          );
+          
+          const usersData = response.documents.map((doc: any) => ({
+            ...doc,
+            isTeamCaptain: doc.isTeamCaptain || false
+          })) as UserProfile[];
+          
+          setUsers(usersData);
+        }
       } catch (refreshError) {
         console.error('Error refreshing users:', refreshError);
       }

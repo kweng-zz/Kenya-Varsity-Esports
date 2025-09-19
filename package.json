@@ -33,6 +33,7 @@
     "setup:tickets": "node scripts/setup-ticket-collections.js",
     "setup:strapi-deploy": "node scripts/setup-strapi-deployment.js",
     "setup:railway": "node railway-deploy.js",
+    "verify:railway": "node verify-railway.js",
     "health-check": "node health-check.js"
   },
   "dependencies": {

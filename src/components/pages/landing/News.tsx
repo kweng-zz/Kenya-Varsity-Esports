@@ -143,7 +143,7 @@ const LatestNews = () => {
             imageUrl: '/images/Join our tournaments.png',
             category: "Tournament Results",
             date: "2024-01-15",
-            slug: "masinde-muliro-university-mmust-makes-history"
+            slug: "mmust-makes-history"
           },
           {
             id: 'news-2',
@@ -152,7 +152,7 @@ const LatestNews = () => {
             imageUrl: '/images/Join-Your-Uni.png',
             category: "Championship",
             date: "2024-01-10",
-            slug: "tuk-take-the-overall-position-for-season-2"
+            slug: "tuk-season-2-champions"
           }
         ]);
         setLoading(false);

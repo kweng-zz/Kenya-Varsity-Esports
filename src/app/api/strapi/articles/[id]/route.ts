@@ -103,8 +103,8 @@ export async function PUT(
       }
     };
 
-    // Update article in Strapi
-    const response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
+    // Try to update article by documentId first (Strapi v5), then by id
+    let response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -112,6 +112,32 @@ export async function PUT(
       },
       body: JSON.stringify(updateData),
     });
+
+    // If not found by documentId, try to find by id and get documentId
+    if (!response.ok && response.status === 404) {
+      const findResponse = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+        },
+      });
+
+      if (findResponse.ok) {
+        const findData = await findResponse.json();
+        if (findData.data && findData.data.length > 0) {
+          const documentId = findData.data[0].documentId;
+          response = await fetch(`${STRAPI_URL}/api/articles/${documentId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+            },
+            body: JSON.stringify(updateData),
+          });
+        }
+      }
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -146,14 +172,39 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Delete article from Strapi
-    const response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
+    // Try to delete article by documentId first (Strapi v5), then by id
+    let response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
         ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
       },
     });
+
+    // If not found by documentId, try to find by id and get documentId
+    if (!response.ok && response.status === 404) {
+      const findResponse = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+        },
+      });
+
+      if (findResponse.ok) {
+        const findData = await findResponse.json();
+        if (findData.data && findData.data.length > 0) {
+          const documentId = findData.data[0].documentId;
+          response = await fetch(`${STRAPI_URL}/api/articles/${documentId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+            },
+          });
+        }
+      }
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -185,14 +236,35 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Get article from Strapi
-    const response = await fetch(`${STRAPI_URL}/api/articles/${id}?populate=image`, {
+    // Try to get article by documentId first (Strapi v5), then by id
+    let response = await fetch(`${STRAPI_URL}/api/articles/${id}?populate=image`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
       },
     });
+
+    // If not found by documentId, try to find by id using filters
+    if (!response.ok && response.status === 404) {
+      response = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}&populate=image`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.length > 0) {
+          return NextResponse.json({
+            success: true,
+            article: { data: data.data[0], meta: {} }
+          });
+        }
+      }
+    }
 
     if (!response.ok) {
       const errorData = await response.json();

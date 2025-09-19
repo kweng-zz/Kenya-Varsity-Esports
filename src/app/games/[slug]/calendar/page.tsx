@@ -11,13 +11,13 @@ import { TournamentCalendar } from '@/components/TournamentCalendar';
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export default async function CalendarPage({ params }: PageProps) {
-  const { slug } = params
+  const { slug } = await params
   const game = getGameBySlug(slug)
 
   if (!game) {

@@ -320,13 +320,12 @@ export const TournamentInformationContent: React.FC<TournamentInformationContent
                 Register here
               </p>
               <a 
-                href="/profile/tournament-registration"
-                className="inline-flex items-center px-6 py-3 bg-[#8c110d] hover:bg-[#b91c17] text-white font-bold rounded-lg transition-colors"
+                href="http://kuer-drab.vercel.app" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block bg-red-900 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-none transition-colors duration-200 text-lg"
               >
-                Register for Tournament
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+                Register Now →
               </a>
             </div>
           </div>

@@ -10,11 +10,13 @@ import { FooterSection } from '@/components/Footer';
 import { TournamentCalendar } from '@/components/TournamentCalendar';
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
 
-export default async function CalendarPage({
-  params,
-}: {
-  params: { slug: string }
-}) {
+interface PageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default async function CalendarPage({ params }: PageProps) {
   const { slug } = params
   const game = getGameBySlug(slug)
 
@@ -26,6 +28,7 @@ export default async function CalendarPage({
   const events = calendarData?.events || []
 
   const isActiveRoute = (href: string) => href.includes('/calendar')
+
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">

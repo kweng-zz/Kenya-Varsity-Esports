@@ -10,17 +10,30 @@ const initializeAppwrite = () => {
     const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
 
+    // During build time, environment variables might not be available
+    // Return null to gracefully handle this case
     if (!endpoint || !projectId || !apiKey) {
       console.warn('Appwrite configuration missing, using fallback data');
       return null;
     }
 
-    client = new Client()
-      .setEndpoint(endpoint)
-      .setProject(projectId)
-      .setKey(apiKey);
+    // Additional validation to ensure endpoint is a valid string
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid, using fallback data');
+      return null;
+    }
 
-    databases = new Databases(client);
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId)
+        .setKey(apiKey);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client:', error);
+      return null;
+    }
   }
   return databases;
 };

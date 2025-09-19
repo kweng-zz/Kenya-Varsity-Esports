@@ -31,31 +31,41 @@ export default async function TournamentParticipantsPage({ params }: TournamentP
 
   const currentPath = `/games/${slug}/participants`;
 
-  // Get approved participants for this tournament from Appwrite
-  console.log('=== FRONTEND PARTICIPANTS FETCH DEBUG ===');
-  console.log('Fetching participants for slug:', slug);
-
+  // Initialize with empty array - data will be fetched client-side or at runtime
   let teams: any[] = [];
-  try {
-    teams = await participantsServiceSSR.getApprovedParticipants(slug);
-    console.log('✅ Successfully fetched participants');
-  } catch (error) {
-    console.error('❌ Error fetching participants in page component:', error);
-    // Return empty array on error to prevent page crash
-    teams = [];
-  }
 
-  console.log('Participants Debug:', {
-    slug,
-    teamsCount: teams.length,
-    totalParticipants: teams.reduce((sum: number, team: any) => sum + team.totalMembers || 0, 0),
-    teams: teams.map(team => ({
-      id: team.$id,
-      teamName: team.teamName,
-      tournamentSlug: team.tournamentSlug,
-      status: team.status
-    }))
-  });
+  // Only fetch data if we have proper environment configuration
+  const hasAppwriteConfig = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT && 
+                           process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID && 
+                           process.env.APPWRITE_API_KEY;
+
+  if (hasAppwriteConfig) {
+    try {
+      console.log('=== FRONTEND PARTICIPANTS FETCH DEBUG ===');
+      console.log('Fetching participants for slug:', slug);
+      
+      teams = await participantsServiceSSR.getApprovedParticipants(slug);
+      console.log('✅ Successfully fetched participants');
+      
+      console.log('Participants Debug:', {
+        slug,
+        teamsCount: teams.length,
+        totalParticipants: teams.reduce((sum: number, team: any) => sum + team.totalMembers || 0, 0),
+        teams: teams.map(team => ({
+          id: team.$id,
+          teamName: team.teamName,
+          tournamentSlug: team.tournamentSlug,
+          status: team.status
+        }))
+      });
+    } catch (error) {
+      console.error('❌ Error fetching participants in page component:', error);
+      // Return empty array on error to prevent page crash
+      teams = [];
+    }
+  } else {
+    console.log('⏭️ Appwrite not configured, using empty participants list');
+  }
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">

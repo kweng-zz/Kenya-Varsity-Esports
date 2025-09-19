@@ -1,0 +1,44 @@
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+.env
+.env.local
+.env.production.local
+.env.local
+.git
+.gitignore
+.next
+.qodo
+.vscode
+coverage
+.nyc_output
+.vercel
+.vercelignore
+
+# Railway specific
+railway.json
+nixpacks.toml
+
+# Documentation
+*.md
+RAILWAY_*.md
+VERCEL_*.md
+STRAPI_*.md
+
+# Scripts
+scripts/
+deploy-strapi-railway.js
+generate-strapi-keys.js
+start.js
+
+# Kuer backend (we'll copy selectively)
+kuer/.env*
+kuer/node_modules
+kuer/.tmp
+kuer/.cache
+kuer/build
+kuer/dist
+kuer/uploads
+kuer/.strapi-updater.json

@@ -119,7 +119,7 @@ export default function AdminRegistrationsPage() {
         const tournamentPromises = tournamentIds.map(async (id) => {
           try {
             console.log(`🔍 Admin Registrations: Fetching tournament ${id}`);
-            const tournament = await appwrite.databases.getDocument(
+            const tournament = await appwrite.databases!.getDocument(
               process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
               process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID!,
               id

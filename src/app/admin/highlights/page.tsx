@@ -149,6 +149,12 @@ export default function AdminVideoHighlightsPage() {
 
   const createDefaultHighlights = async () => {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Cannot create default highlights.');
+        return;
+      }
+
       const defaultHighlights = [
         {
           title: 'Main Season 2 Highlight',
@@ -181,7 +187,7 @@ export default function AdminVideoHighlightsPage() {
 
       const createdHighlights = [];
       for (const highlight of defaultHighlights) {
-        const created = await databases.createDocument(
+        const created = await appwrite.databases.createDocument(
           DB_ID,
           COLLECTION_ID,
           ID.unique(),
@@ -224,6 +230,12 @@ export default function AdminVideoHighlightsPage() {
     try {
       setIsSaving(true);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       const updateData = {
         title: editForm.title,
         description: editForm.description,
@@ -236,7 +248,7 @@ export default function AdminVideoHighlightsPage() {
         isFeatured: editForm.isFeatured || false
       };
 
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         editingHighlightId!,
@@ -259,6 +271,12 @@ export default function AdminVideoHighlightsPage() {
     try {
       setIsSaving(true);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       const newHighlight = {
         title: 'New Video Highlight',
         description: 'Add your video highlight description here',
@@ -270,7 +288,7 @@ export default function AdminVideoHighlightsPage() {
         isFeatured: false
       };
       
-      await databases.createDocument(
+      await appwrite.databases.createDocument(
         DB_ID,
         COLLECTION_ID,
         ID.unique(),
@@ -295,7 +313,13 @@ export default function AdminVideoHighlightsPage() {
     if (window.confirm('Are you sure you want to delete this video highlight?')) {
       try {
         setIsSaving(true);
-        await databases.deleteDocument(DB_ID, COLLECTION_ID, highlightId);
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.databases) {
+          setError('Appwrite not configured. Please try again.');
+          return;
+        }
+        
+        await appwrite.databases.deleteDocument(DB_ID, COLLECTION_ID, highlightId);
         setMessage('Video highlight deleted successfully!');
         fetchHighlights();
       } catch (err) {
@@ -309,10 +333,16 @@ export default function AdminVideoHighlightsPage() {
 
   const handleToggleActive = async (highlightId: string) => {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       const highlight = highlights.find(h => h.$id === highlightId);
       if (!highlight) return;
 
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         highlightId,
@@ -329,6 +359,12 @@ export default function AdminVideoHighlightsPage() {
 
   const handleToggleFeatured = async (highlightId: string) => {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       const highlight = highlights.find(h => h.$id === highlightId);
       if (!highlight) return;
 
@@ -336,7 +372,7 @@ export default function AdminVideoHighlightsPage() {
       if (!highlight.isFeatured) {
         const featuredHighlights = highlights.filter(h => h.isFeatured);
         for (const featured of featuredHighlights) {
-          await databases.updateDocument(
+          await appwrite.databases.updateDocument(
             DB_ID,
             COLLECTION_ID,
             featured.$id,
@@ -345,7 +381,7 @@ export default function AdminVideoHighlightsPage() {
         }
       }
 
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         highlightId,
@@ -370,12 +406,18 @@ export default function AdminVideoHighlightsPage() {
     try {
       setIsSaving(true);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       // Update the order of the two highlights
       const highlight1 = highlights[highlightIndex];
       const highlight2 = highlights[newIndex];
       
-      await databases.updateDocument(DB_ID, COLLECTION_ID, highlight1.$id, { order: highlight2.order });
-      await databases.updateDocument(DB_ID, COLLECTION_ID, highlight2.$id, { order: highlight1.order });
+      await appwrite.databases.updateDocument(DB_ID, COLLECTION_ID, highlight1.$id, { order: highlight2.order });
+      await appwrite.databases.updateDocument(DB_ID, COLLECTION_ID, highlight2.$id, { order: highlight1.order });
       
       setMessage('Video highlight order updated successfully!');
       fetchHighlights();

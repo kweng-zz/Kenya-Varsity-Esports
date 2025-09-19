@@ -5,13 +5,40 @@ import { X, Play } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Client, Databases } from "appwrite";
 
-// Appwrite setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Appwrite setup with lazy initialization
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for highlights, using fallback data');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for highlights, using fallback data');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for highlights:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const COLLECTION_ID = 'video-highlights';
 
 interface VideoHighlight {
@@ -48,7 +75,42 @@ export const TopHighlightSection = () => {
     useEffect(() => {
         const fetchHighlights = async () => {
             try {
-                const response = await databases.listDocuments(DB_ID, COLLECTION_ID);
+                const db = initializeAppwrite();
+                if (!db) {
+                    // Use fallback data if Appwrite is not configured
+                    setMainVideo({
+                        $id: 'fallback-main',
+                        title: 'Main Season 2 Highlight',
+                        description: 'Season 2 championship highlights',
+                        youtubeUrl: 'https://youtu.be/WoSSsYqgb18?si=-FLMhxsoJ3p0-hqy',
+                        isActive: true,
+                        order: 0
+                    });
+                    setHighlights([
+                        {
+                            $id: 'fallback-1',
+                            title: 'KUER DAY 1 HIGHLIGHTS',
+                            badge: 'DAY 1 FINALS',
+                            description: 'Season 2 was held at KCA University and here is the highlight for day 1',
+                            youtubeUrl: 'https://youtu.be/bkP_yfEXW6o?si=oICSj8b72G7UVCtS',
+                            isActive: true,
+                            order: 1
+                        },
+                        {
+                            $id: 'fallback-2',
+                            title: 'KUER DAY 2 HIGHLIGHTS',
+                            badge: 'DAY 2 FINALS',
+                            description: 'Season 2 was held at KCA University and here is the highlight for day 2',
+                            youtubeUrl: 'https://youtu.be/Yk-kScaNlbU?si=D8Lyafe88Km7vzzG',
+                            isActive: true,
+                            order: 2
+                        }
+                    ]);
+                    setLoading(false);
+                    return;
+                }
+
+                const response = await db.listDocuments(DB_ID, COLLECTION_ID);
                 
                 // Filter active highlights and sort by order
                 const activeHighlights = response.documents

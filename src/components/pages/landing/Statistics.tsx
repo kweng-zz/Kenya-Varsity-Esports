@@ -23,13 +23,40 @@ interface SeasonInfo {
   nextSeasonStartDate?: Date;
 }
 
-// --- Appwrite Setup ---
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// --- Appwrite Setup with lazy initialization ---
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for statistics, using fallback data');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for statistics, using fallback data');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for statistics:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const COLLECTION_ID = 'season_statistics';
 
 // --- Icon ---
@@ -107,7 +134,22 @@ const SeasonStatistics = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await databases.listDocuments(DB_ID, COLLECTION_ID);
+        const db = initializeAppwrite();
+        if (!db) {
+          // Use fallback data if Appwrite is not configured
+          const defaultStats: SeasonStatsDoc[] = [
+            { $id: '1', number: '50+', label: 'Universities\nParticipating', seasonNumber: 2 },
+            { $id: '2', number: '1000+', label: 'Active\nPlayers', seasonNumber: 2 },
+            { $id: '3', number: '25+', label: 'Tournaments\nCompleted', seasonNumber: 2 },
+            { $id: '4', number: '100K+', label: 'Prize Pool\nDistributed', seasonNumber: 2 },
+            { $id: '5', number: '15+', label: 'Game\nTitles', seasonNumber: 2 },
+          ];
+          setStats(defaultStats);
+          setTitleText('SEASON 2 STATISTICS');
+          return;
+        }
+
+        const response = await db.listDocuments(DB_ID, COLLECTION_ID);
 
         // Determine current season info
         const seasonInfo = determineSeasonInfo(response.documents);

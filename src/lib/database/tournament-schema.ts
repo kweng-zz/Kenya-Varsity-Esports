@@ -5,13 +5,39 @@
 
 import { Client, Databases } from 'appwrite';
 
-// Initialize Appwrite client
-const client = new Client();
-client
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '');
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for tournament schema');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for tournament schema');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for tournament schema:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 
 /**

@@ -17,16 +17,48 @@ import {
   TICKET_SUBJECTS
 } from '@/types/ticket';
 
-// Initialize Appwrite client
-const client = new Client();
-client
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '');
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
+let storage: Storage | null = null;
 
-const databases = new Databases(client);
-const storage = new Storage(client);
+const initializeAppwrite = (): { databases: Databases; storage: Storage } | null => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
 
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for ticket service');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for ticket service');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+      storage = new Storage(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for ticket service:', error);
+      return null;
+    }
+  }
+  
+  // Ensure both databases and storage are initialized
+  if (!databases || !storage) {
+    return null;
+  }
+  
+  return { databases, storage };
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const TICKETS_COLLECTION_ID = 'tickets';
 const TICKET_RESPONSES_COLLECTION_ID = 'ticket_responses';
 const TICKET_ATTACHMENTS_BUCKET_ID = 'ticket_attachments';
@@ -40,6 +72,11 @@ class TicketService {
    */
   async createTicket(userId: string, userName: string, data: CreateTicketData): Promise<Ticket> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       // Generate human-readable ticket ID
       const ticketId = `TKT-${Date.now().toString().slice(-6)}`;
       
@@ -52,7 +89,7 @@ class TicketService {
       // Handle file upload if attachment exists
       if (data.attachment) {
         const fileId = ID.unique();
-        const uploadedFile = await storage.createFile(
+        const uploadedFile = await appwrite.storage.createFile(
           TICKET_ATTACHMENTS_BUCKET_ID,
           fileId,
           data.attachment,
@@ -63,12 +100,12 @@ class TicketService {
           ]
         );
         
-        attachmentUrl = storage.getFileView(TICKET_ATTACHMENTS_BUCKET_ID, uploadedFile.$id).toString();
+        attachmentUrl = appwrite.storage.getFileView(TICKET_ATTACHMENTS_BUCKET_ID, uploadedFile.$id).toString();
         attachmentName = data.attachment.name;
       }
 
       // Create ticket document
-      const ticket = await databases.createDocument(
+      const ticket = await appwrite.databases.createDocument(
         DB_ID,
         TICKETS_COLLECTION_ID,
         ID.unique(),
@@ -110,6 +147,11 @@ class TicketService {
    */
   async getTickets(filters: TicketFilters = {}, limit = 25, offset = 0): Promise<{ tickets: Ticket[], total: number }> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       const queries: string[] = [
         Query.limit(limit),
         Query.offset(offset),
@@ -153,7 +195,7 @@ class TicketService {
         queries.push(Query.lessThanEqual('$createdAt', filters.dateTo));
       }
 
-      const response = await databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, queries);
+      const response = await appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, queries);
       
       return {
         tickets: response.documents as unknown as Ticket[],
@@ -170,7 +212,12 @@ class TicketService {
    */
   async getTicket(ticketId: string): Promise<Ticket | null> {
     try {
-      const response = await databases.listDocuments(
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return null;
+      }
+
+      const response = await appwrite.databases.listDocuments(
         DB_ID,
         TICKETS_COLLECTION_ID,
         [Query.equal('ticketId', ticketId)]
@@ -188,12 +235,17 @@ class TicketService {
    */
   async updateTicket(ticketId: string, updates: UpdateTicketData): Promise<Ticket> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       const ticket = await this.getTicket(ticketId);
       if (!ticket) {
         throw new Error('Ticket not found');
       }
 
-      const updatedTicket = await databases.updateDocument(
+      const updatedTicket = await appwrite.databases.updateDocument(
         DB_ID,
         TICKETS_COLLECTION_ID,
         ticket.$id,
@@ -215,6 +267,11 @@ class TicketService {
    */
   async addResponse(userId: string, userName: string, data: CreateResponseData): Promise<TicketResponse> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       const ticket = await this.getTicket(data.ticketId);
       if (!ticket) {
         throw new Error('Ticket not found');
@@ -226,7 +283,7 @@ class TicketService {
       // Handle file upload if attachment exists
       if (data.attachment) {
         const fileId = ID.unique();
-        const uploadedFile = await storage.createFile(
+        const uploadedFile = await appwrite.storage.createFile(
           TICKET_ATTACHMENTS_BUCKET_ID,
           fileId,
           data.attachment,
@@ -237,7 +294,7 @@ class TicketService {
           ]
         );
         
-        attachmentUrl = storage.getFileView(TICKET_ATTACHMENTS_BUCKET_ID, uploadedFile.$id).toString();
+        attachmentUrl = appwrite.storage.getFileView(TICKET_ATTACHMENTS_BUCKET_ID, uploadedFile.$id).toString();
         attachmentName = data.attachment.name;
       }
 
@@ -245,7 +302,7 @@ class TicketService {
       const isAdminResponse = userName.includes('@') || userId === 'admin'; // You might want to check against admin role
 
       // Create response document
-      const response = await databases.createDocument(
+      const response = await appwrite.databases.createDocument(
         DB_ID,
         TICKET_RESPONSES_COLLECTION_ID,
         ID.unique(),
@@ -269,7 +326,7 @@ class TicketService {
 
       // Update ticket with response info
       const newStatus: TicketStatus = isAdminResponse ? 'waiting-for-user' : 'waiting-for-admin';
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         TICKETS_COLLECTION_ID,
         ticket.$id,
@@ -294,7 +351,12 @@ class TicketService {
    */
   async getTicketResponses(ticketId: string): Promise<TicketResponse[]> {
     try {
-      const response = await databases.listDocuments(
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
+      const response = await appwrite.databases.listDocuments(
         DB_ID,
         TICKET_RESPONSES_COLLECTION_ID,
         [
@@ -315,6 +377,11 @@ class TicketService {
    */
   async markAsRead(ticketId: string, isAdmin: boolean): Promise<void> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       const ticket = await this.getTicket(ticketId);
       if (!ticket) {
         throw new Error('Ticket not found');
@@ -324,7 +391,7 @@ class TicketService {
         ? { isUnreadByAdmin: false }
         : { isUnreadByUser: false };
 
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         TICKETS_COLLECTION_ID,
         ticket.$id,
@@ -341,6 +408,11 @@ class TicketService {
    */
   async getTicketStats(): Promise<TicketStats> {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        throw new Error('Appwrite not configured');
+      }
+
       const [
         totalResponse,
         openResponse,
@@ -351,14 +423,14 @@ class TicketService {
         closedResponse,
         unreadResponse
       ] = await Promise.all([
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'open'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'in-progress'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'waiting-for-user'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'waiting-for-admin'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'resolved'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'closed'), Query.limit(1)]),
-        databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('isUnreadByAdmin', true), Query.limit(1)])
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'open'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'in-progress'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'waiting-for-user'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'waiting-for-admin'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'resolved'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('status', 'closed'), Query.limit(1)]),
+        appwrite.databases.listDocuments(DB_ID, TICKETS_COLLECTION_ID, [Query.equal('isUnreadByAdmin', true), Query.limit(1)])
       ]);
 
       return {

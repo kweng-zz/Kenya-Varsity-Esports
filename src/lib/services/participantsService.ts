@@ -2,13 +2,40 @@
 
 import { Client, Databases, ID, Permission, Role, Query } from 'appwrite';
 
-// Appwrite Setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for participants service');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for participants service');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for participants service:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const PARTICIPANTS_COLLECTION_ID = 'participants';
 
 export interface Participant {
@@ -46,7 +73,18 @@ class ParticipantsService {
   // Get all participants for a tournament
   async getParticipantsByTournament(tournamentSlug: string): Promise<ParticipantsData> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        return {
+          teams: [],
+          totalTeams: 0,
+          totalParticipants: 0,
+          approvedTeams: 0,
+          pendingTeams: 0
+        };
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
@@ -85,7 +123,12 @@ class ParticipantsService {
   // Get approved participants only (for public display)
   async getApprovedParticipants(tournamentSlug: string): Promise<Participant[]> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        return [];
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
@@ -108,7 +151,12 @@ class ParticipantsService {
   // Create a new participant registration
   async createParticipant(participantData: Omit<Participant, '$id'>): Promise<Participant | null> {
     try {
-      const response = await databases.createDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return null;
+      }
+
+      const response = await db.createDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         ID.unique(),
@@ -139,7 +187,12 @@ class ParticipantsService {
   // Update participant status
   async updateParticipantStatus(participantId: string, status: 'pending' | 'approved' | 'rejected'): Promise<boolean> {
     try {
-      await databases.updateDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return false;
+      }
+
+      await db.updateDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         participantId,
@@ -155,7 +208,12 @@ class ParticipantsService {
   // Update payment status
   async updatePaymentStatus(participantId: string, paymentStatus: 'pending' | 'paid' | 'failed'): Promise<boolean> {
     try {
-      await databases.updateDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return false;
+      }
+
+      await db.updateDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         participantId,
@@ -171,7 +229,12 @@ class ParticipantsService {
   // Update participant data
   async updateParticipant(participantId: string, updateData: Partial<Participant>): Promise<boolean> {
     try {
-      await databases.updateDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return false;
+      }
+
+      await db.updateDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         participantId,
@@ -187,7 +250,12 @@ class ParticipantsService {
   // Delete participant
   async deleteParticipant(participantId: string): Promise<boolean> {
     try {
-      await databases.deleteDocument(DB_ID, PARTICIPANTS_COLLECTION_ID, participantId);
+      const db = initializeAppwrite();
+      if (!db) {
+        return false;
+      }
+
+      await db.deleteDocument(DB_ID, PARTICIPANTS_COLLECTION_ID, participantId);
       return true;
     } catch (error) {
       console.error('Error deleting participant:', error);
@@ -198,7 +266,12 @@ class ParticipantsService {
   // Get participant by ID
   async getParticipantById(participantId: string): Promise<Participant | null> {
     try {
-      const response = await databases.getDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return null;
+      }
+
+      const response = await db.getDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         participantId
@@ -216,7 +289,12 @@ class ParticipantsService {
   // Search participants
   async searchParticipants(tournamentSlug: string, searchTerm: string): Promise<Participant[]> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        return [];
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [

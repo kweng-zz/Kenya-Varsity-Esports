@@ -28,13 +28,40 @@ interface HeroBanner {
   isActive: boolean;
 }
 
-// --- Appwrite Setup ---
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// --- Appwrite Setup with lazy initialization ---
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for banners, using fallback data');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for banners, using fallback data');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for banners:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const COLLECTION_ID = 'hero_banners';
 
 export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
@@ -47,7 +74,15 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
     const loadAppwriteBanners = async () => {
       try {
         setIsLoading(true);
-        const response = await databases.listDocuments(DB_ID, COLLECTION_ID);
+        const db = initializeAppwrite();
+        if (!db) {
+          // Use fallback banners if Appwrite is not configured
+          setCmsBanners([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await db.listDocuments(DB_ID, COLLECTION_ID);
         
         // Filter only active banners and sort by order
         const activeBanners = response.documents

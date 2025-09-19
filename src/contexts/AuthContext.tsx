@@ -3,13 +3,46 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Account, Client, Databases, Models, ID, Permission, Role } from 'appwrite';
 
-// --- Appwrite Client Setup ---
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// --- Appwrite Client Setup with lazy initialization ---
+let client: Client | null = null;
+let account: Account | null = null;
+let databases: Databases | null = null;
 
-const account = new Account(client);
-const databases = new Databases(client);
+const initializeAppwrite = (): { account: Account; databases: Databases } | null => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for auth, authentication will not work');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for auth, authentication will not work');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      account = new Account(client);
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for auth:', error);
+      return null;
+    }
+  }
+  
+  // Ensure both account and databases are initialized
+  if (!account || !databases) {
+    return null;
+  }
+  
+  return { account, databases };
+};
 
 // --- Types ---
 export type AppwriteProfile = {
@@ -56,7 +89,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getProfile = async (userId: string): Promise<AppwriteProfile | null> => {
     try {
       console.log('🔍 Fetching profile for user ID:', userId);
-      const doc = await databases.getDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        console.warn('Appwrite not configured, cannot fetch profile');
+        return null;
+      }
+
+      const doc = await appwrite.databases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
         userId
@@ -84,7 +123,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const init = async () => {
       try {
         console.log('🔍 Checking for existing session...');
-        const currentUser = await account.get();
+        const appwrite = initializeAppwrite();
+        if (!appwrite) {
+          console.warn('Appwrite not configured, skipping session check');
+          setLoading(false);
+          return;
+        }
+
+        const currentUser = await appwrite.account.get();
         console.log('✅ Found user session:', currentUser.email);
         setUser(currentUser);
         const userProfile = await getProfile(currentUser.$id);
@@ -106,8 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // --- Auth Actions ---
   const signIn = async (email: string, password: string) => {
     try {
-      const session = await account.createEmailPasswordSession(email, password);
-      const currentUser = await account.get();
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
+
+      const session = await appwrite.account.createEmailPasswordSession(email, password);
+      const currentUser = await appwrite.account.get();
       setUser(currentUser);
       const userProfile = await getProfile(currentUser.$id);
       setProfile(userProfile);
@@ -124,14 +175,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userData: Omit<AppwriteProfile, '$id' | '$createdAt' | '$updatedAt' | '$collectionId' | '$permissions'>
   ) => {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
+
       // First create the user account
-      const newUser = await account.create(ID.unique(), email, password);
+      const newUser = await appwrite.account.create(ID.unique(), email, password);
       
       // Create a session for the new user so they can create their profile
-      await account.createEmailPasswordSession(email, password);
+      await appwrite.account.createEmailPasswordSession(email, password);
 
       // Create the profile document (permissions will be handled by collection settings)
-      const profileDoc = await databases.createDocument(
+      const profileDoc = await appwrite.databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
         newUser.$id,
@@ -155,7 +211,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Only attempt to delete session if user is actually signed in
       if (user) {
-        await account.deleteSession('current');
+        const appwrite = initializeAppwrite();
+        if (appwrite) {
+          await appwrite.account.deleteSession('current');
+        }
       }
     } catch (error) {
       // Ignore errors when user is already signed out or has no active session
@@ -171,7 +230,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (updates: Partial<AppwriteProfile>) => {
     if (!profile) return { error: new Error('No profile to update') };
     try {
-      const updated = await databases.updateDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
+
+      const updated = await appwrite.databases.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
         profile.$id,
@@ -187,7 +251,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendPasswordResetEmail = async (email: string) => {
     try {
-      await account.createRecovery(email, `${window.location.origin}/reset-password`);
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
+
+      await appwrite.account.createRecovery(email, `${window.location.origin}/reset-password`);
       return {};
     } catch (error) {
       console.error('Password reset error:', error);
@@ -197,7 +266,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resendVerificationEmail = async () => {
   try {
-    await account.createVerification(`${window.location.origin}/verify-email`); 
+    const appwrite = initializeAppwrite();
+    if (!appwrite) {
+      return { error: new Error('Appwrite not configured') };
+    }
+
+    await appwrite.account.createVerification(`${window.location.origin}/verify-email`); 
     return {};
   } catch (error) {
     console.error('Verification email error:', error);

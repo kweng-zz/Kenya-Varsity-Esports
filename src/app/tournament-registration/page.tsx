@@ -7,12 +7,38 @@ import { Client, Databases, ID } from 'appwrite';
 import { isAuthorizedTeamCaptain } from '@/lib/teamCaptains';
 import { getGameBySlug, Game } from '@/lib/gamesData';
 
-// Appwrite client setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Appwrite Setup with lazy initialization
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for tournament registration');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for tournament registration');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for tournament registration:', error);
+      return null;
+    }
+  }
+  return { databases };
+};
 
 interface Tournament {
   $id: string;
@@ -88,7 +114,14 @@ export default function TournamentRegistrationPage() {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const response = await databases.listDocuments(
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.databases) {
+          console.warn('Appwrite not configured, skipping tournaments fetch');
+          setLoadingTournaments(false);
+          return;
+        }
+
+        const response = await appwrite.databases.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID!
         );
@@ -255,7 +288,14 @@ export default function TournamentRegistrationPage() {
         userId: user.$id
       };
 
-      await databases.createDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setMessage({ type: 'error', text: 'Database not configured. Please try again later.' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      await appwrite.databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
         ID.unique(),

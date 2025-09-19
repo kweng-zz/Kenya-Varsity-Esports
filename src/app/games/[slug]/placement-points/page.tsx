@@ -9,9 +9,9 @@ import { tournamentNavItems } from '@/lib/tournamentNavigation';
 import Link from 'next/link';
 
 interface TournamentPlacementPointsPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 // Disable caching for this page to ensure fresh data
@@ -20,7 +20,7 @@ export const revalidate = 0;
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: TournamentPlacementPointsPageProps): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
   
   const tournamentData = await tournamentServiceSSR.getTournamentBySlug(slug);
 
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: TournamentPlacementPointsPage
 }
 
 export default async function TournamentPlacementPointsPage({ params }: TournamentPlacementPointsPageProps) {
-  const { slug } = params;
+  const { slug } = await params;
   
   // Fetch tournament data
   let tournamentData: Tournament | null = null;

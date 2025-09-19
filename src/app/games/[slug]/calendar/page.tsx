@@ -8,36 +8,24 @@ import Link from 'next/link';
 import { Navigation } from '@/components/Navigation';
 import { FooterSection } from '@/components/Footer';
 import { TournamentCalendar } from '@/components/TournamentCalendar';
-
-interface TournamentNavItem {
-  name: string;
-  href: string;
-}
-
-interface GameCalendarPageProps {
-  params: {
-    slug: string;
-  };
-}
-
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
 
-export default async function CalendarPage({ params }: GameCalendarPageProps) {
-  const { slug } = params;
-  const game = getGameBySlug(slug);
+export default async function CalendarPage({
+  params,
+}: {
+  params: { slug: string }
+}) {
+  const { slug } = params
+  const game = getGameBySlug(slug)
 
   if (!game) {
-    notFound();
+    notFound()
   }
 
-  const calendarData = await calendarService.getCalendarData(slug);
+  const calendarData = await calendarService.getCalendarData(slug)
+  const events = calendarData?.events || []
 
-  // Use events directly from Supabase - no mapping needed as they're already in the correct format
-  const events = calendarData?.events || [];
-
-  const isActiveRoute = (href: string) => {
-    return href.includes('/calendar');
-  };
+  const isActiveRoute = (href: string) => href.includes('/calendar')
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
@@ -52,13 +40,15 @@ export default async function CalendarPage({ params }: GameCalendarPageProps) {
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(182.1deg, #0F0F13 22.17%, rgba(12, 14, 17, 0) 74.51%)',
+            background:
+              'linear-gradient(182.1deg, #0F0F13 22.17%, rgba(12, 14, 17, 0) 74.51%)',
           }}
         ></div>
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(0deg, rgba(15, 15, 19, 0.9) 22.17%, rgba(12, 14, 17, 0) 74.51%)',
+            background:
+              'linear-gradient(0deg, rgba(15, 15, 19, 0.9) 22.17%, rgba(12, 14, 17, 0) 74.51%)',
           }}
         ></div>
         <div className="absolute inset-0 overflow-hidden">
@@ -86,7 +76,7 @@ export default async function CalendarPage({ params }: GameCalendarPageProps) {
         <div className="relative z-10 h-full">
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex space-x-12">
             {tournamentNavItems.map((item, index) => {
-              const itemHref = item.href.replace('[slug]', game.slug);
+              const itemHref = item.href.replace('[slug]', game.slug)
               return (
                 <div key={`tournament-nav-${index}`} className="relative">
                   <Link
@@ -103,7 +93,7 @@ export default async function CalendarPage({ params }: GameCalendarPageProps) {
                     <div className="absolute -bottom-1 left-0 w-full h-[3px] bg-[#8e130e]" />
                   )}
                 </div>
-              );
+              )
             })}
           </div>
         </div>
@@ -132,5 +122,5 @@ export default async function CalendarPage({ params }: GameCalendarPageProps) {
 
       <FooterSection />
     </div>
-  );
+  )
 }

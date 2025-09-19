@@ -5,12 +5,38 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Client, Databases, Query } from 'appwrite';
 
-// Appwrite client setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin users');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin users');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin users:', error);
+      return null;
+    }
+  }
+  return databases;
+};
 
 interface UserProfile {
   $id: string;
@@ -47,7 +73,14 @@ export default function AdminUsersPage() {
       if (!user || !profile?.isAdmin) return;
 
       try {
-        const response = await databases.listDocuments(
+        const db = initializeAppwrite();
+        if (!db) {
+          console.warn('Appwrite not configured, skipping users fetch');
+          setLoadingUsers(false);
+          return;
+        }
+
+        const response = await db.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
           [Query.orderDesc('$createdAt'), Query.limit(100)]

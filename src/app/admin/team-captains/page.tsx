@@ -5,12 +5,38 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Client, Databases, Query, ID } from 'appwrite';
 
-// Appwrite client setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for team captains');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for team captains');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for team captains:', error);
+      return null;
+    }
+  }
+  return databases;
+};
 
 interface TeamCaptain {
   $id: string;
@@ -67,8 +93,15 @@ export default function AdminTeamCaptainsPage() {
       if (!user || !profile?.isAdmin) return;
 
       try {
+        const db = initializeAppwrite();
+        if (!db) {
+          console.warn('Appwrite not configured, skipping team captains fetch');
+          setLoadingData(false);
+          return;
+        }
+
         // Fetch team captains
-        const captainsResponse = await databases.listDocuments(
+        const captainsResponse = await db.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_TEAM_CAPTAINS_COLLECTION_ID!,
           [Query.orderDesc('$createdAt'), Query.limit(100)]
@@ -77,7 +110,7 @@ export default function AdminTeamCaptainsPage() {
         setCaptains(captainsResponse.documents as unknown as TeamCaptain[]);
 
         // Fetch all users for the dropdown
-        const usersResponse = await databases.listDocuments(
+        const usersResponse = await db.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
           [Query.orderAsc('fullname'), Query.limit(200)]
@@ -106,7 +139,13 @@ export default function AdminTeamCaptainsPage() {
     setProcessingIds(prev => new Set(prev).add('add-form'));
 
     try {
-      const newCaptain = await databases.createDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        alert('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      const newCaptain = await db.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TEAM_CAPTAINS_COLLECTION_ID!,
         ID.unique(),
@@ -148,7 +187,13 @@ export default function AdminTeamCaptainsPage() {
     setProcessingIds(prev => new Set(prev).add(captainId));
 
     try {
-      await databases.updateDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        alert('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await db.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TEAM_CAPTAINS_COLLECTION_ID!,
         captainId,
@@ -181,7 +226,13 @@ export default function AdminTeamCaptainsPage() {
     setProcessingIds(prev => new Set(prev).add(captainId));
 
     try {
-      await databases.deleteDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        alert('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await db.deleteDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TEAM_CAPTAINS_COLLECTION_ID!,
         captainId

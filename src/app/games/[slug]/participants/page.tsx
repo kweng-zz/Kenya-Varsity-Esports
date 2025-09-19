@@ -1,7 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getGameBySlug } from '@/lib/gamesData';
-import { participantsServiceSSR } from '@/lib/services/participantsServiceSSR';
 import { Navigation } from '@/components/Navigation';
 import { FooterSection } from '@/components/Footer';
 import { ParticipantsTable } from '@/components/ParticipantsTable';
@@ -31,41 +30,10 @@ export default async function TournamentParticipantsPage({ params }: TournamentP
 
   const currentPath = `/games/${slug}/participants`;
 
-  // Initialize with empty array - data will be fetched client-side or at runtime
-  let teams: any[] = [];
+  // Use empty array for build time - data will be fetched client-side
+  const teams: any[] = [];
 
-  // Only fetch data if we have proper environment configuration
-  const hasAppwriteConfig = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT && 
-                           process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID && 
-                           process.env.APPWRITE_API_KEY;
-
-  if (hasAppwriteConfig) {
-    try {
-      console.log('=== FRONTEND PARTICIPANTS FETCH DEBUG ===');
-      console.log('Fetching participants for slug:', slug);
-      
-      teams = await participantsServiceSSR.getApprovedParticipants(slug);
-      console.log('✅ Successfully fetched participants');
-      
-      console.log('Participants Debug:', {
-        slug,
-        teamsCount: teams.length,
-        totalParticipants: teams.reduce((sum: number, team: any) => sum + team.totalMembers || 0, 0),
-        teams: teams.map(team => ({
-          id: team.$id,
-          teamName: team.teamName,
-          tournamentSlug: team.tournamentSlug,
-          status: team.status
-        }))
-      });
-    } catch (error) {
-      console.error('❌ Error fetching participants in page component:', error);
-      // Return empty array on error to prevent page crash
-      teams = [];
-    }
-  } else {
-    console.log('⏭️ Appwrite not configured, using empty participants list');
-  }
+  console.log('⏭️ Using static build for participants page - data will be fetched client-side');
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">

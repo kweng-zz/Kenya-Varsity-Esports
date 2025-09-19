@@ -2,10 +2,14 @@
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = ["cd kuer && npm ci"]
+cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["cd kuer && npm run build"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "cd kuer && npm run start"
+cmd = "npm run start"
+
+[variables]
+NODE_ENV = "production"
+HOST = "0.0.0.0"

@@ -8,11 +8,38 @@ import { CalendarEvent } from '@/lib/services/calendarService';
 // Client-side calendar service for admin operations
 import { Client, Databases, Query, ID } from 'appwrite';
 
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin calendar');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin calendar');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin calendar:', error);
+      return null;
+    }
+  }
+  return databases;
+};
 
 interface CalendarEventForm {
   title: string;
@@ -107,7 +134,14 @@ export default function AdminCalendarPage() {
       if (!user || !profile?.isAdmin) return;
 
       try {
-        const response = await databases.listDocuments(
+        const db = initializeAppwrite();
+        if (!db) {
+          console.warn('Appwrite not configured, skipping calendar events fetch');
+          setLoadingData(false);
+          return;
+        }
+
+        const response = await db.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
           [Query.orderDesc('date'), Query.limit(100)]
@@ -158,6 +192,12 @@ export default function AdminCalendarPage() {
     setSubmitting(true);
 
     try {
+      const db = initializeAppwrite();
+      if (!db) {
+        console.error('Appwrite not configured, cannot save event');
+        return;
+      }
+
       const eventData = {
         title: formData.title,
         description: formData.description,
@@ -178,7 +218,7 @@ export default function AdminCalendarPage() {
 
       if (editingEvent) {
         // Update existing event
-        await databases.updateDocument(
+        await db.updateDocument(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
           editingEvent.id,
@@ -192,7 +232,7 @@ export default function AdminCalendarPage() {
         ));
       } else {
         // Create new event
-        const response = await databases.createDocument(
+        const response = await db.createDocument(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
           ID.unique(),
@@ -257,7 +297,13 @@ export default function AdminCalendarPage() {
     if (!confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      await databases.deleteDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.error('Appwrite not configured, cannot delete event');
+        return;
+      }
+
+      await db.deleteDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
         eventId

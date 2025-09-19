@@ -8,7 +8,7 @@
     "dev:simple": "node start.js",
     "dev:next": "next dev --turbopack",
     "dev:strapi": "npm run strapi:dev",
-    "build": "npm run strapi:build",
+    "build": "next build",
     "build:next": "next build",
     "build:local": "npm run strapi:build && next build",
     "build:vercel": "next build",

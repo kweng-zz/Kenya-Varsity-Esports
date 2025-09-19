@@ -24,13 +24,41 @@ interface SeasonSettings {
   seasonStatus: 'active' | 'completed';
 }
 
-// --- Appwrite Setup ---
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// --- Appwrite Setup with lazy initialization ---
+let client: Client | null = null;
+let databases: Databases | null = null;
+let storage: Storage | null = null;
 
-const databases = new Databases(client);
-const storage = new Storage(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin statistics');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin statistics');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+      storage = new Storage(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin statistics:', error);
+      return null;
+    }
+  }
+  return { databases, storage };
+};
+
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const COLLECTION_ID = 'season_statistics';
 const BUCKET_ID = 'season-images';
@@ -73,7 +101,14 @@ export default function AdminStatisticsPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await databases.listDocuments(DB_ID, COLLECTION_ID);
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.warn('Appwrite not configured, skipping statistics fetch');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await appwrite.databases.listDocuments(DB_ID, COLLECTION_ID);
       
       // Separate statistics from settings
       const statistics = response.documents.filter(doc => 
@@ -150,7 +185,13 @@ export default function AdminStatisticsPage() {
   const handleSaveStat = async (statId: string) => {
     try {
       setIsSaving(true);
-      await databases.updateDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         statId,
@@ -188,9 +229,15 @@ export default function AdminStatisticsPage() {
           return;
         }
       } else if (uploadMethod === 'file' && selectedFile) {
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.storage) {
+          setError('Appwrite not configured. Please try again.');
+          return;
+        }
+
         try {
           // Upload file to Appwrite Storage
-          const fileResponse = await storage.createFile(
+          const fileResponse = await appwrite.storage.createFile(
             BUCKET_ID,
             ID.unique(),
             selectedFile
@@ -215,12 +262,18 @@ export default function AdminStatisticsPage() {
         }
       }
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       const updateData: Record<string, unknown> = {
         eventImage: eventImageUrl,
         seasonEndDate: new Date(newSeasonEndDate + 'T23:59:59.000Z').toISOString()
       };
 
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         seasonSettings.$id,
@@ -229,7 +282,7 @@ export default function AdminStatisticsPage() {
 
       // Also update all statistics with the new event image
       for (const stat of stats) {
-        await databases.updateDocument(
+        await appwrite.databases.updateDocument(
           DB_ID,
           COLLECTION_ID,
           stat.$id,
@@ -265,8 +318,14 @@ export default function AdminStatisticsPage() {
     try {
       setIsSaving(true);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       // Mark current season as completed
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         seasonSettings.$id,
@@ -280,7 +339,7 @@ export default function AdminStatisticsPage() {
       const newSeasonEndDate = new Date();
       newSeasonEndDate.setFullYear(newSeasonEndDate.getFullYear() + 1); // Next year
       
-      await databases.createDocument(
+      await appwrite.databases.createDocument(
         DB_ID,
         COLLECTION_ID,
         ID.unique(),

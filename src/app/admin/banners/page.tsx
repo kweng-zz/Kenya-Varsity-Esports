@@ -18,13 +18,41 @@ interface HeroBanner {
   isActive: boolean;
 }
 
-// --- Appwrite Setup ---
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// --- Appwrite Setup with lazy initialization ---
+let client: Client | null = null;
+let databases: Databases | null = null;
+let storage: Storage | null = null;
 
-const databases = new Databases(client);
-const storage = new Storage(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin banners');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin banners');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+      storage = new Storage(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin banners:', error);
+      return null;
+    }
+  }
+  return { databases, storage };
+};
+
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const COLLECTION_ID = 'hero_banners';
 const BUCKET_ID = 'season-images';
@@ -51,7 +79,14 @@ export default function AdminBannersPage() {
   const fetchBanners = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await databases.listDocuments(DB_ID, COLLECTION_ID);
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.warn('Appwrite not configured, skipping banners fetch');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await appwrite.databases.listDocuments(DB_ID, COLLECTION_ID);
       
       // Map documents to HeroBanner type and sort by order
       const mappedBanners: HeroBanner[] = response.documents.map(doc => ({
@@ -102,6 +137,12 @@ export default function AdminBannersPage() {
 
   const createDefaultBanners = async () => {
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       const defaultBanners = [
         {
           src: '/images/Join-Your-Uni.png',
@@ -127,7 +168,7 @@ export default function AdminBannersPage() {
 
       const createdBanners = [];
       for (const banner of defaultBanners) {
-        const created = await databases.createDocument(
+        const created = await appwrite.databases.createDocument(
           DB_ID,
           COLLECTION_ID,
           ID.unique(),
@@ -198,8 +239,14 @@ export default function AdminBannersPage() {
       
       // Handle file upload if a file was selected
       if (uploadMethod === 'file' && selectedFile) {
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.storage) {
+          setError('Appwrite not configured. Please try again.');
+          return;
+        }
+
         try {
-          const fileResponse = await storage.createFile(
+          const fileResponse = await appwrite.storage.createFile(
             BUCKET_ID,
             ID.unique(),
             selectedFile
@@ -225,7 +272,13 @@ export default function AdminBannersPage() {
         isActive: editForm.isActive !== false
       };
 
-      await databases.updateDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         editingBannerId!,
@@ -264,7 +317,13 @@ export default function AdminBannersPage() {
         isActive: true
       };
       
-      await databases.createDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.createDocument(
         DB_ID,
         COLLECTION_ID,
         ID.unique(),
@@ -289,7 +348,13 @@ export default function AdminBannersPage() {
     if (window.confirm('Are you sure you want to delete this banner?')) {
       try {
         setIsSaving(true);
-        await databases.deleteDocument(DB_ID, COLLECTION_ID, bannerId);
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.databases) {
+          setError('Appwrite not configured. Please try again.');
+          return;
+        }
+
+        await appwrite.databases.deleteDocument(DB_ID, COLLECTION_ID, bannerId);
         setMessage('Banner deleted successfully!');
         fetchBanners();
       } catch (err) {
@@ -306,7 +371,13 @@ export default function AdminBannersPage() {
       const banner = banners.find(b => b.$id === bannerId);
       if (!banner) return;
 
-      await databases.updateDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.updateDocument(
         DB_ID,
         COLLECTION_ID,
         bannerId,
@@ -331,12 +402,18 @@ export default function AdminBannersPage() {
     try {
       setIsSaving(true);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       // Update the order of the two banners
       const banner1 = banners[bannerIndex];
       const banner2 = banners[newIndex];
       
-      await databases.updateDocument(DB_ID, COLLECTION_ID, banner1.$id, { order: banner2.order });
-      await databases.updateDocument(DB_ID, COLLECTION_ID, banner2.$id, { order: banner1.order });
+      await appwrite.databases.updateDocument(DB_ID, COLLECTION_ID, banner1.$id, { order: banner2.order });
+      await appwrite.databases.updateDocument(DB_ID, COLLECTION_ID, banner2.$id, { order: banner1.order });
       
       setMessage('Banner order updated successfully!');
       fetchBanners();

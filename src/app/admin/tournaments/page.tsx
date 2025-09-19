@@ -5,12 +5,39 @@ import { Client, Databases, ID, Permission, Role, Query } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
-// Appwrite Setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Appwrite Setup with lazy initialization
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin tournaments');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin tournaments');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin tournaments:', error);
+      return null;
+    }
+  }
+  return { databases };
+};
+
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const TOURNAMENTS_COLLECTION_ID = 'tournaments';
 const AWARDS_COLLECTION_ID = 'tournament_awards';
@@ -95,7 +122,14 @@ export default function TournamentsAdminPage() {
   const fetchTournaments = async () => {
     try {
       setLoading(true);
-      const response = await databases.listDocuments(DB_ID, TOURNAMENTS_COLLECTION_ID);
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.warn('Appwrite not configured, skipping tournaments fetch');
+        setLoading(false);
+        return;
+      }
+
+      const response = await appwrite.databases.listDocuments(DB_ID, TOURNAMENTS_COLLECTION_ID);
       setTournaments(response.documents);
       setError(null);
     } catch (err: any) {
@@ -109,7 +143,13 @@ export default function TournamentsAdminPage() {
   // Fetch awards for a tournament
   const fetchAwards = async (tournamentId: string) => {
     try {
-      const response = await databases.listDocuments(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.warn('Appwrite not configured, skipping awards fetch');
+        return;
+      }
+
+      const response = await appwrite.databases.listDocuments(
         DB_ID, 
         AWARDS_COLLECTION_ID,
         [Query.equal('tournamentId', tournamentId), Query.orderAsc('position')]
@@ -130,6 +170,12 @@ export default function TournamentsAdminPage() {
     e.preventDefault();
     
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       // Calculate total prize pool
       const totalPrizePool = formData.firstPrize + formData.secondPrize + formData.thirdPrize + formData.fourthPrize;
       
@@ -152,7 +198,7 @@ export default function TournamentsAdminPage() {
 
       if (editingTournament) {
         // Update existing tournament
-        await databases.updateDocument(
+        await appwrite.databases.updateDocument(
           DB_ID,
           TOURNAMENTS_COLLECTION_ID,
           editingTournament.$id,
@@ -161,7 +207,7 @@ export default function TournamentsAdminPage() {
         tournamentId = editingTournament.$id;
       } else {
         // Create new tournament
-        const tournament = await databases.createDocument(
+        const tournament = await appwrite.databases.createDocument(
           DB_ID,
           TOURNAMENTS_COLLECTION_ID,
           ID.unique(),
@@ -184,20 +230,20 @@ export default function TournamentsAdminPage() {
       ];
 
       // Remove existing awards for this tournament
-      const existingAwards = await databases.listDocuments(
+      const existingAwards = await appwrite.databases.listDocuments(
         DB_ID,
         AWARDS_COLLECTION_ID,
         [Query.equal('tournamentId', tournamentId)]
       );
 
       for (const award of existingAwards.documents) {
-        await databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, award.$id);
+        await appwrite.databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, award.$id);
       }
 
       // Create new awards (only if prize > 0)
       for (const award of awards) {
         if (award.prize > 0) {
-          await databases.createDocument(
+          await appwrite.databases.createDocument(
             DB_ID,
             AWARDS_COLLECTION_ID,
             ID.unique(),
@@ -235,7 +281,13 @@ export default function TournamentsAdminPage() {
     if (!selectedTournamentId) return;
 
     try {
-      await databases.createDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.createDocument(
         DB_ID,
         AWARDS_COLLECTION_ID,
         ID.unique(),
@@ -299,20 +351,23 @@ export default function TournamentsAdminPage() {
     let firstPrize = 0, secondPrize = 0, thirdPrize = 0, fourthPrize = 0;
     
     try {
-      const awardsResponse = await databases.listDocuments(
-        DB_ID,
-        AWARDS_COLLECTION_ID,
-        [Query.equal('tournamentId', tournament.$id), Query.orderAsc('position')]
-      );
-      
-      awardsResponse.documents.forEach((award: any) => {
-        switch (award.position) {
-          case 1: firstPrize = award.prize || 0; break;
-          case 2: secondPrize = award.prize || 0; break;
-          case 3: thirdPrize = award.prize || 0; break;
-          case 4: fourthPrize = award.prize || 0; break;
-        }
-      });
+      const appwrite = initializeAppwrite();
+      if (appwrite?.databases) {
+        const awardsResponse = await appwrite.databases.listDocuments(
+          DB_ID,
+          AWARDS_COLLECTION_ID,
+          [Query.equal('tournamentId', tournament.$id), Query.orderAsc('position')]
+        );
+        
+        awardsResponse.documents.forEach((award: any) => {
+          switch (award.position) {
+            case 1: firstPrize = award.prize || 0; break;
+            case 2: secondPrize = award.prize || 0; break;
+            case 3: thirdPrize = award.prize || 0; break;
+            case 4: fourthPrize = award.prize || 0; break;
+          }
+        });
+      }
     } catch (error) {
       console.error('Error fetching awards for edit:', error);
     }
@@ -342,19 +397,25 @@ export default function TournamentsAdminPage() {
     if (!confirm('Are you sure you want to delete this tournament? This will also delete all associated awards.')) return;
     
     try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
       // Delete associated awards first
-      const awardsResponse = await databases.listDocuments(
+      const awardsResponse = await appwrite.databases.listDocuments(
         DB_ID, 
         AWARDS_COLLECTION_ID,
         [Query.equal('tournamentId', tournamentId)]
       );
       
       for (const award of awardsResponse.documents) {
-        await databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, award.$id);
+        await appwrite.databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, award.$id);
       }
 
       // Delete tournament
-      await databases.deleteDocument(DB_ID, TOURNAMENTS_COLLECTION_ID, tournamentId);
+      await appwrite.databases.deleteDocument(DB_ID, TOURNAMENTS_COLLECTION_ID, tournamentId);
       await fetchTournaments();
     } catch (err: any) {
       console.error('Error deleting tournament:', err);
@@ -367,7 +428,13 @@ export default function TournamentsAdminPage() {
     if (!confirm('Are you sure you want to delete this award?')) return;
     
     try {
-      await databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, awardId);
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await appwrite.databases.deleteDocument(DB_ID, AWARDS_COLLECTION_ID, awardId);
       if (selectedTournamentId) {
         await fetchAwards(selectedTournamentId);
       }

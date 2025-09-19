@@ -5,12 +5,38 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Client, Databases, Query } from 'appwrite';
 
-// Appwrite client setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Appwrite Setup with lazy initialization
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin registrations');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin registrations');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin registrations:', error);
+      return null;
+    }
+  }
+  return { databases };
+};
 
 interface PlayerInfo {
   name: string;
@@ -69,8 +95,15 @@ export default function AdminRegistrationsPage() {
       if (!user || !profile?.isAdmin) return;
 
       try {
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.databases) {
+          console.warn('Appwrite not configured, skipping registrations fetch');
+          setLoadingData(false);
+          return;
+        }
+
         // Fetch registrations
-        const registrationsResponse = await databases.listDocuments(
+        const registrationsResponse = await appwrite.databases.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
           [Query.orderDesc('$createdAt'), Query.limit(100)]
@@ -86,7 +119,7 @@ export default function AdminRegistrationsPage() {
         const tournamentPromises = tournamentIds.map(async (id) => {
           try {
             console.log(`🔍 Admin Registrations: Fetching tournament ${id}`);
-            const tournament = await databases.getDocument(
+            const tournament = await appwrite.databases.getDocument(
               process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
               process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID!,
               id
@@ -128,7 +161,13 @@ export default function AdminRegistrationsPage() {
     setProcessingIds(prev => new Set(prev).add(registrationId));
 
     try {
-      await databases.updateDocument(
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.error('Appwrite not configured for status update');
+        return;
+      }
+
+      await appwrite.databases.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
         registrationId,
@@ -155,7 +194,7 @@ export default function AdminRegistrationsPage() {
                               teamData.players.length === 1 ? 'duo' : 'team';
 
             // Create participant entry (only using available schema attributes)
-            await databases.createDocument(
+            await appwrite.databases.createDocument(
               process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
               process.env.NEXT_PUBLIC_APPWRITE_PARTICIPANTS_COLLECTION_ID!,
               registrationId, // Use same ID to prevent duplicates

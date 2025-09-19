@@ -6,12 +6,39 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAllGames } from '@/lib/gamesData';
 import Link from 'next/link';
 
-// Appwrite Setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
+// Appwrite Setup with lazy initialization
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for admin tournament rules');
+      return null;
+    }
+
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for admin tournament rules');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for admin tournament rules:', error);
+      return null;
+    }
+  }
+  return { databases };
+};
+
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const TOURNAMENTS_COLLECTION_ID = 'tournaments';
 
@@ -48,7 +75,14 @@ export default function TournamentRulesAdminPage() {
   const fetchTournaments = async () => {
     try {
       setLoading(true);
-      const response = await databases.listDocuments(DB_ID, TOURNAMENTS_COLLECTION_ID);
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        console.warn('Appwrite not configured, skipping tournaments fetch');
+        setLoading(false);
+        return;
+      }
+
+      const response = await appwrite.databases.listDocuments(DB_ID, TOURNAMENTS_COLLECTION_ID);
       setTournaments(response.documents);
       setError(null);
     } catch (err: any) {
@@ -94,10 +128,16 @@ export default function TournamentRulesAdminPage() {
       setSaving(true);
       setError(null);
       
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+      
       // Convert PDF URLs to JSON strings for storage
       const pdfUrlStrings = pdfUrls.map(pdf => JSON.stringify(pdf));
       
-      await databases.updateDocument(
+      await appwrite.databases.updateDocument(
         DB_ID,
         TOURNAMENTS_COLLECTION_ID,
         selectedTournament.$id,

@@ -72,7 +72,8 @@ In your Railway project dashboard, go to your Strapi service → Variables tab, 
 NODE_ENV=production
 DATABASE_CLIENT=postgres
 HOST=0.0.0.0
-PORT=1337
+# NOTE: For Railway, do NOT set PORT - it's provided automatically
+# For local development only, you can use: PORT=1337
 APP_KEYS=6b4gTGDHwSk9AQucyC5PbQ==,LrPezk8rBwvVDY3qZSpk0g==,9h70kyshB6CB+yxazOlBDA==,ZAQHZTpiGyyy4DYK54a2vQ==
 JWT_SECRET=LcEeMeilbttuiSssajzDMmRJ2MWnDY3nhjwVvqN7hgmsQpkBTQ7dZnoYu9wV47UivPYYJQsahPvfRNhp/EJBPQ==
 ADMIN_JWT_SECRET=wXGZ+EliiHNtG69vLwRfS4ApRMf8IGCzQwdd6ZM/BG03J5cBKxc7uScLeEoyES+XOTZWSoADECejq/dGUccUUw==

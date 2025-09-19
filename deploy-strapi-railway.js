@@ -58,7 +58,7 @@ console.log('Copy these to your Railway service environment variables:\n');
 const envVars = [
   'NODE_ENV=production',
   'HOST=0.0.0.0',
-  'PORT=$PORT',
+  '# NOTE: Do NOT set PORT - Railway will provide it automatically',
   '',
   '# Database (Railway PostgreSQL)',
   'DATABASE_CLIENT=postgres',

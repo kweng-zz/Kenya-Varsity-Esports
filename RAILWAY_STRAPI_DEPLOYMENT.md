@@ -26,7 +26,7 @@ In your Railway Strapi service, add these environment variables:
 ```
 NODE_ENV=production
 HOST=0.0.0.0
-PORT=$PORT
+# NOTE: Do NOT set PORT - Railway provides it automatically
 
 # Strapi Secrets (use the ones from your .env file or generate new ones)
 APP_KEYS=edDDb2HrsnM3aDoqFCLGiw==,jp5EbpnZbGG4oXc0T+fwzA==,UABeuJmeF4rRhbyWUsBl5g==,vd8xTqyVb6CR3CbN81qRpg==

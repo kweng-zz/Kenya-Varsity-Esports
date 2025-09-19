@@ -1,4 +1,5 @@
 {
+  "buildCommand": "npm run build:vercel",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
@@ -9,5 +10,8 @@
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
-  ]
+  ],
+  "env": {
+    "SKIP_STRAPI_BUILD": "true"
+  }
 }

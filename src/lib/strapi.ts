@@ -132,6 +132,21 @@ function blocksToString(content: Array<{
 
 // Helper function to make API requests to Strapi
 async function fetchAPI(path: string, options: RequestInit = {}) {
+  // Skip Strapi calls during build if environment variable is set
+  if (process.env.SKIP_STRAPI_BUILD === 'true') {
+    console.log('Skipping Strapi API call during build:', path);
+    return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+  }
+
+  // Check if Strapi is configured
+  if (!STRAPI_URL || STRAPI_URL === 'http://localhost:1337') {
+    // During build time, if Strapi URL is localhost, skip the call
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
+      console.log('Skipping localhost Strapi call in production build:', path);
+      return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+    }
+  }
+
   const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json',

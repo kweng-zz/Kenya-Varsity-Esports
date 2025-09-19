@@ -1,13 +1,44 @@
 import { Client, Databases, Query, ID } from 'node-appwrite';
 
-// Server-side Appwrite Setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-  .setKey(process.env.APPWRITE_API_KEY!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
+
+    // During build time, environment variables might not be available
+    // Return null to gracefully handle this case
+    if (!endpoint || !projectId || !apiKey) {
+      console.warn('Appwrite configuration missing for calendar service, using fallback data');
+      return null;
+    }
+
+    // Additional validation to ensure endpoint is a valid string
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for calendar service, using fallback data');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId)
+        .setKey(apiKey);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for calendar service:', error);
+      return null;
+    }
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const CALENDAR_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events';
 
 export interface CalendarEvent {
@@ -67,7 +98,19 @@ class CalendarService {
     try {
       console.log(`🔍 CalendarService: Fetching calendar data for gameSlug="${gameSlug}"`);
       
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, returning empty calendar data');
+        return {
+          events: [],
+          totalEvents: 0,
+          upcomingEvents: 0,
+          liveEvents: 0,
+          completedEvents: 0
+        };
+      }
+      
+      const response = await db.listDocuments(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         [
@@ -115,9 +158,15 @@ class CalendarService {
   // Get upcoming events for a specific game
   async getUpcomingEvents(gameSlug: string, limit: number = 10): Promise<CalendarEvent[]> {
     try {
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, returning empty upcoming events');
+        return [];
+      }
+
       const currentDate = new Date().toISOString().split('T')[0];
       
-      const response = await databases.listDocuments(
+      const response = await db.listDocuments(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         [
@@ -139,7 +188,13 @@ class CalendarService {
   // Get events by date range
   async getEventsByDateRange(gameSlug: string, startDate: string, endDate: string): Promise<CalendarEvent[]> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, returning empty events by date range');
+        return [];
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         [
@@ -160,7 +215,13 @@ class CalendarService {
   // Create a new calendar event (for admin use)
   async createEvent(eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<CalendarEvent | null> {
     try {
-      const response = await databases.createDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, cannot create event');
+        return null;
+      }
+
+      const response = await db.createDocument(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         ID.unique(),
@@ -193,12 +254,18 @@ class CalendarService {
   // Update an existing calendar event (for admin use)
   async updateEvent(eventId: string, eventData: Partial<Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>>): Promise<CalendarEvent | null> {
     try {
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, cannot update event');
+        return null;
+      }
+
       const updateData: any = { ...eventData };
       if (updateData.teams) {
         updateData.teams = JSON.stringify(updateData.teams);
       }
 
-      const response = await databases.updateDocument(
+      const response = await db.updateDocument(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         eventId,
@@ -215,7 +282,13 @@ class CalendarService {
   // Delete a calendar event (for admin use)
   async deleteEvent(eventId: string): Promise<boolean> {
     try {
-      await databases.deleteDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, cannot delete event');
+        return false;
+      }
+
+      await db.deleteDocument(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         eventId
@@ -230,7 +303,13 @@ class CalendarService {
   // Get event by ID
   async getEventById(eventId: string): Promise<CalendarEvent | null> {
     try {
-      const response = await databases.getDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for calendar service, cannot get event by ID');
+        return null;
+      }
+
+      const response = await db.getDocument(
         DB_ID,
         CALENDAR_COLLECTION_ID,
         eventId

@@ -17,6 +17,17 @@ interface BlogPostPageProps {
 // ✅ Generate static params (only needs slug/published, safe for build)
 export async function generateStaticParams() {
   try {
+    // Check if Strapi is available during build
+    if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
+      // Return fallback slugs for build time
+      return [
+        { slug: 'mmust-makes-history' },
+        { slug: 'tuk-season-2-champions' },
+        { slug: 'season-3-registration-open' },
+        { slug: 'new-games-added-kuer-lineup' }
+      ];
+    }
+
     const response = await strapiAPI.getArticles({ pageSize: 100 });
     const publishedArticles = response.data.filter(article => {
       // Handle both flat and nested structures
@@ -32,7 +43,13 @@ export async function generateStaticParams() {
     });
   } catch (error) {
     console.error('❌ Error generating static params:', error);
-    return [];
+    // Return fallback slugs if Strapi is not available
+    return [
+      { slug: 'mmust-makes-history' },
+      { slug: 'tuk-season-2-champions' },
+      { slug: 'season-3-registration-open' },
+      { slug: 'new-games-added-kuer-lineup' }
+    ];
   }
 }
 

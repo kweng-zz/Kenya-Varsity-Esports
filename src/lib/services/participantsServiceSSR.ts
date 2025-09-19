@@ -1,13 +1,31 @@
 import { Client, Databases, Query } from 'node-appwrite';
 
-// Server-side Appwrite Setup
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-  .setKey(process.env.APPWRITE_API_KEY!);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-const databases = new Databases(client);
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
+
+    if (!endpoint || !projectId || !apiKey) {
+      console.warn('Appwrite configuration missing, using fallback data');
+      return null;
+    }
+
+    client = new Client()
+      .setEndpoint(endpoint)
+      .setProject(projectId)
+      .setKey(apiKey);
+
+    databases = new Databases(client);
+  }
+  return databases;
+};
+
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const PARTICIPANTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PARTICIPANTS_COLLECTION_ID || 'participants';
 
 export interface Participant {
@@ -45,7 +63,18 @@ class ParticipantsServiceSSR {
   // Get all participants for a tournament (server-side)
   async getParticipantsByTournament(tournamentSlug: string): Promise<ParticipantsData> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        return {
+          teams: [],
+          totalTeams: 0,
+          totalParticipants: 0,
+          approvedTeams: 0,
+          pendingTeams: 0
+        };
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
@@ -88,7 +117,13 @@ class ParticipantsServiceSSR {
       console.log(`🔍 ParticipantsServiceSSR: Querying for tournamentSlug="${tournamentSlug}"`);
       console.log(`🔍 ParticipantsServiceSSR: Using DB_ID="${DB_ID}", COLLECTION_ID="${PARTICIPANTS_COLLECTION_ID}"`);
       
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured, returning empty participants list');
+        return [];
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
@@ -131,7 +166,12 @@ class ParticipantsServiceSSR {
   // Get participant by ID (server-side)
   async getParticipantById(participantId: string): Promise<Participant | null> {
     try {
-      const response = await databases.getDocument(
+      const db = initializeAppwrite();
+      if (!db) {
+        return null;
+      }
+
+      const response = await db.getDocument(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         participantId
@@ -150,7 +190,12 @@ class ParticipantsServiceSSR {
   // Search participants (server-side)
   async searchParticipants(tournamentSlug: string, searchTerm: string): Promise<Participant[]> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        return [];
+      }
+
+      const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [

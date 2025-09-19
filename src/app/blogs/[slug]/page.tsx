@@ -21,6 +21,7 @@ export async function generateStaticParams() {
     if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
       // Return fallback slugs for build time
       return [
+        { slug: 'b34r-cl4n-official-kuer-sponsor' },
         { slug: 'mmust-makes-history' },
         { slug: 'tuk-season-2-champions' },
         { slug: 'season-3-registration-open' },
@@ -57,51 +58,60 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const response = await strapiAPI.getArticleBySlug(slug);
     
-    if (response.data.length === 0) {
-      return {
-        title: 'Article Not Found | KUER Gaming Blog',
-        description: 'The requested article could not be found.',
-      };
+    // Try to fetch from Strapi
+    if (process.env.NEXT_PUBLIC_STRAPI_URL) {
+      try {
+        const response = await strapiAPI.getArticleBySlug(slug);
+        
+        if (response.data.length > 0) {
+          const article = transformStrapiArticle(response.data[0]);
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com';
+          const postUrl = `${baseUrl}/blogs/${article.slug}`;
+          
+          return {
+            title: `${String(article.title || 'Article')} | KUER Gaming Blog`,
+            description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
+            keywords: [String(article.category || ''), String(article.game || ''), 'gaming', 'esports', 'KUER', 'Kenya']
+              .filter(Boolean)
+              .join(', '),
+            authors: [{ name: String(article.author || 'KUER Team') }],
+            openGraph: {
+              title: String(article.title || 'Article'),
+              description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
+              url: postUrl,
+              siteName: 'KUER',
+              images: article.imageUrl ? [{ url: article.imageUrl, width: 1200, height: 630, alt: String(article.title || 'Article') }] : [],
+              locale: 'en_US',
+              type: 'article',
+              publishedTime: String(article.publishedAt || new Date().toISOString()),
+              modifiedTime: String(article.updatedAt || article.publishedAt || new Date().toISOString()),
+              authors: [String(article.author || 'KUER Team')],
+              section: String(article.category || 'Gaming'),
+              tags: Array.isArray(article.tags) ? article.tags : [],
+            },
+            twitter: {
+              card: 'summary_large_image',
+              title: String(article.title || 'Article'),
+              description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
+              images: article.imageUrl ? [article.imageUrl] : [],
+              creator: '@kuer',
+              site: '@kuer',
+            },
+            alternates: {
+              canonical: postUrl,
+            },
+          };
+        }
+      } catch (strapiError) {
+        console.error('❌ Error fetching metadata from Strapi:', strapiError);
+      }
     }
 
-    const article = transformStrapiArticle(response.data[0]);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com';
-    const postUrl = `${baseUrl}/blogs/${article.slug}`;
-    
+    // Fallback metadata
     return {
-      title: `${String(article.title || 'Article')} | KUER Gaming Blog`,
-      description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
-      keywords: [String(article.category || ''), String(article.game || ''), 'gaming', 'esports', 'KUER', 'Kenya']
-        .filter(Boolean)
-        .join(', '),
-      authors: [{ name: String(article.author || 'KUER Team') }],
-      openGraph: {
-        title: String(article.title || 'Article'),
-        description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
-        url: postUrl,
-        siteName: 'KUER',
-        images: article.imageUrl ? [{ url: article.imageUrl, width: 1200, height: 630, alt: String(article.title || 'Article') }] : [],
-        locale: 'en_US',
-        type: 'article',
-        publishedTime: String(article.publishedAt || new Date().toISOString()),
-        modifiedTime: String(article.updatedAt || article.publishedAt || new Date().toISOString()),
-        authors: [String(article.author || 'KUER Team')],
-        section: String(article.category || 'Gaming'),
-        tags: Array.isArray(article.tags) ? article.tags : [],
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: String(article.title || 'Article'),
-        description: String(article.description || 'Read the latest gaming and esports news from KUER.'),
-        images: article.imageUrl ? [article.imageUrl] : [],
-        creator: '@kuer',
-        site: '@kuer',
-      },
-      alternates: {
-        canonical: postUrl,
-      },
+      title: 'Article | KUER Gaming Blog',
+      description: 'Read the latest gaming and esports news from KUER.',
     };
   } catch (error) {
     console.error('❌ Error generating metadata:', error);
@@ -117,10 +127,40 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   let article: TransformedArticle | null = null;
   
   try {
-    // Check if Strapi is configured
-    if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
-      // Use fallback articles
+    // First try to fetch from Strapi directly (server-side)
+    if (process.env.NEXT_PUBLIC_STRAPI_URL) {
+      try {
+        const response = await strapiAPI.getArticleBySlug(slug);
+        
+        if (response.data.length > 0) {
+          article = transformStrapiArticle(response.data[0]);
+        }
+      } catch (strapiError) {
+        console.error('❌ Error fetching from Strapi directly:', strapiError);
+        // Continue to fallback
+      }
+    }
+
+    // If no article found, use fallback articles
+    if (!article) {
       const fallbackArticles = [
+        {
+          id: '2',
+          title: 'B34R CL4N: Official KUER Sponsor',
+          description: 'Who is B34R CL4N?',
+          content: 'B34R CL4N isn\'t just a name—it\'s a movement. Built on teamwork dedication and pure love for the game B34R CL4N has grown into a respected force within the Call of Duty: Mobile community. Known for their tactical plays fierce competitive spirit and an unshakable bond the clan embodies what it means to dominate the battlefield while still upholding the values of respect and sportsmanship.\n\nThe battleground is heating up and the competition is fiercer than ever. KUER Call of Duty Tournaments have quickly become one of the most exciting esports events in the region bringing together top talent rising stars and passionate fans of Call of Duty: Mobile. And now we\'re proud to announce a powerful partnership that\'s taking things to the next level.\n\nWhy KUER Tournaments?\n\nSponsoring the KUER Call of Duty Tournaments is more than just a partnership—it\'s a mission. B34R CL4N is committed to growing the local and regional esports scene giving players a platform to showcase their skills and providing fans with unforgettable competitive moments.\n\nBy backing KUER tournaments the clan is not only supporting the next generation of Call of Duty players but also contributing to the overall growth of esports culture.',
+          slug: 'b34r-cl4n-official-kuer-sponsor',
+          publishedAt: '2025-09-19T19:38:52.825Z',
+          createdAt: '2025-09-19T19:38:52.809Z',
+          updatedAt: '2025-09-19T19:38:52.809Z',
+          featured: false,
+          category: 'News',
+          game: null,
+          author: 'Tonny Maina',
+          tags: [],
+          imageUrl: '/images/B34R-CL4N-with-name.png',
+          image: null
+        },
         {
           id: '1',
           title: 'MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY',
@@ -139,7 +179,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           image: null
         },
         {
-          id: '2',
+          id: '3',
           title: 'TUK TAKES THE OVERALL POSITION FOR SEASON 2',
           description: 'The Technical University of Kenya gathers the top position in KUER Season 2, showcasing exceptional gaming skills and teamwork.',
           content: 'The Technical University of Kenya (TUK) has claimed the overall championship position in KUER Season 2, demonstrating exceptional gaming skills and remarkable teamwork throughout the competition.\n\nTUK\'s path to victory was characterized by consistent performance across multiple game titles and strategic gameplay that outmaneuvered their competitors. The team\'s dedication to practice and their ability to adapt to different gaming scenarios proved to be the key factors in their success.\n\nThis championship win solidifies TUK\'s position as one of the premier esports institutions in Kenya and sets a high standard for future competitions. Their victory serves as motivation for other universities to strengthen their esports programs and compete at the highest level.',
@@ -156,7 +196,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           image: null
         },
         {
-          id: '3',
+          id: '4',
           title: 'SEASON 3 REGISTRATION NOW OPEN',
           description: 'Universities across Kenya can now register for the upcoming Season 3 of the Kenya University Esports Rankings.',
           content: 'The registration for KUER Season 3 is now officially open! Universities across Kenya are invited to participate in what promises to be the most exciting season yet.\n\nSeason 3 will feature expanded game titles, increased prize pools, and enhanced streaming coverage. We\'re expecting record participation as more universities recognize the value of competitive esports.\n\nRegistration is simple and can be completed through our official website. Don\'t miss this opportunity to showcase your university\'s gaming talent and compete for the championship title.',
@@ -173,7 +213,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           image: null
         },
         {
-          id: '4',
+          id: '5',
           title: 'NEW GAMES ADDED TO KUER LINEUP',
           description: 'Exciting new gaming titles have been added to the official KUER tournament lineup for the upcoming season.',
           content: 'We\'re thrilled to announce the addition of several new gaming titles to the KUER tournament lineup! These additions reflect the evolving esports landscape and provide more opportunities for universities to showcase their gaming talents.\n\nThe new games have been carefully selected based on their competitive viability, popularity among university students, and potential for exciting tournament play. Each game brings unique strategic elements and skill requirements to the competition.\n\nWith these additions, KUER continues to evolve and provide the most comprehensive university esports experience in Kenya. Stay tuned for more details about tournament formats and schedules for these new titles.',
@@ -196,23 +236,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         notFound();
       }
       article = foundArticle;
-    } else {
-      const response = await strapiAPI.getArticleBySlug(slug);
-      
-      if (response.data.length === 0) {
-        notFound();
-      }
-      
-      article = transformStrapiArticle(response.data[0]);
     }
   } catch (error) {
     console.error('❌ Error fetching article:', error);
-    return notFound();
+    notFound();
   }
 
   if (!article) {
     notFound();
-    return null; // prevents server crash
   }
 
   // ✅ JSON-LD (SEO)

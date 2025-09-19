@@ -9,7 +9,3 @@ cmds = ["cd kuer && npm run build"]
 
 [start]
 cmd = "cd kuer && npm run start"
-
-[variables]
-NODE_ENV = "production"
-HOST = "0.0.0.0"

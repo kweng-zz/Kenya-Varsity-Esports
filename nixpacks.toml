@@ -3,8 +3,8 @@ nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
 cmds = [
-    "npm install",
-    "cd kuer && npm install"
+    "npm ci",
+    "cd kuer && npm ci"
 ]
 
 [phases.build]
@@ -14,11 +14,8 @@ cmds = [
 ]
 
 [start]
-cmd = "npm run start:standalone"
+cmd = "node start-railway.js"
 
 [variables]
 NODE_ENV = "production"
 NPM_CONFIG_PRODUCTION = "false"
-PORT = "3000"
-HOST = "0.0.0.0"
-HOSTNAME = "0.0.0.0"

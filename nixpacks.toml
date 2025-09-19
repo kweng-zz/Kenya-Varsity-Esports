@@ -14,8 +14,11 @@ cmds = [
 ]
 
 [start]
-cmd = "npm start"
+cmd = "npm run start:standalone"
 
 [variables]
 NODE_ENV = "production"
 NPM_CONFIG_PRODUCTION = "false"
+PORT = "3000"
+HOST = "0.0.0.0"
+HOSTNAME = "0.0.0.0"

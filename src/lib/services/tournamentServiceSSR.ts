@@ -2,13 +2,41 @@
 import { Client, Databases, Query } from 'appwrite';
 import { Tournament, TournamentAward, TournamentSchedule, TournamentSponsor } from '@/types/tournament';
 
-const client = new Client();
-const databases = new Databases(client);
+// Lazy initialization to avoid build-time issues
+let client: Client | null = null;
+let databases: Databases | null = null;
 
-// Configure Appwrite client for server-side
-client
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '');
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    // During build time, environment variables might not be available
+    // Return null to gracefully handle this case
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing for tournament service, using fallback data');
+      return null;
+    }
+
+    // Additional validation to ensure endpoint is a valid string
+    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
+      console.warn('Appwrite endpoint is invalid for tournament service, using fallback data');
+      return null;
+    }
+
+    try {
+      client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId);
+
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite client for tournament service:', error);
+      return null;
+    }
+  }
+  return databases;
+};
 
 class TournamentServiceSSR {
   private databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
@@ -19,7 +47,13 @@ class TournamentServiceSSR {
     try {
       console.log(`🔍 Fetching tournament by slug: ${slug}`);
       
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for tournament service, returning null tournament');
+        return null;
+      }
+      
+      const response = await db.listDocuments(
         this.databaseId,
         this.tournamentsCollectionId,
         [
@@ -51,7 +85,13 @@ class TournamentServiceSSR {
     try {
       console.log('🔍 Fetching all published tournaments');
       
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for tournament service, returning empty tournaments list');
+        return [];
+      }
+      
+      const response = await db.listDocuments(
         this.databaseId,
         this.tournamentsCollectionId,
         [
@@ -78,7 +118,13 @@ class TournamentServiceSSR {
 
   async getTournamentAwards(tournamentId: string): Promise<TournamentAward[]> {
     try {
-      const response = await databases.listDocuments(
+      const db = initializeAppwrite();
+      if (!db) {
+        console.warn('Appwrite not configured for tournament service, returning empty awards list');
+        return [];
+      }
+
+      const response = await db.listDocuments(
         this.databaseId,
         this.awardsCollectionId,
         [

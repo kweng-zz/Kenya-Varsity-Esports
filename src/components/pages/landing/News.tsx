@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
 
 // Define the TypeScript interface for a single news article's data.
 interface NewsArticle {
@@ -110,27 +111,29 @@ const LatestNews = () => {
   useEffect(() => {
     const loadArticles = async () => {
       try {
-        // Try to fetch from Strapi first
-        const response = await fetch('/api/strapi/articles?featured=true&limit=2');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.articles && data.articles.length > 0) {
-            const transformedArticles = data.articles.map((article: Record<string, unknown>) => ({
-              id: article.id as string,
-              title: article.title as string,
-              description: article.description as string,
-              imageUrl: (article.imageUrl as string) || '/images/Join our tournaments.png',
-              category: (article.category as string) || 'News',
-              date: (article.publishedAt as string) || (article.createdAt as string),
-              slug: article.slug as string
+        setLoading(true);
+        
+        // Try to fetch from Strapi directly using the same approach as blogs page
+        if (process.env.NEXT_PUBLIC_STRAPI_URL) {
+          const response = await strapiAPI.getFeaturedArticles(2);
+          if (response.data && response.data.length > 0) {
+            const transformedArticles = response.data.map(transformStrapiArticle);
+            const newsArticles = transformedArticles.map((article: TransformedArticle) => ({
+              id: article.id,
+              title: article.title,
+              description: article.description,
+              imageUrl: article.imageUrl || '/images/Join our tournaments.png',
+              category: article.category,
+              date: article.publishedAt,
+              slug: article.slug
             }));
-            setArticles(transformedArticles.slice(0, 2)); // Limit to 2 articles
+            setArticles(newsArticles);
             setLoading(false);
             return;
           }
         }
       } catch (error) {
-        console.log('Strapi not available, using fallback data');
+        console.log('Strapi not available, using fallback data:', error);
       }
 
       // Fallback to static articles

@@ -122,7 +122,7 @@ const LatestNews = () => {
               id: article.id,
               title: article.title,
               description: article.description,
-              imageUrl: article.imageUrl || '/images/Join our tournaments.png',
+              imageUrl: article.imageUrl || undefined, // Convert null to undefined to match NewsArticle interface
               category: article.category,
               date: article.publishedAt,
               slug: article.slug

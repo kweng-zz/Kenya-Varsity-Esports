@@ -101,6 +101,9 @@ const FilterDropdown = ({
 
 // Blog Card Component
 const BlogCard = ({ article }: { article: TransformedArticle }) => {
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [imageError, setImageError] = useState<boolean>(false);
+
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -108,17 +111,53 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
       day: "numeric",
     });
 
+  // Ensure we have a valid image URL with proper fallback
+  const getImageUrl = (url?: string | null) => {
+    if (!url) return '/images/Join our tournaments.png';
+    
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it starts with /, it's already a proper path
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // Otherwise, assume it needs /images/ prefix
+    return `/images/${url}`;
+  };
+
+  // Initialize the image URL when component mounts or imageUrl changes
+  useEffect(() => {
+    setImageError(false);
+    const processedUrl = getImageUrl(article.imageUrl);
+    console.log('Processing blog image URL:', { original: article.imageUrl, processed: processedUrl });
+    setCurrentImageUrl(processedUrl);
+  }, [article.imageUrl]);
+
+  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : currentImageUrl;
+
   return (
     <Link href={`/blogs/${article.slug}`}>
       <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
         <div className="relative h-48 bg-gray-800">
           <img
-            src={article.imageUrl || "/images/Join our tournaments.png"}
+            src={displayImageUrl}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/images/Join our tournaments.png";
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+              console.error('Blog image failed to load:', displayImageUrl);
+              if (!imageError) {
+                setImageError(true);
+              }
+            }}
+            onLoad={() => {
+              // Reset error state if image loads successfully
+              if (imageError) {
+                setImageError(false);
+              }
             }}
           />
           {article.featured && (

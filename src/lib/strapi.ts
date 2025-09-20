@@ -98,8 +98,13 @@ export function getStrapiMediaURL(url: string | undefined) {
     return url;
   }
   
-  // Otherwise, prepend the Strapi URL
-  return `${STRAPI_URL}${url}`;
+  // If URL starts with /, prepend the Strapi URL
+  if (url.startsWith('/')) {
+    return `${STRAPI_URL}${url}`;
+  }
+  
+  // Otherwise, prepend the Strapi URL with /uploads/ path
+  return `${STRAPI_URL}/uploads/${url}`;
 }
 
 // Helper function to convert blocks content to string

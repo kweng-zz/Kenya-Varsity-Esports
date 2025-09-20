@@ -1,6 +1,6 @@
  "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User, Tag, Gamepad2, Clock } from 'lucide-react';
 import { TransformedArticle } from '@/lib/strapi';
@@ -10,6 +10,9 @@ interface BlogPostContentProps {
 }
 
 export const BlogPostContent = ({ post }: BlogPostContentProps) => {
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [imageError, setImageError] = useState<boolean>(false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -17,6 +20,34 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
       day: 'numeric'
     });
   };
+
+  // Ensure we have a valid image URL with proper fallback
+  const getImageUrl = (url?: string | null) => {
+    if (!url) return '/images/Join our tournaments.png';
+    
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it starts with /, it's already a proper path
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // Otherwise, assume it needs /images/ prefix
+    return `/images/${url}`;
+  };
+
+  // Initialize the image URL when component mounts or imageUrl changes
+  useEffect(() => {
+    setImageError(false);
+    const processedUrl = getImageUrl(post.imageUrl);
+    console.log('Processing blog post image URL:', { original: post.imageUrl, processed: processedUrl });
+    setCurrentImageUrl(processedUrl);
+  }, [post.imageUrl]);
+
+  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : currentImageUrl;
 
   const getReadingTime = (content: string) => {
     const wordsPerMinute = 200;
@@ -53,12 +84,20 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
         {/* Blurred Background Image */}
         <div className="absolute inset-0">
           <img
-            src={post.imageUrl || '/images/Join our tournaments.png'}
+            src={displayImageUrl}
             alt={post.title}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = '/images/Join our tournaments.png';
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+              console.error('Blog post hero image failed to load:', displayImageUrl);
+              if (!imageError) {
+                setImageError(true);
+              }
+            }}
+            onLoad={() => {
+              // Reset error state if image loads successfully
+              if (imageError) {
+                setImageError(false);
+              }
             }}
           />
           {/* Blur and Overlay */}

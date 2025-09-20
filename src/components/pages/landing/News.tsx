@@ -24,6 +24,8 @@ interface NewsCardProps {
 // A reusable component for a single news card with hover animations.
 const NewsCard = ({ article }: NewsCardProps) => {
   const { date, category, title, description, imageUrl, slug } = article;
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [imageError, setImageError] = useState<boolean>(false);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -51,7 +53,15 @@ const NewsCard = ({ article }: NewsCardProps) => {
     return `/images/${url}`;
   };
 
-  const displayImageUrl = getImageUrl(imageUrl);
+  // Initialize the image URL when component mounts or imageUrl changes
+  useEffect(() => {
+    setImageError(false);
+    const processedUrl = getImageUrl(imageUrl);
+    console.log('Processing image URL:', { original: imageUrl, processed: processedUrl });
+    setCurrentImageUrl(processedUrl);
+  }, [imageUrl]);
+
+  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : currentImageUrl;
   const linkHref = `/blogs/${slug}`;
 
   return (
@@ -64,15 +74,15 @@ const NewsCard = ({ article }: NewsCardProps) => {
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              const target = e.target as HTMLImageElement;
               console.error('Image failed to load:', displayImageUrl);
-              target.onerror = null;
-              // Try fallback image first
-              if (target.src !== '/images/Join our tournaments.png') {
-                target.src = '/images/Join our tournaments.png';
-              } else {
-                // If even fallback fails, use placeholder
-                target.src = `https://placehold.co/400x192/1a1a1a/ffffff?text=KUER+NEWS`;
+              if (!imageError) {
+                setImageError(true);
+              }
+            }}
+            onLoad={() => {
+              // Reset error state if image loads successfully
+              if (imageError) {
+                setImageError(false);
               }
             }}
           />

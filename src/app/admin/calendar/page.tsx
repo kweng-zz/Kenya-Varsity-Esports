@@ -162,6 +162,8 @@ export default function AdminCalendarPage() {
           maxParticipants: doc.maxParticipants,
           currentParticipants: doc.currentParticipants || 0,
           prizePool: doc.prizePool,
+          teams: doc.teams ? (Array.isArray(doc.teams) ? doc.teams : JSON.parse(doc.teams)) : undefined,
+          isImportant: doc.isImportant || false,
           createdAt: doc.$createdAt,
           updatedAt: doc.$updatedAt
         })) as CalendarEvent[];
@@ -254,6 +256,8 @@ export default function AdminCalendarPage() {
           maxParticipants: response.maxParticipants,
           currentParticipants: response.currentParticipants || 0,
           prizePool: response.prizePool,
+          teams: response.teams ? (Array.isArray(response.teams) ? response.teams : JSON.parse(response.teams)) : undefined,
+          isImportant: response.isImportant || false,
           createdAt: response.$createdAt,
           updatedAt: response.$updatedAt
         };
@@ -607,6 +611,11 @@ export default function AdminCalendarPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(event.status || 'upcoming')}`}>
                         {(event.status || 'upcoming').toUpperCase()}
                       </span>
+                      {event.isImportant && (
+                        <span className="px-2 py-1 bg-[#8c110d] text-white text-xs font-bold rounded-full animate-pulse">
+                          IMPORTANT
+                        </span>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CalendarEvent } from '@/types/calendar';
+import { theme, getEventTypeColor, getImportantStyles } from '@/lib/theme';
 
 interface TournamentCalendarProps {
   events: CalendarEvent[];
@@ -62,17 +63,8 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
     }, 150);
   };
 
-  // Get event type color
-  const getEventTypeColor = (type: string): string => {
-    switch (type) {
-      case 'registration': return 'bg-blue-600';
-      case 'match': return 'bg-green-600';
-      case 'tournament': return 'bg-[#8c110d]';
-      case 'deadline': return 'bg-red-600';
-      case 'announcement': return 'bg-purple-600';
-      default: return 'bg-gray-600';
-    }
-  };
+  // Get important event styles from theme
+  const importantStyles = getImportantStyles();
 
   // Get event type icon
   const getEventTypeIcon = (type: string): string => {
@@ -95,7 +87,7 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
     // Empty cells for days before month starts
     for (let i = 0; i < firstDayWeekday; i++) {
       days.push(
-        <div key={`empty-${i}`} className="h-20 border border-[#8c110d]/20"></div>
+        <div key={`empty-${i}`} className={`h-20 border ${theme.colors.primary}/20`} style={{ borderColor: `${theme.colors.primary}33` }}></div>
       );
     }
     
@@ -108,13 +100,28 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
       days.push(
         <div
           key={date}
-          className={`h-20 border border-[#8c110d]/20 cursor-pointer transition-all duration-200 hover:bg-[#8c110d]/10 ${
-            isToday ? 'bg-[#8c110d]/20' : ''
-          } ${isSelected ? 'bg-[#8c110d]/30' : ''}`}
+          className={`h-20 border cursor-pointer transition-all duration-200`}
+          style={{
+            borderColor: `${theme.colors.primary}33`,
+            backgroundColor: isToday ? `${theme.colors.primary}33` : isSelected ? `${theme.colors.primary}4D` : 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            if (!isToday && !isSelected) {
+              e.currentTarget.style.backgroundColor = `${theme.colors.primary}1A`;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isToday && !isSelected) {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
           onClick={() => setSelectedDate(new Date(currentYear, currentMonth, date))}
         >
           <div className="p-1 h-full flex flex-col">
-            <div className={`text-sm font-bold ${isToday ? 'text-[#8c110d]' : 'text-white'}`}>
+            <div 
+              className={`text-sm font-bold ${isToday ? '' : 'text-white'}`}
+              style={{ color: isToday ? theme.colors.primary : 'white' }}
+            >
               {date}
             </div>
             <div className="flex-1 overflow-hidden">
@@ -130,7 +137,10 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
                 </div>
               ))}
               {dayEvents.length > 2 && (
-                <div className="text-xs text-[#8c110d] font-bold">
+                <div 
+                  className="text-xs font-bold"
+                  style={{ color: theme.colors.primary }}
+                >
                   +{dayEvents.length - 2} more
                 </div>
               )}
@@ -145,18 +155,22 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
 
   return (
     <div 
-      className="relative bg-black/60 border border-[#8c110d] p-8 md:p-12"
+      className="relative bg-black/60 border p-8 md:p-12"
       style={{
         backgroundImage: 'url(/images/Mask Group.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundBlendMode: 'overlay'
+        backgroundBlendMode: 'overlay',
+        borderColor: theme.colors.primary
       }}
     >
       <div className="relative z-10">
         {/* Header */}
         <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold uppercase mb-4 text-center text-[#8c110d]">
+          <h2 
+            className="text-2xl md:text-3xl font-bold uppercase mb-4 text-center"
+            style={{ color: theme.colors.primary }}
+          >
             Tournament Calendar
           </h2>
           <p className="text-lg text-center text-white">
@@ -169,7 +183,12 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigateMonth('prev')}
-            className="bg-[#8c110d] hover:bg-[#8c110d]/80 text-white px-4 py-2 transition-colors duration-200"
+            className="text-white px-4 py-2 transition-colors duration-200"
+            style={{ 
+              backgroundColor: theme.colors.primary
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.colors.primary}CC`}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.colors.primary}
           >
             ← Previous
           </button>
@@ -180,16 +199,27 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
           
           <button
             onClick={() => navigateMonth('next')}
-            className="bg-[#8c110d] hover:bg-[#8c110d]/80 text-white px-4 py-2 transition-colors duration-200"
+            className="text-white px-4 py-2 transition-colors duration-200"
+            style={{ 
+              backgroundColor: theme.colors.primary
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.colors.primary}CC`}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.colors.primary}
           >
             Next →
           </button>
         </div>
 
         {/* Calendar Grid */}
-        <div className="bg-black/90 border border-[#8c110d] overflow-hidden mb-8">
+        <div 
+          className="bg-black/90 border overflow-hidden mb-8"
+          style={{ borderColor: theme.colors.primary }}
+        >
           {/* Day Headers */}
-          <div className="grid grid-cols-7 bg-[#8c110d]">
+          <div 
+            className="grid grid-cols-7"
+            style={{ backgroundColor: theme.colors.primary }}
+          >
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="p-3 text-center text-white font-bold">
                 {day}
@@ -224,7 +254,10 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
 
         {/* Selected Date Events */}
         {selectedDate && (
-          <div className="bg-black/80 border border-[#8c110d] p-6 animate-fadeIn">
+          <div 
+            className="bg-black/80 border p-6 animate-fadeIn"
+            style={{ borderColor: theme.colors.primary }}
+          >
             <h4 className="text-lg font-bold text-white mb-4">
               Events for {selectedDate.toLocaleDateString()}
             </h4>
@@ -236,15 +269,23 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
                   <div
                     key={event.id}
                     className={`border-l-4 pl-4 py-2 ${
-                      event.isImportant ? 'border-[#8c110d] animate-pulse' : 'border-white/30'
+                      event.isImportant ? 'animate-pulse' : ''
                     }`}
+                    style={{
+                      borderLeftColor: event.isImportant ? theme.colors.primary : 'rgba(255, 255, 255, 0.3)'
+                    }}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-1 text-xs text-white ${getEventTypeColor(event.type)}`}>
                         {getEventTypeIcon(event.type)} {event.type.toUpperCase()}
                       </span>
                       {event.isImportant && (
-                        <span className="text-[#8c110d] text-xs font-bold">IMPORTANT</span>
+                        <span 
+                          className="text-xs font-bold"
+                          style={{ color: theme.colors.primary }}
+                        >
+                          IMPORTANT
+                        </span>
                       )}
                     </div>
                     <h5 className="text-white font-bold">{event.title}</h5>
@@ -269,7 +310,12 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
 
         {/* Upcoming Events */}
         <div className="mt-8">
-          <h4 className="text-lg font-bold text-[#8c110d] mb-4">Upcoming Events</h4>
+          <h4 
+            className="text-lg font-bold mb-4"
+            style={{ color: theme.colors.primary }}
+          >
+            Upcoming Events
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {events
               .filter(event => new Date(event.date) >= new Date())
@@ -278,16 +324,24 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
               .map(event => (
                 <div
                   key={event.id}
-                  className={`bg-black/80 border border-[#8c110d] p-4 hover:bg-[#8c110d]/10 transition-colors duration-200 ${
+                  className={`bg-black/80 border p-4 transition-colors duration-200 ${
                     event.isImportant ? 'animate-pulse' : ''
                   }`}
+                  style={{ borderColor: theme.colors.primary }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.colors.primary}1A`}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-1 text-xs text-white ${getEventTypeColor(event.type)}`}>
                       {getEventTypeIcon(event.type)} {event.type.toUpperCase()}
                     </span>
                     {event.isImportant && (
-                      <span className="text-[#8c110d] text-xs font-bold">IMPORTANT</span>
+                      <span 
+                        className="text-xs font-bold"
+                        style={{ color: theme.colors.primary }}
+                      >
+                        IMPORTANT
+                      </span>
                     )}
                   </div>
                   <h5 className="text-white font-bold mb-1">{event.title}</h5>

@@ -2,8 +2,13 @@
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN || process.env.STRAPI_API_TOKEN;
 
+// Helper function to get full Strapi URL
+function getStrapiURL(path: string = ''): string {
+  return `${STRAPI_URL}/api${path}`;
+}
+
 // Helper function to make API requests to Strapi with enhanced error handling
-async function fetchAPI(path, options = {}, requireAuth = false) {
+async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: boolean = false): Promise<any> {
   // Skip Strapi calls during build if environment variable is set
   if (process.env.SKIP_STRAPI_BUILD === 'true') {
     console.log('Skipping Strapi API call during build:', path);
@@ -20,7 +25,7 @@ async function fetchAPI(path, options = {}, requireAuth = false) {
   }
 
   // Build headers - only add Authorization for authenticated requests
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
@@ -29,11 +34,14 @@ async function fetchAPI(path, options = {}, requireAuth = false) {
     headers.Authorization = `Bearer ${STRAPI_API_TOKEN}`;
   }
 
-  const defaultOptions = {
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+  const defaultOptions: RequestInit = {
     headers,
-    mode: 'cors',
-    // Add timeout to prevent hanging requests
-    signal: AbortSignal.timeout(10000), // 10 second timeout
+    mode: 'cors' as RequestMode,
+    signal: controller.signal,
   };
 
   const mergedOptions = {
@@ -49,6 +57,7 @@ async function fetchAPI(path, options = {}, requireAuth = false) {
   
   try {
     const response = await fetch(requestUrl, mergedOptions);
+    clearTimeout(timeoutId); // Clear timeout on successful response
     
     if (!response.ok) {
       console.error(`Strapi API error: ${response.status} ${response.statusText}`);
@@ -74,7 +83,8 @@ async function fetchAPI(path, options = {}, requireAuth = false) {
     
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch (error: unknown) {
+    clearTimeout(timeoutId); // Clear timeout on error
     console.error('Error fetching from Strapi:', error);
     
     // Handle different types of errors
@@ -83,13 +93,14 @@ async function fetchAPI(path, options = {}, requireAuth = false) {
       return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
     }
     
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       console.warn('Strapi request timed out, using fallback data');
       return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
     }
     
     // For other errors, still return fallback data instead of throwing
-    console.warn('Strapi error, using fallback data:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn('Strapi error, using fallback data:', errorMessage);
     return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
   }
 }

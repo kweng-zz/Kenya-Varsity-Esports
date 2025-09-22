@@ -115,7 +115,9 @@ export const initializeTournamentDataWithOptions = async (
   }
 };
 
-export default {
+const tournamentSchema = {
   initializeTournamentData,
   initializeTournamentDataWithOptions,
 };
+
+export default tournamentSchema;

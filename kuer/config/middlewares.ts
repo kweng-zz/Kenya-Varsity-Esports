@@ -31,10 +31,17 @@ export default [
     name: 'strapi::cors',
     config: {
       enabled: true,
-      origin: '*', // Temporarily allow all origins to fix CORS issue
+      origin: [
+        'https://www.kenyaesportsrankings.org',
+        'https://kenyaesportsrankings.org',
+        'http://localhost:3000',
+        'http://localhost:1337',
+        '*' // Allow all origins for now to debug
+      ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
-      headers: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+      headers: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
       keepHeaderOnError: true,
+      credentials: true,
     },
   },
   'strapi::poweredBy',

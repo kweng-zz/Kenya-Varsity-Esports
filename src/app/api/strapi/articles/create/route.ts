@@ -93,10 +93,17 @@ export async function POST(request: NextRequest) {
     // Upload image if provided
     if (image && image.size > 0) {
       try {
+        console.log('Attempting to upload image:', {
+          fileName: image.name,
+          fileSize: image.size,
+          fileType: image.type
+        });
+
         const imageFormData = new FormData();
         imageFormData.append('files', image);
 
-        const imageResponse = await fetch(`${STRAPI_URL}/api/upload`, {
+        // Try the standard upload endpoint first
+        let imageResponse = await fetch(`${STRAPI_URL}/api/upload`, {
           method: 'POST',
           headers: {
             ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
@@ -104,11 +111,43 @@ export async function POST(request: NextRequest) {
           body: imageFormData,
         });
 
+        console.log('Upload response status:', imageResponse.status);
+
+        // If the standard endpoint fails with 404, try alternative endpoints
+        if (!imageResponse.ok && imageResponse.status === 404) {
+          console.log('Standard upload endpoint failed, trying alternative...');
+          
+          // Try without /api prefix (some Strapi configurations)
+          imageResponse = await fetch(`${STRAPI_URL}/upload`, {
+            method: 'POST',
+            headers: {
+              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+            },
+            body: imageFormData,
+          });
+          
+          console.log('Alternative upload response status:', imageResponse.status);
+        }
+
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
-          imageId = imageData[0]?.id;
+          // For Strapi v5, we might need to use documentId instead of id
+          imageId = imageData[0]?.documentId || imageData[0]?.id;
+          console.log('Image uploaded successfully:', {
+            imageId,
+            originalId: imageData[0]?.id,
+            documentId: imageData[0]?.documentId,
+            imageUrl: imageData[0]?.url,
+            fullImageData: imageData[0]
+          });
         } else {
-          console.warn('Image upload failed, continuing without image');
+          const errorText = await imageResponse.text();
+          console.warn('Image upload failed:', {
+            status: imageResponse.status,
+            statusText: imageResponse.statusText,
+            error: errorText
+          });
+          console.warn('Continuing without image...');
         }
       } catch (error) {
         console.error('Error uploading image:', error);

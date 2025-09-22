@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
     // Test Strapi connection first
     try {
       console.log('Testing Strapi connection at:', STRAPI_URL);
+      console.log('Using API token:', STRAPI_API_TOKEN ? 'Token present' : 'No token');
+      
       const testResponse = await fetch(`${STRAPI_URL}/api/articles?pagination[limit]=1`, {
         method: 'GET',
         headers: {
@@ -61,11 +63,17 @@ export async function POST(request: NextRequest) {
         const errorText = await testResponse.text();
         console.error('Strapi test response error:', errorText);
         
-        if (testResponse.status === 403) {
+        if (testResponse.status === 401) {
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid Strapi API token',
+            details: 'The STRAPI_API_TOKEN is missing, expired, or invalid. Please generate a new API token in your Strapi admin panel (Settings → API Tokens → Create new API token) and update your environment variables.'
+          }, { status: 401 });
+        } else if (testResponse.status === 403) {
           return NextResponse.json({
             success: false,
             error: 'Strapi permissions not configured',
-            details: 'Please enable Article permissions for Public role in Strapi admin panel. See STRAPI_QUICK_SETUP.md for instructions.'
+            details: 'Please enable Article permissions for the API token or Public role in Strapi admin panel. Go to Settings → Roles → Public/Authenticated and enable find, findOne, create, update, delete permissions for Article content type.'
           }, { status: 403 });
         } else if (testResponse.status === 404) {
           return NextResponse.json({
@@ -131,8 +139,8 @@ export async function POST(request: NextRequest) {
 
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
-          // For Strapi v5, we might need to use documentId instead of id
-          imageId = imageData[0]?.documentId || imageData[0]?.id;
+          // Use numeric ID for image relations (not documentId)
+          imageId = imageData[0]?.id;
           console.log('Image uploaded successfully:', {
             imageId,
             originalId: imageData[0]?.id,
@@ -168,7 +176,7 @@ export async function POST(request: NextRequest) {
       }
     ] : [];
 
-    // Create article data
+    // Create article data without image first (to avoid relation issues)
     const articleData = {
       data: {
         title,
@@ -181,11 +189,11 @@ export async function POST(request: NextRequest) {
         featured,
         tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
         publishedAt: new Date().toISOString(),
-        ...(imageId && { image: imageId }),
+        // Don't include image in initial creation
       }
     };
 
-    console.log('Creating article with data:', {
+    console.log('Creating article without image first:', {
       ...articleData,
       data: {
         ...articleData.data,
@@ -221,6 +229,59 @@ export async function POST(request: NextRequest) {
     }
 
     const createdArticle = await response.json();
+    
+    // If we have an image and the article was created successfully, try to update it with the image
+    if (imageId && createdArticle.data) {
+      console.log('Article created successfully, now attempting to add image...');
+      
+      const articleId = createdArticle.data.documentId || createdArticle.data.id;
+      
+      // Try different image relation formats (numeric ID first, as discovered by diagnostic)
+      const imageUpdateAttempts = [
+        { image: imageId }, // Direct numeric ID (should work based on diagnostic)
+        { image: { connect: [imageId] } }, // Connect format
+        { image: { set: [imageId] } }, // Set format
+        { image: [imageId] }, // Array format
+      ];
+      
+      let imageUpdateSuccess = false;
+      
+      for (let i = 0; i < imageUpdateAttempts.length && !imageUpdateSuccess; i++) {
+        const updateData = { data: imageUpdateAttempts[i] };
+        
+        console.log(`Trying image update approach ${i + 1}:`, updateData);
+        
+        try {
+          const updateResponse = await fetch(`${STRAPI_URL}/api/articles/${articleId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+            },
+            body: JSON.stringify(updateData),
+          });
+          
+          console.log(`Image update attempt ${i + 1} status:`, updateResponse.status);
+          
+          if (updateResponse.ok) {
+            const updatedArticle = await updateResponse.json();
+            console.log('✅ Image successfully added to article!');
+            imageUpdateSuccess = true;
+            // Update the createdArticle with the image-updated version
+            Object.assign(createdArticle, updatedArticle);
+          } else {
+            const errorText = await updateResponse.text();
+            console.log(`❌ Image update attempt ${i + 1} failed:`, errorText);
+          }
+        } catch (updateError) {
+          console.log(`❌ Image update attempt ${i + 1} error:`, updateError);
+        }
+      }
+      
+      if (!imageUpdateSuccess) {
+        console.warn('⚠️ Article created but image could not be attached. You can add the image manually in Strapi admin panel.');
+      }
+    }
     console.log('Article created successfully:', {
       id: createdArticle.data?.id,
       documentId: createdArticle.data?.documentId,

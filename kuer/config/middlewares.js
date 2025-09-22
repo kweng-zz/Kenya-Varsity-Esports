@@ -32,6 +32,11 @@ module.exports = [
     config: {
       enabled: true,
       origin: ({ env }) => {
+        // Simplified CORS for production
+        if (env('NODE_ENV') === 'production') {
+          return ['https://www.kenyaesportsrankings.org', 'https://kenyaesportsrankings.org'];
+        }
+        
         const allowedOrigins = [
           'http://localhost:3000',
           'http://127.0.0.1:3000',

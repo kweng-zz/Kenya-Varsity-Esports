@@ -31,6 +31,11 @@ export default [
     name: 'strapi::cors',
     config: {
       origin: ({ env }: { env: (key: string, defaultValue?: string) => string }) => {
+        // Temporarily allow all origins to fix immediate CORS issue
+        if (env('NODE_ENV') === 'production') {
+          return ['https://www.kenyaesportsrankings.org', 'https://kenyaesportsrankings.org'];
+        }
+        
         const allowedOrigins = [
           'http://localhost:3000',
           'http://127.0.0.1:3000',

@@ -29,13 +29,8 @@ build
 *.tsbuildinfo
 next-env.d.ts
 
-# Strapi
-kuer/node_modules
-kuer/.tmp
-kuer/build
-kuer/dist
-kuer/.cache
-kuer/.strapi-updater.json
+# Strapi (exclude entire directory)
+kuer/
 
 # Git
 .git
@@ -44,10 +39,19 @@ kuer/.strapi-updater.json
 # Documentation
 README.md
 *.md
+RAILWAY_DEPLOYMENT_GUIDE.md
 
-# Scripts
+# Scripts and deployment configs
 scripts/
 railway-strapi/
+railway-deploy.js
+start-railway.js
+start-production.js
+start-standalone.js
+start.js
+render.yaml
+railway.json.backup
+nixpacks.toml
 
 # Other configs
 .eslintrc.json
@@ -61,3 +65,13 @@ __tests__/
 *.test.ts
 *.spec.js
 *.spec.ts
+
+# Cleanup scripts
+cleanup-test-articles.js
+deploy-*.js
+fix-*.js
+generate-*.js
+health-check.js
+switch-*.js
+test-*.js
+verify-*.js

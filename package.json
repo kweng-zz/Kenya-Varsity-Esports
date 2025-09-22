@@ -13,7 +13,7 @@
     "build:local": "npm run strapi:build && next build",
     "build:vercel": "SKIP_STRAPI_BUILD=true next build",
     "build:with-strapi": "npm run strapi:build && next build",
-    "start": "node start-railway.js",
+    "start": "next start",
     "start:full": "concurrently --names \"STRAPI,NEXT\" --prefix-colors \"blue,green\" \"npm run strapi:start\" \"npm run start:next\"",
     "start:production": "node start-production.js",
     "start:standalone": "node start-standalone.js",

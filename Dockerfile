@@ -11,8 +11,14 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy source code (excluding problematic directories)
+COPY src ./src
+COPY public ./public
+COPY next.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.js ./
+COPY postcss.config.mjs ./
+COPY components.json ./
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -35,5 +41,5 @@ USER nextjs
 
 EXPOSE 3000
 
-# Start the application
+# Start Next.js directly
 CMD ["npx", "next", "start", "-p", "3000", "-H", "0.0.0.0"]

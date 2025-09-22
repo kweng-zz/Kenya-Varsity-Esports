@@ -1,7 +1,9 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install dependencies
-RUN apk add --no-cache libc6-compat
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -40,5 +42,5 @@ USER nextjs
 
 EXPOSE 3000
 
-# Start Next.js directly
+# Start Next.js
 CMD ["npx", "next", "start", "-p", "3000", "-H", "0.0.0.0"]

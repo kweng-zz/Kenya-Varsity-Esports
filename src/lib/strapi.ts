@@ -166,6 +166,8 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
     headers,
     // Add mode: 'cors' to handle CORS properly
     mode: 'cors',
+    // Add timeout to prevent hanging requests
+    signal: AbortSignal.timeout(10000), // 10 second timeout
   };
 
   const mergedOptions = {
@@ -185,13 +187,25 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
     if (!response.ok) {
       console.error(`Strapi API error: ${response.status} ${response.statusText}`);
       
-      // If it's a CORS error or 404, return empty data instead of throwing
-      if (response.status === 404 || response.status === 0) {
-        console.warn('Strapi backend not available, using fallback data');
+      // Handle specific error cases more gracefully
+      if (response.status === 404) {
+        console.warn('Strapi content not found, using fallback data');
         return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
       }
       
-      throw new Error(`Failed to fetch from Strapi: ${response.status}`);
+      if (response.status === 403) {
+        console.warn('Strapi access forbidden, check API token permissions');
+        return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+      }
+      
+      if (response.status === 0) {
+        console.warn('Strapi backend not available (CORS or network error), using fallback data');
+        return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+      }
+      
+      // For other errors, still return fallback data instead of throwing
+      console.warn(`Strapi API error ${response.status}, using fallback data`);
+      return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
     }
     
     const data = await response.json();
@@ -199,13 +213,20 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
   } catch (error) {
     console.error('Error fetching from Strapi:', error);
     
-    // If it's a network error (CORS, connection refused, etc.), return fallback data
+    // Handle different types of errors gracefully
     if (error instanceof TypeError && error.message.includes('fetch')) {
       console.warn('Strapi backend not available (network error), using fallback data');
       return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
     }
     
-    throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn('Strapi request timed out, using fallback data');
+      return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+    }
+    
+    // For any other errors, return fallback data instead of throwing
+    console.warn('Strapi error, using fallback data:', error instanceof Error ? error.message : 'Unknown error');
+    return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
   }
 }
 

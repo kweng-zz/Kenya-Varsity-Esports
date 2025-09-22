@@ -31,7 +31,6 @@ export default [
     name: 'strapi::cors',
     config: {
       enabled: true,
-      headers: '*',
       origin: ({ env }: { env: (key: string, defaultValue?: string) => string }) => {
         const allowedOrigins = [
           'http://localhost:3000',

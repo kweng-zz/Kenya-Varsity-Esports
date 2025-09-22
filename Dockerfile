@@ -20,6 +20,7 @@ COPY next.config.ts ./
 COPY tsconfig.json ./
 COPY postcss.config.mjs ./
 COPY components.json ./
+COPY entrypoint.sh ./
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -30,6 +31,9 @@ ENV HOSTNAME="0.0.0.0"
 
 # Build the application
 RUN npm run build
+
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -42,5 +46,5 @@ USER nextjs
 
 EXPOSE 3000
 
-# Start Next.js
-CMD ["npx", "next", "start", "-p", "3000", "-H", "0.0.0.0"]
+# Start with custom entrypoint
+CMD ["./entrypoint.sh"]

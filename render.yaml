@@ -3,7 +3,7 @@ services:
   - type: web
     name: kuer-strapi-backend
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd kuer && npm install && npm run build
     startCommand: cd kuer && npm start
     envVars:
@@ -26,7 +26,7 @@ services:
   - type: web
     name: kuer-frontend
     env: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -43,4 +43,4 @@ services:
 
 databases:
   - name: kuer-postgres
-    plan: starter
+    plan: free

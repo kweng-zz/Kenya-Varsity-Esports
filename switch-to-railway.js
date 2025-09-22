@@ -23,7 +23,10 @@ const railwayConfig = {
     'DATABASE_URL': 'your_railway_postgresql_url_here',
     'DATABASE_SSL': 'true',
     'RAILWAY_ENVIRONMENT': 'production',
-    'ALLOWED_ORIGINS': 'https://www.kenyaesportsrankings.org,https://kenyaesportsrankings.org'
+    'ALLOWED_ORIGINS': 'https://www.kenyaesportsrankings.org,https://kenyaesportsrankings.org',
+    'ENCRYPTION_KEY': 'f09e64111305a3785d50c856583bba345f1832ee0f6151f3ce0a60b789a2eaa5',
+    'STRAPI_URL': 'https://kuer-production.up.railway.app',
+    'RAILWAY_STATIC_URL': 'kuer-production.up.railway.app'
   }
 };
 

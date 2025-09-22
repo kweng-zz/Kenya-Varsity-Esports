@@ -16,6 +16,11 @@ module.exports = ({ env }) => ({
   ...(env('RAILWAY_ENVIRONMENT') && {
     serveAdminPanel: env.bool('SERVE_ADMIN_PANEL', true),
     autoReload: false,
+    admin: {
+      build: {
+        backend: env('STRAPI_URL') || env('RAILWAY_STATIC_URL') ? `https://${env('RAILWAY_STATIC_URL')}` : 'http://localhost:1337',
+      },
+    },
   }),
   // Vercel-specific settings
   ...(env('VERCEL') && {

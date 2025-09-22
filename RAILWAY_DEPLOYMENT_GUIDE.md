@@ -12,8 +12,7 @@ Your Railway deployment was stuck on "initializing" because:
 
 ### 1. Updated Files
 - `railway.json` - Changed to use Docker builder and health check at `/api/health`
-- `Dockerfile` - New Docker configuration for reliable deployment
-- `next.config.ts` - Added standalone output for Docker
+- `Dockerfile` - Simplified Docker configuration for reliable deployment
 - `src/app/api/health/route.ts` - Health check endpoint
 - `.dockerignore` - Optimized Docker build
 - `start-railway.js` - Improved Railway-specific startup script (backup option)

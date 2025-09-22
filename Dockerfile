@@ -47,4 +47,4 @@ USER nextjs
 EXPOSE 3000
 
 # Start with custom entrypoint
-CMD ["./entrypoint.sh"]
+ENTRYPOINT ["/bin/bash","-c","/app/entrypoint.sh"]

@@ -12,6 +12,12 @@ interface BlogPostContentProps {
 export const BlogPostContent = ({ post }: BlogPostContentProps) => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [imageError, setImageError] = useState<boolean>(false);
+  const [isClient, setIsClient] = useState<boolean>(false);
+
+  // Handle client-side hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -23,14 +29,20 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
 
   // Ensure we have a valid image URL with proper fallback
   const getImageUrl = (url?: string | null) => {
-    if (!url) return '/images/Join our tournaments.png';
+    if (!url || url.trim() === '') return '/images/Join our tournaments.png';
     
     // If it's already a full URL, return as is
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
     
-    // If it starts with /, it's already a proper path
+    // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
+    if (url.startsWith('/uploads/')) {
+      const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://kuer-strapi-backend-production.up.railway.app';
+      return `${strapiUrl}${url}`;
+    }
+    
+    // If it starts with /, assume it's a local image
     if (url.startsWith('/')) {
       return url;
     }
@@ -47,7 +59,7 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
     setCurrentImageUrl(processedUrl);
   }, [post.imageUrl]);
 
-  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : currentImageUrl;
+  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : (currentImageUrl || '/images/Join our tournaments.png');
 
   const getReadingTime = (content: string) => {
     const wordsPerMinute = 200;

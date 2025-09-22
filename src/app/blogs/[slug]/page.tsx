@@ -21,6 +21,7 @@ export async function generateStaticParams() {
     if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
       // Return fallback slugs for build time
       return [
+        { slug: 'safaricom-game-conference-kuer-showcases-the-future-of-university-esportsinkenya' },
         { slug: 'b34r-cl4n-official-kuer-sponsor' },
         { slug: 'mmust-makes-history' },
         { slug: 'tuk-season-2-champions' },
@@ -144,6 +145,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     // If no article found, use fallback articles
     if (!article) {
       const fallbackArticles = [
+        {
+          id: '6',
+          title: 'Safaricom Game Conference: KUER Showcases the Future of University Esports in Kenya',
+          description: 'Kenya University Esports Rankings (KUER) is shaping the future of university gaming in Kenya, giving student gamers a platform to shine and grow.',
+          content: 'The Safaricom Game Conference marked a historic moment for the growth of Esports in Kenya, bringing together gamers, brands, and industry leaders to discuss how to shape the future of the industry. Safaricom Kenya, represented by Chief Consumer Business Officer Fawzia Ali Kimanthi, shared the company\'s commitment to empowering young people and supporting innovation in gaming.\n\nFawzia highlighted Safaricom\'s support for startups through initiatives such as the Spark Accelerator Program, noting that the company is open to game development in Kenya. She explained that Safaricom Kenya wants to be recognized as a brand associated with gaming by listening to gamers, understanding their needs, and offering solutions that will grow the industry locally.\n\nGamers Speak at the Safaricom Game Conference\n\nThe conference also gave a platform to gamers who are shaping the Esports scene in Kenya. Thee Beast, who grew up in Kibera, shared how gaming saved his life, showing how powerful Esports can be as a source of hope, opportunity, and transformation.\n\nShirley Adema, CEO of Tunza Esports and founder of the Kenya University Esports Rankings (KUER), shared her personal journey of being introduced to gaming at an early age by her five brothers. She spoke about the challenges she faced as an Esports athlete and the level of dedication it takes to reach the professional stage. These experiences inspired her to create KUER, a platform designed to provide the structure and recognition that she and many other gamers lacked.\n\nKUER Leading the Way in University Esports\n\nAt the heart of Shirley\'s message was KUER, which has quickly become the most important platform for University Esports in Kenya. By ranking and spotlighting student gamers, KUER bridges the gap between university sports and professional Esports, offering students visibility, competitive opportunities, and a pathway to growth.\n\nKUER is more than a ranking system. It is a movement to create a sustainable structure for Kenyan Esports, ensuring that university players are recognized for their skills and given the chance to pursue careers in competitive gaming. The platform is helping to transform student passion into professional potential, making universities a breeding ground for the next generation of Esports talent.\n\nA Strong Future for Esports in Kenya\n\nThe Safaricom Game Conference highlighted how collaboration between industry leaders, gamers, and organizations like KUER can unlock the future of Esports. With Safaricom Kenya positioning itself as a brand that supports gaming and with KUER driving the university Esports agenda, the Kenyan gaming scene is entering an exciting new era.\n\nThe stories of Thee Beast and Shirley Adema are proof that Esports in Kenya is not just about competition but about transformation, resilience, and opportunity. Through platforms like KUER and the support of partners like Safaricom Kenya, the future of University Esports in Kenya has never looked brighter.',
+          slug: 'safaricom-game-conference-kuer-showcases-the-future-of-university-esportsinkenya',
+          publishedAt: '2025-09-22T18:03:30.570Z',
+          createdAt: '2025-09-22T18:03:30.570Z',
+          updatedAt: '2025-09-22T18:03:30.570Z',
+          featured: true,
+          category: 'News',
+          game: 'General',
+          author: 'Wayne Kabaraji',
+          tags: [],
+          imageUrl: 'https://kuer-strapi-backend-production.up.railway.app/uploads/Whats_App_Image_2025_09_22_at_19_46_27_fdfd5106_09a24f2c46.jpg',
+          image: null
+        },
         {
           id: '2',
           title: 'B34R CL4N: Official KUER Sponsor',

@@ -164,6 +164,8 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
 
   const defaultOptions: RequestInit = {
     headers,
+    // Add mode: 'cors' to handle CORS properly
+    mode: 'cors',
   };
 
   const mergedOptions = {
@@ -182,6 +184,13 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
     
     if (!response.ok) {
       console.error(`Strapi API error: ${response.status} ${response.statusText}`);
+      
+      // If it's a CORS error or 404, return empty data instead of throwing
+      if (response.status === 404 || response.status === 0) {
+        console.warn('Strapi backend not available, using fallback data');
+        return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+      }
+      
       throw new Error(`Failed to fetch from Strapi: ${response.status}`);
     }
     
@@ -189,6 +198,13 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
     return data;
   } catch (error) {
     console.error('Error fetching from Strapi:', error);
+    
+    // If it's a network error (CORS, connection refused, etc.), return fallback data
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.warn('Strapi backend not available (network error), using fallback data');
+      return { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
+    }
+    
     throw error;
   }
 }

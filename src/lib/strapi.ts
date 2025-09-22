@@ -136,7 +136,7 @@ function blocksToString(content: Array<{
 }
 
 // Helper function to make API requests to Strapi
-async function fetchAPI(path: string, options: RequestInit = {}) {
+async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: boolean = false) {
   // Skip Strapi calls during build if environment variable is set
   if (process.env.SKIP_STRAPI_BUILD === 'true') {
     console.log('Skipping Strapi API call during build:', path);
@@ -152,11 +152,18 @@ async function fetchAPI(path: string, options: RequestInit = {}) {
     }
   }
 
+  // Build headers - only add Authorization for authenticated requests
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Only add Authorization header if explicitly required and token is available
+  if (requireAuth && STRAPI_API_TOKEN) {
+    headers.Authorization = `Bearer ${STRAPI_API_TOKEN}`;
+  }
+
   const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-    },
+    headers,
   };
 
   const mergedOptions = {

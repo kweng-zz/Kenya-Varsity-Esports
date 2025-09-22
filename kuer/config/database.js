@@ -1,8 +1,8 @@
 const path = require('path');
 
 module.exports = ({ env }) => {
-  // For Vercel deployment, prefer PostgreSQL
-  const client = env('DATABASE_CLIENT', env('VERCEL') ? 'postgres' : 'sqlite');
+  // For production deployments (Vercel, Railway), prefer PostgreSQL
+  const client = env('DATABASE_CLIENT', (env('VERCEL') || env('RAILWAY_ENVIRONMENT')) ? 'postgres' : 'sqlite');
 
   const connections = {
     mysql: {
@@ -32,7 +32,7 @@ module.exports = ({ env }) => {
         database: env('DATABASE_NAME', 'strapi'),
         user: env('DATABASE_USERNAME', 'strapi'),
         password: env('DATABASE_PASSWORD', 'strapi'),
-        ssl: env.bool('DATABASE_SSL', env('VERCEL') ? true : false) && {
+        ssl: env.bool('DATABASE_SSL', (env('VERCEL') || env('RAILWAY_ENVIRONMENT')) ? true : false) && {
           key: env('DATABASE_SSL_KEY', undefined),
           cert: env('DATABASE_SSL_CERT', undefined),
           ca: env('DATABASE_SSL_CA', undefined),

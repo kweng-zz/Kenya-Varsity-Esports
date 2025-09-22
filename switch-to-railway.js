@@ -22,7 +22,8 @@ const railwayConfig = {
     'PORT': '1337',
     'DATABASE_URL': 'your_railway_postgresql_url_here',
     'DATABASE_SSL': 'true',
-    'RAILWAY_ENVIRONMENT': 'production'
+    'RAILWAY_ENVIRONMENT': 'production',
+    'ALLOWED_ORIGINS': 'https://www.kenyaesportsrankings.org,https://kenyaesportsrankings.org'
   }
 };
 

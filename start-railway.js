@@ -9,29 +9,35 @@ console.log('🚀 Starting KUER Application on Railway...\n');
 console.log('🌐 Starting Next.js Frontend for Railway deployment...');
 
 const port = process.env.PORT || 3000;
-console.log(`📡 Server will run on port: ${port}`);
+const host = process.env.HOST || '0.0.0.0';
 
-const nextjs = spawn('npx', ['next', 'start', '-p', port], {
-  stdio: 'inherit',
+console.log(`📡 Server will run on ${host}:${port}`);
+console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+// Start Next.js with explicit configuration
+const nextjs = spawn('npx', ['next', 'start', '-p', port, '-H', host], {
+  stdio: ['inherit', 'inherit', 'inherit'],
   shell: true,
   env: {
     ...process.env,
     NODE_ENV: 'production',
-    SKIP_STRAPI_BUILD: 'true'
+    SKIP_STRAPI_BUILD: 'true',
+    PORT: port,
+    HOST: host
   }
 });
 
-// Handle process termination
+// Handle process termination gracefully
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down Next.js server...');
+  console.log('\n🛑 Received SIGINT, shutting down Next.js server...');
   nextjs.kill('SIGINT');
-  process.exit(0);
+  setTimeout(() => process.exit(0), 1000);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n🛑 Shutting down Next.js server...');
+  console.log('\n🛑 Received SIGTERM, shutting down Next.js server...');
   nextjs.kill('SIGTERM');
-  process.exit(0);
+  setTimeout(() => process.exit(0), 1000);
 });
 
 nextjs.on('error', (error) => {
@@ -39,11 +45,15 @@ nextjs.on('error', (error) => {
   process.exit(1);
 });
 
-nextjs.on('exit', (code) => {
-  console.log(`Next.js process exited with code ${code}`);
-  process.exit(code);
+nextjs.on('exit', (code, signal) => {
+  if (signal) {
+    console.log(`Next.js process killed by signal ${signal}`);
+  } else {
+    console.log(`Next.js process exited with code ${code}`);
+  }
+  process.exit(code || 0);
 });
 
 console.log('\n✅ Next.js server starting...');
-console.log(`🌐 Frontend will be available at: http://localhost:${port}`);
+console.log(`🌐 Frontend will be available at: http://${host}:${port}`);
 console.log('\n💡 Railway deployment in progress...\n');

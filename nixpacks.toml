@@ -5,10 +5,10 @@ nixPkgs = ["nodejs-18_x", "npm-9_x"]
 cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["SKIP_STRAPI_BUILD=true npm run build"]
 
 [start]
-cmd = "npm run start:standalone"
+cmd = "npm run start:railway"
 
 [variables]
 NODE_ENV = "production"

@@ -1,0 +1,46 @@
+services:
+  # Strapi Backend Service
+  - type: web
+    name: kuer-strapi-backend
+    env: node
+    plan: starter
+    buildCommand: cd kuer && npm install && npm run build
+    startCommand: cd kuer && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: STRAPI_ADMIN_JWT_SECRET
+        generateValue: true
+      - key: STRAPI_API_TOKEN_SALT
+        generateValue: true
+      - key: STRAPI_JWT_SECRET
+        generateValue: true
+      - key: STRAPI_TRANSFER_TOKEN_SALT
+        generateValue: true
+    domains:
+      - kuer-strapi.onrender.com
+
+  # Next.js Frontend Service  
+  - type: web
+    name: kuer-frontend
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_STRAPI_URL
+        value: https://kuer-strapi.onrender.com
+      - key: STRAPI_API_TOKEN
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        value: https://kuer-frontend.onrender.com
+    domains:
+      - kuer.onrender.com
+
+databases:
+  - name: kuer-postgres
+    plan: starter

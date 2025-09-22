@@ -34,7 +34,9 @@
     "setup:strapi-deploy": "node scripts/setup-strapi-deployment.js",
     "setup:railway": "node railway-deploy.js",
     "verify:railway": "node verify-railway.js",
-    "health-check": "node health-check.js"
+    "health-check": "node health-check.js",
+    "deploy:render": "node scripts/deploy-render.js",
+    "switch-env": "node scripts/switch-env.js"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

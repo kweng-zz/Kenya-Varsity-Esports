@@ -146,6 +146,14 @@ export async function POST(request: NextRequest) {
       }
     };
 
+    console.log('Creating article with data:', {
+      ...articleData,
+      data: {
+        ...articleData.data,
+        content: '[Content blocks - truncated for logging]'
+      }
+    });
+
     // Create article in Strapi
     const response = await fetch(`${STRAPI_URL}/api/articles`, {
       method: 'POST',
@@ -155,6 +163,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(articleData),
     });
+
+    console.log('Strapi create response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -172,11 +182,46 @@ export async function POST(request: NextRequest) {
     }
 
     const createdArticle = await response.json();
+    console.log('Article created successfully:', {
+      id: createdArticle.data?.id,
+      documentId: createdArticle.data?.documentId,
+      slug: createdArticle.data?.slug || createdArticle.data?.attributes?.slug,
+      title: createdArticle.data?.title || createdArticle.data?.attributes?.title
+    });
+
+    // Verify the article can be retrieved by slug
+    try {
+      const verifyResponse = await fetch(`${STRAPI_URL}/api/articles?filters[slug][$eq]=${finalSlug}&populate=image`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+        },
+      });
+      
+      if (verifyResponse.ok) {
+        const verifyData = await verifyResponse.json();
+        console.log('Article verification successful:', {
+          found: verifyData.data?.length > 0,
+          slug: finalSlug,
+          count: verifyData.data?.length
+        });
+      } else {
+        console.warn('Article verification failed:', verifyResponse.status);
+      }
+    } catch (verifyError) {
+      console.warn('Article verification error:', verifyError);
+    }
 
     return NextResponse.json({
       success: true,
       article: createdArticle,
-      message: 'Article created successfully'
+      message: 'Article created successfully',
+      debug: {
+        slug: finalSlug,
+        imageUploaded: !!imageId,
+        imageId: imageId
+      }
     });
 
   } catch (error) {

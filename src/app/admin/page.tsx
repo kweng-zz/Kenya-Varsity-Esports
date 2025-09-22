@@ -115,6 +115,14 @@ export default function AdminPage() {
         </Link>
 
         <Link
+          href="/admin/strapi-test"
+          className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2 border-2 border-yellow-600"
+        >
+          <h2 className="text-2xl font-semibold text-yellow-400">🔧 Strapi Diagnostics</h2>
+          <p>Test and diagnose Strapi blog integration issues.</p>
+        </Link>
+
+        <Link
           href="/admin/calendar"
           className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
         >

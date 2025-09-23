@@ -15,6 +15,20 @@ echo "✅ Build directory found"
 
 # Create .tmp directory if it doesn't exist (for SQLite database)
 mkdir -p .tmp
+mkdir -p kuer/.tmp
+echo "📁 Created .tmp directories"
+
+# Check for config files
+echo "🔍 Checking for config files..."
+if [ -f "config/database.js" ]; then
+    echo "✅ Found config/database.js"
+fi
+if [ -f "kuer/config/database.js" ]; then
+    echo "✅ Found kuer/config/database.js"
+fi
+if [ -f "kuer/config/database.ts" ]; then
+    echo "✅ Found kuer/config/database.ts"
+fi
 
 # Set default environment variables if not provided
 export NODE_ENV=${NODE_ENV:-production}

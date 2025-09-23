@@ -30,7 +30,6 @@ export default [
   {
     name: 'strapi::cors',
     config: {
-      enabled: true,
       origin: [
         'https://www.kenyaesportsrankings.org',
         'https://kenyaesportsrankings.org',

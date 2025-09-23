@@ -1,62 +1,41 @@
 {
   "compilerOptions": {
-    "module": "Node16",
-    "moduleResolution": "node16",
-    "lib": ["ES2020"],
-    "target": "ES2019",
-    "strict": false,
+    "target": "es2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "incremental": true,
+    "strict": true,
+    "noEmit": false,
     "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "noEmitOnError": false,
-    "noImplicitThis": true,
-    "outDir": "dist",
-    "rootDir": "."
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
-    // Include root files
-    "./",
-    // Include all ts files
-    "./**/*.ts",
-    // Include all js files
-    "./**/*.js",
-    // Force the JSON files in the src folder to be included
-    "src/**/*.json"
+    "next-env.d.ts", 
+    "src/**/*.ts", 
+    "src/**/*.tsx", 
+    ".next/types/**/*.ts"
   ],
-
   "exclude": [
-    "node_modules/",
-    "build/",
-    "dist/",
-    ".cache/",
-    ".tmp/",
-
-    // Do not include admin files in the server compilation
-    "src/admin/",
-    // Do not include test files
-    "**/*.test.*",
-    // Do not include plugins in the server compilation
-    "src/plugins/**",
-
-    // Exclude Next.js frontend files
-    "src/app/**",
-    "src/components/**",
-    "src/contexts/**",
-    "src/hooks/**",
-    "src/lib/**",
-    "frontend-backup/**",
-    "scripts/**",
-    "*.cjs",
-    "*-railway*.js",
-    "*-strapi*.js",
-    "diagnose-*.cjs",
-    "fix-*.js",
-    "setup-*.js",
-    "verify-*.js",
-    "troubleshoot-*.js",
-    "move-*.js",
-    "check-*.js"
+    "node_modules", 
+    "kuer", 
+    "kuer/**", 
+    "kuer-backend", 
+    "kuer-backend/**",
+    "config/**",
+    "database/**",
+    "api/**"
   ]
 }

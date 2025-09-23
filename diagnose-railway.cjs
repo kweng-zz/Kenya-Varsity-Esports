@@ -44,23 +44,23 @@ async function runDiagnostics() {
   
   const tests = [
     {
-      url: 'https://kuer-strapi-backend-production.up.railway.app',
+      url: 'https://kuer-production-3e7c.up.railway.app',
       description: 'Root endpoint (should redirect or show info)'
     },
     {
-      url: 'https://kuer-strapi-backend-production.up.railway.app/admin',
+      url: 'https://kuer-production-3e7c.up.railway.app/admin',
       description: 'Admin panel (should show login page)'
     },
     {
-      url: 'https://kuer-strapi-backend-production.up.railway.app/api',
+      url: 'https://kuer-production-3e7c.up.railway.app/api',
       description: 'API root (should show API info)'
     },
     {
-      url: 'https://kuer-strapi-backend-production.up.railway.app/api/articles',
+      url: 'https://kuer-production-3e7c.up.railway.app/api/articles',
       description: 'Articles endpoint (should return JSON)'
     },
     {
-      url: 'https://kuer-strapi-backend-production.up.railway.app/_health',
+      url: 'https://kuer-production-3e7c.up.railway.app/_health',
       description: 'Health check (might exist)'
     }
   ];

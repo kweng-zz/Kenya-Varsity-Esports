@@ -21,6 +21,7 @@ src/hooks/
 src/lib/
 src/types/
 src/admin/
+src/admin/vite.config.example.ts
 public/images/
 public/*.svg
 components.json

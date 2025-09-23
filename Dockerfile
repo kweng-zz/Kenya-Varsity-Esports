@@ -40,3 +40,4 @@ EXPOSE 8080
 
 # Use the entrypoint script
 ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD []

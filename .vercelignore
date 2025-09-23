@@ -1,49 +1,55 @@
-# Strapi directory (not needed for frontend deployment)
+# Strapi backend files
 kuer/
 kuer-backend/
+strapi-render-deploy/
+.strapi/
+.tmp/
 
-# Scripts directory (not needed for production)
-scripts/
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# Development files
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment files (use Vercel environment variables instead)
+# Environment files (except .env.example)
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Dependencies
+node_modules/
+
 # IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Docker files (not needed for Vercel)
-Dockerfile
-docker-compose.yml
-ecosystem.config.js
-nixpacks.toml
-railway.json
+# Temporary files
+.tmp/
+temp/
 
-# Railway deployment files (not needed for Vercel)
-start-*.js
-setup-*.js
-setup-*.bat
-
-# Documentation files (not needed for production)
+# Documentation
 *.md
-DEPLOYMENT_*
-RAILWAY_*
-VERCEL_*
-STRAPI_*
+!README.md
 
-# Deployment helper scripts
-deploy-*.js
-generate-*.js
+# Scripts that aren't needed for deployment
+scripts/deploy-*.js
+scripts/setup-*.js

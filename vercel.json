@@ -1,26 +1,51 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/src/index.js"
-    }
+  "buildCommand": "npm run build:next",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": [
+    "iad1"
   ],
   "env": {
-    "NODE_ENV": "production"
+    "SKIP_STRAPI_BUILD": "true"
+  },
+  "build": {
+    "env": {
+      "SKIP_STRAPI_BUILD": "true"
+    }
   },
   "functions": {
-    "src/index.js": {
-      "maxDuration": 30
+    "src/app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    },
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
 }

@@ -38,7 +38,7 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
     
     // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
     if (url.startsWith('/uploads/')) {
-      const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'https://kuer-production-3e7c.up.railway.app';
+      const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
       return `${strapiUrl}${url}`;
     }
     

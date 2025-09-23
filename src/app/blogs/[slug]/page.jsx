@@ -14,10 +14,7 @@ export async function generateStaticParams() {
             return [
                 { slug: 'safaricom-game-conference-kuer-showcases-the-future-of-university-esportsinkenya' },
                 { slug: 'b34r-cl4n-official-kuer-sponsor' },
-                { slug: 'mmust-makes-history' },
-                { slug: 'tuk-season-2-champions' },
-                { slug: 'season-3-registration-open' },
-                { slug: 'new-games-added-kuer-lineup' }
+                
             ];
         }
         const response = await strapiAPI.getArticles({ pageSize: 100 });
@@ -143,7 +140,7 @@ export default async function BlogPostPage({ params }) {
                     game: 'General',
                     author: 'Wayne Kabaraji',
                     tags: [],
-                    imageUrl: 'https://kuer-strapi-backend-production.up.railway.app/uploads/Whats_App_Image_2025_09_22_at_19_46_27_fdfd5106_09a24f2c46.jpg',
+                    imageUrl: '/images/Join our tournaments.png',
                     image: null
                 },
                 {
@@ -163,74 +160,7 @@ export default async function BlogPostPage({ params }) {
                     imageUrl: '/images/B34R-CL4N-with-name.png',
                     image: null
                 },
-                {
-                    id: '1',
-                    title: 'MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY',
-                    description: 'As the Only Non-Nairobi Winner in the Kenya University Esports Rankings, MMUST has proven that talent exists beyond the capital city.',
-                    content: 'MMUST has made history by becoming the first non-Nairobi university to win the Kenya University Esports Rankings. This achievement showcases the incredible talent that exists beyond the capital city and proves that esports excellence can be found throughout Kenya.\n\nThe team\'s journey to victory was marked by exceptional teamwork, strategic gameplay, and countless hours of practice. Their success serves as an inspiration to universities across the country and demonstrates that with dedication and skill, any team can reach the top.\n\nThis victory not only brings pride to MMUST but also highlights the growing esports scene in Kenya\'s universities. As more institutions invest in esports programs, we can expect to see even more exciting competitions and talented players emerging from across the country.',
-                    slug: 'mmust-makes-history',
-                    publishedAt: '2024-01-15T00:00:00.000Z',
-                    createdAt: '2024-01-15T00:00:00.000Z',
-                    updatedAt: '2024-01-15T00:00:00.000Z',
-                    featured: true,
-                    category: 'Tournament Results',
-                    game: 'PUBG Mobile',
-                    author: 'KUER Team',
-                    tags: ['MMUST', 'Tournament', 'Victory', 'University'],
-                    imageUrl: '/images/Join our tournaments.png',
-                    image: null
-                },
-                {
-                    id: '3',
-                    title: 'TUK TAKES THE OVERALL POSITION FOR SEASON 2',
-                    description: 'The Technical University of Kenya gathers the top position in KUER Season 2, showcasing exceptional gaming skills and teamwork.',
-                    content: 'The Technical University of Kenya (TUK) has claimed the overall championship position in KUER Season 2, demonstrating exceptional gaming skills and remarkable teamwork throughout the competition.\n\nTUK\'s path to victory was characterized by consistent performance across multiple game titles and strategic gameplay that outmaneuvered their competitors. The team\'s dedication to practice and their ability to adapt to different gaming scenarios proved to be the key factors in their success.\n\nThis championship win solidifies TUK\'s position as one of the premier esports institutions in Kenya and sets a high standard for future competitions. Their victory serves as motivation for other universities to strengthen their esports programs and compete at the highest level.',
-                    slug: 'tuk-season-2-champions',
-                    publishedAt: '2024-01-10T00:00:00.000Z',
-                    createdAt: '2024-01-10T00:00:00.000Z',
-                    updatedAt: '2024-01-10T00:00:00.000Z',
-                    featured: false,
-                    category: 'Championship',
-                    game: 'Call of Duty Mobile',
-                    author: 'KUER Team',
-                    tags: ['TUK', 'Championship', 'Season 2', 'Victory'],
-                    imageUrl: '/images/Join-Your-Uni.png',
-                    image: null
-                },
-                {
-                    id: '4',
-                    title: 'SEASON 3 REGISTRATION NOW OPEN',
-                    description: 'Universities across Kenya can now register for the upcoming Season 3 of the Kenya University Esports Rankings.',
-                    content: 'The registration for KUER Season 3 is now officially open! Universities across Kenya are invited to participate in what promises to be the most exciting season yet.\n\nSeason 3 will feature expanded game titles, increased prize pools, and enhanced streaming coverage. We\'re expecting record participation as more universities recognize the value of competitive esports.\n\nRegistration is simple and can be completed through our official website. Don\'t miss this opportunity to showcase your university\'s gaming talent and compete for the championship title.',
-                    slug: 'season-3-registration-open',
-                    publishedAt: '2024-01-20T00:00:00.000Z',
-                    createdAt: '2024-01-20T00:00:00.000Z',
-                    updatedAt: '2024-01-20T00:00:00.000Z',
-                    featured: false,
-                    category: 'Registration',
-                    game: 'Multiple Games',
-                    author: 'KUER Team',
-                    tags: ['Registration', 'Season 3', 'Universities', 'Competition'],
-                    imageUrl: '/images/Join-the-Discord.png',
-                    image: null
-                },
-                {
-                    id: '5',
-                    title: 'NEW GAMES ADDED TO KUER LINEUP',
-                    description: 'Exciting new gaming titles have been added to the official KUER tournament lineup for the upcoming season.',
-                    content: 'We\'re thrilled to announce the addition of several new gaming titles to the KUER tournament lineup! These additions reflect the evolving esports landscape and provide more opportunities for universities to showcase their gaming talents.\n\nThe new games have been carefully selected based on their competitive viability, popularity among university students, and potential for exciting tournament play. Each game brings unique strategic elements and skill requirements to the competition.\n\nWith these additions, KUER continues to evolve and provide the most comprehensive university esports experience in Kenya. Stay tuned for more details about tournament formats and schedules for these new titles.',
-                    slug: 'new-games-added-kuer-lineup',
-                    publishedAt: '2024-01-18T00:00:00.000Z',
-                    createdAt: '2024-01-18T00:00:00.000Z',
-                    updatedAt: '2024-01-18T00:00:00.000Z',
-                    featured: false,
-                    category: 'Updates',
-                    game: 'Multiple Games',
-                    author: 'KUER Team',
-                    tags: ['New Games', 'Tournament', 'Updates', 'Lineup'],
-                    imageUrl: '/images/footer.png',
-                    image: null
-                }
+                
             ];
             const foundArticle = fallbackArticles.find(a => a.slug === slug);
             if (!foundArticle) {

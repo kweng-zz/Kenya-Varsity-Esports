@@ -1,37 +1,6 @@
 {
   "version": 3,
-  "middleware": {
-    "/": {
-      "files": [
-        "server/edge/chunks/esports_ed2d6abe._.js",
-        "server/edge/chunks/[root-of-the-server]__8df87390._.js",
-        "server/edge/chunks/turbopack-esports_edge-wrapper_20324903.js"
-      ],
-      "name": "middleware",
-      "page": "/",
-      "matchers": [
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\\\.json)?[\\/#\\?]?$",
-          "originalSource": "/admin/:path*"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/api\\/strapi(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\\\.json)?[\\/#\\?]?$",
-          "originalSource": "/api/strapi/:path*"
-        }
-      ],
-      "wasm": [],
-      "assets": [],
-      "env": {
-        "__NEXT_BUILD_ID": "development",
-        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "ppaYDEWldDngZcpjFBX1B8J4D5/P4uevnIEmKiORXCI=",
-        "__NEXT_PREVIEW_MODE_ID": "f0367ca2dca192faa7b70e21b45b9d48",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "67782b8fbdbd7f663993fe4a9f2888bedcfcad4cc4e9cb464290d65558a5a6a8",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "dc845a021fac3dd80f1981688485fd229bdbbdf18629d07197ea92d974255ad7"
-      }
-    }
-  },
-  "sortedMiddleware": [
-    "/"
-  ],
-  "functions": {}
+  "middleware": {},
+  "functions": {},
+  "sortedMiddleware": []
 }

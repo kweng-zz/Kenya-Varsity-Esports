@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "lib": ["ES2020"],
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "incremental": true,
+    "outDir": "build",
+    "rootDir": ".",
+    "forceConsistentCasingInFileNames": true,
+    "noEmitOnError": false,
+    "noImplicitThis": true
+  },
+  "include": [
+    "src/index.ts",
+    "src/api/**/*.ts",
+    "src/api/**/*.js"
+  ],
+  "exclude": [
+    "node_modules", 
+    "build",
+    "dist",
+    ".cache",
+    ".tmp",
+    "src/admin",
+    "src/plugins/**",
+    "**/*.test.*",
+    "kuer", 
+    "kuer/**", 
+    "kuer-backend", 
+    "kuer-backend/**",
+    "config/**",
+    ".next/**",
+    "src/app/**",
+    "src/components/**",
+    "src/contexts/**",
+    "src/hooks/**",
+    "src/lib/**"
+  ]
+}

@@ -66,7 +66,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
         const response = await strapiAPI.getArticleBySlug(slug);
         
         if (response.data.length > 0) {
-          const article = transformStrapiArticle(response.data[0]);
+          const article: TransformedArticle = transformStrapiArticle(response.data[0]);
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com';
           const postUrl = `${baseUrl}/blogs/${article.slug}`;
           
@@ -159,7 +159,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           game: 'General',
           author: 'Wayne Kabaraji',
           tags: [],
-          imageUrl: 'https://kuer-strapi-backend-production.up.railway.app/uploads/Whats_App_Image_2025_09_22_at_19_46_27_fdfd5106_09a24f2c46.jpg',
+          imageUrl: '/images/Join our tournaments.png',
           image: null
         },
         {

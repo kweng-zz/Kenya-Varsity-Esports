@@ -69,6 +69,37 @@ echo "🔧 HOST: $HOST"
 echo "🔧 PORT: $PORT"
 echo "🔧 DATABASE_CLIENT: $DATABASE_CLIENT"
 
+# Debug: Show current directory and files
+echo "🔍 Current working directory: $(pwd)"
+echo "🔍 Directory contents:"
+ls -la
+
+echo "🔍 Config directory contents:"
+if [ -d "config" ]; then
+    ls -la config/
+else
+    echo "❌ No config directory found"
+fi
+
+echo "🔍 Kuer config directory contents:"
+if [ -d "kuer/config" ]; then
+    ls -la kuer/config/
+else
+    echo "❌ No kuer/config directory found"
+fi
+
+# Test database config loading
+echo "🧪 Testing database config..."
+if [ -f "config/database.js" ]; then
+    echo "✅ Found config/database.js - testing..."
+    node -e "try { const config = require('./config/database.js'); console.log('Config test result:', typeof config); } catch(e) { console.error('Config test error:', e.message); }"
+fi
+
+if [ -f "kuer/config/database.js" ]; then
+    echo "✅ Found kuer/config/database.js - testing..."
+    node -e "try { const config = require('./kuer/config/database.js'); console.log('Kuer config test result:', typeof config); } catch(e) { console.error('Kuer config test error:', e.message); }"
+fi
+
 # Start Strapi with more verbose logging
 echo "🎯 Starting Strapi server..."
 exec npm run start

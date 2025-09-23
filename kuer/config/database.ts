@@ -1,20 +1,39 @@
 import path from 'path';
 
 export default ({ env }) => {
-  console.log('🔧 Loading kuer TypeScript database configuration...');
+  console.log('🔧 DATABASE CONFIG LOADING - KUER TS');
+  console.log('🔧 ENV FUNCTION:', typeof env);
   
-  // Create a completely safe database configuration
-  const config = {
-    connection: {
-      client: 'sqlite',
+  try {
+    const config = {
       connection: {
-        filename: path.join(__dirname, '..', '.tmp', 'data.db'),
+        client: 'sqlite',
+        connection: {
+          filename: path.join(__dirname, '..', '.tmp', 'data.db'),
+        },
+        useNullAsDefault: true,
+        acquireConnectionTimeout: 60000,
       },
-      useNullAsDefault: true,
-      acquireConnectionTimeout: 60000,
-    },
-  };
+    };
 
-  console.log('✅ Kuer TypeScript database configuration loaded:', JSON.stringify(config, null, 2));
-  return config;
+    console.log('✅ DATABASE CONFIG CREATED:', JSON.stringify(config, null, 2));
+    console.log('✅ CONFIG.CONNECTION:', config.connection);
+    console.log('✅ CONFIG.CONNECTION.CLIENT:', config.connection.client);
+    
+    return config;
+  } catch (error) {
+    console.error('❌ DATABASE CONFIG ERROR:', error);
+    
+    // Fallback configuration
+    return {
+      connection: {
+        client: 'sqlite',
+        connection: {
+          filename: '.tmp/data.db',
+        },
+        useNullAsDefault: true,
+        acquireConnectionTimeout: 60000,
+      },
+    };
+  }
 };

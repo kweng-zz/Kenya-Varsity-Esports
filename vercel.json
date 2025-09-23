@@ -1,12 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:next",
-  "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "buildCommand": "npm run build",
   "framework": "nextjs",
-  "regions": [
-    "iad1"
-  ],
   "env": {
     "SKIP_STRAPI_BUILD": "true"
   },
@@ -14,38 +9,5 @@
     "env": {
       "SKIP_STRAPI_BUILD": "true"
     }
-  },
-  "functions": {
-    "src/app/api/**/*.js": {
-      "runtime": "nodejs18.x"
-    },
-    "src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    }
-  ]
+  }
 }

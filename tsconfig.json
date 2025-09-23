@@ -38,6 +38,25 @@
     // Do not include test files
     "**/*.test.*",
     // Do not include plugins in the server compilation
-    "src/plugins/**"
+    "src/plugins/**",
+
+    // Exclude Next.js frontend files
+    "src/app/**",
+    "src/components/**",
+    "src/contexts/**",
+    "src/hooks/**",
+    "src/lib/**",
+    "frontend-backup/**",
+    "scripts/**",
+    "*.cjs",
+    "*-railway*.js",
+    "*-strapi*.js",
+    "diagnose-*.cjs",
+    "fix-*.js",
+    "setup-*.js",
+    "verify-*.js",
+    "troubleshoot-*.js",
+    "move-*.js",
+    "check-*.js"
   ]
 }

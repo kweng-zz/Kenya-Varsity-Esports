@@ -1,0 +1,16 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/esports/src/app/admin/page": [
+      "static/media/caa3a2e1cccd8315-s.p.853070df.woff2",
+      "static/media/797e433ab948586e-s.p.dbea232f.woff2",
+      "static/media/211e29c1c16163dc-s.p.d30aec04.woff2",
+      "static/media/615b8c4b816233f9-s.p.c45a6c7b.woff2",
+      "static/media/0e63149d5897f52c-s.p.b9a0e768.woff2",
+      "static/media/91ac69127e8041e8-s.p.a5f7d28c.woff2",
+      "static/media/5246515474daf346-s.p.db0ff12e.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

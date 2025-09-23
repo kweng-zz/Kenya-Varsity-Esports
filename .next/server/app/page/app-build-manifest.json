@@ -1,0 +1,30 @@
+{
+  "pages": {
+    "/page": [
+      "static/chunks/96830_next_dist_a72fc512._.js",
+      "static/chunks/esports_src_app_favicon_ico_mjs_e7f21e78._.js",
+      "static/chunks/[root-of-the-server]__306e4505._.css",
+      "static/chunks/96830_49dfb8d5._.js",
+      "static/chunks/esports_src_5d90583b._.js",
+      "static/chunks/esports_src_app_layout_tsx_50a8525b._.js",
+      "static/chunks/96830_next_dist_client_components_builtin_global-error_1d4f45e4.js",
+      "static/chunks/esports_src_508c1349._.js",
+      "static/chunks/96830_next_5678415a._.js",
+      "static/chunks/96830_tailwind-merge_dist_bundle-mjs_mjs_27ff816f._.js",
+      "static/chunks/96830_react-social-icons_dist_7f2b1ec8._.js",
+      "static/chunks/96830_react-icons_fa_index_mjs_81fe8368._.js",
+      "static/chunks/96830_react-icons_lib_491222a7._.js",
+      "static/chunks/96830_fc855b34._.js",
+      "static/chunks/esports_src_app_page_tsx_1d4f45e4._.js",
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_d5369ff6._.js",
+      "static/chunks/96830_next_dist_compiled_react-dom_5bdbf4c8._.js",
+      "static/chunks/96830_next_dist_compiled_next-devtools_index_1608e4b6.js",
+      "static/chunks/96830_next_dist_compiled_668b0156._.js",
+      "static/chunks/96830_next_dist_client_cef8f942._.js",
+      "static/chunks/96830_next_dist_81fece40._.js",
+      "static/chunks/96830_@swc_helpers_cjs_f37185ff._.js",
+      "static/chunks/esports_a0ff3932._.js",
+      "static/chunks/turbopack-esports_6d47a73e._.js"
+    ]
+  }
+}

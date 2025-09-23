@@ -1,17 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "npm-9_x"]
+nixPkgs = ['nodejs-18_x', 'npm-9_x']
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ['npm ci']
 
 [phases.build]
-cmds = ["SKIP_STRAPI_BUILD=true npm run build"]
+cmds = ['npm run build']
 
 [start]
-cmd = "npm run start:railway"
-
-[variables]
-NODE_ENV = "production"
-HOST = "0.0.0.0"
-PORT = "3000"
-SKIP_STRAPI_BUILD = "true"
+cmd = 'npm run start'

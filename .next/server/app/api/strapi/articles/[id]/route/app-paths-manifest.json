@@ -1,0 +1,3 @@
+{
+  "/api/strapi/articles/[id]/route": "app/api/strapi/articles/[id]/route.js"
+}

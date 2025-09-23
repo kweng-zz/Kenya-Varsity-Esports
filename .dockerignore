@@ -1,77 +1,14 @@
-# Dependencies
 node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Next.js
-.next/
-out/
-
-# Production
+npm-debug.log
+.tmp
+.cache
 build
-
-# Misc
-.DS_Store
-*.tsbuildinfo
-
-# Debug
-*.log
-
-# Local env files
-.env*.local
-.env.vercel
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# Strapi (exclude entire directory)
-kuer/
-
-# Git
+.strapi-updater.json
+.env
+.env.local
+.env.production
 .git
 .gitignore
-
-# Documentation
 README.md
-*.md
-RAILWAY_DEPLOYMENT_GUIDE.md
-
-# Scripts and deployment configs
-scripts/
-railway-strapi/
-railway-deploy.js
-start-railway.js
-start-production.js
-start-standalone.js
-start.js
-render.yaml
-railway.json.backup
-nixpacks.toml
-
-# Other configs
-.eslintrc.json
-.prettierrc
-.vscode/
-.idea/
-
-# Test files
-__tests__/
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-
-# Cleanup scripts
-cleanup-test-articles.js
-deploy-*.js
-fix-*.js
-generate-*.js
-health-check.js
-switch-*.js
-test-*.js
-verify-*.js
+.DS_Store
+*.log

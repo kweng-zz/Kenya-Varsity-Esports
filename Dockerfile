@@ -13,38 +13,27 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code (excluding problematic directories)
-COPY src ./src
-COPY public ./public
-COPY next.config.ts ./
-COPY tsconfig.json ./
-COPY postcss.config.mjs ./
-COPY components.json ./
-COPY entrypoint.sh ./
+# Copy source code
+COPY . .
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV SKIP_STRAPI_BUILD=true
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV PORT=8080
+ENV HOST=0.0.0.0
 
-# Build the application
+# Build Strapi
 RUN npm run build
 
-# Make entrypoint executable
-RUN chmod +x entrypoint.sh
-
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 strapi
+RUN adduser --system --uid 1001 strapi
 
 # Change ownership of the app directory
-RUN chown -R nextjs:nodejs /app
+RUN chown -R strapi:strapi /app
 
-USER nextjs
+USER strapi
 
-EXPOSE 3000
+EXPOSE 8080
 
-# Start with custom entrypoint
-ENTRYPOINT ["/bin/bash","-c","/app/entrypoint.sh"]
+# Start Strapi
+CMD ["npm", "run", "start"]

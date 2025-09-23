@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "outDir": "build",
     "plugins": [
       {
         "name": "next"
@@ -26,16 +27,15 @@
     "next-env.d.ts", 
     "src/**/*.ts", 
     "src/**/*.tsx", 
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "config/**/*.ts",
+    "api/**/*.ts"
   ],
   "exclude": [
     "node_modules", 
     "kuer", 
     "kuer/**", 
     "kuer-backend", 
-    "kuer-backend/**",
-    "config/**",
-    "database/**",
-    "api/**"
+    "kuer-backend/**"
   ]
 }

@@ -21,12 +21,15 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
 
-# Build Strapi
-RUN npm run build
+# Build Strapi (with error checking)
+RUN npm run build && ls -la build/ || (echo "Build failed or build directory missing" && exit 1)
 
-# Create non-root user
-RUN addgroup --system --gid 1001 strapi
-RUN adduser --system --uid 1001 strapi
+# Create non-root user with proper home directory
+RUN groupadd --system --gid 1001 strapi && \
+    useradd --system --uid 1001 --gid strapi --home-dir /app --shell /bin/bash strapi
+
+# Make entrypoint script executable
+RUN chmod +x docker-entrypoint.sh
 
 # Change ownership of the app directory
 RUN chown -R strapi:strapi /app
@@ -35,5 +38,5 @@ USER strapi
 
 EXPOSE 8080
 
-# Start Strapi
-CMD ["npm", "run", "start"]
+# Use the entrypoint script
+ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -116,3 +116,16 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
+
+############################
+# Next.js
+############################
+.next/
+out/
+.vercel/
+
+############################
+# TypeScript
+############################
+*.tsbuildinfo
+next-env.d.ts

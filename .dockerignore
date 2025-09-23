@@ -20,6 +20,7 @@ src/contexts/
 src/hooks/
 src/lib/
 src/types/
+src/admin/
 public/images/
 public/*.svg
 components.json

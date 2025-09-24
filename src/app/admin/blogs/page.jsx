@@ -193,7 +193,9 @@ export default function AdminBlogsPage() {
             }
             else {
                 // Handle specific Strapi connection errors
-                if (result.details && result.details.includes('Strapi')) {
+                if (result.error === 'Strapi server is not running') {
+                    alert(`❌ Strapi Server Not Running\n\n${result.details}\n\nStrapi URL: ${result.strapiUrl}\n\nTo fix this:\n1. Open a new terminal\n2. Navigate to: cd kuer\n3. Run: npm run develop\n4. Wait for "Server started" message\n5. Try creating the article again`);
+                } else if (result.details && result.details.includes('Strapi')) {
                     alert(`Strapi Connection Error: ${result.details}\n\nTo use blog management:\n1. Start Strapi: cd kuer && npm run develop\n2. Configure environment variables\n3. Follow STRAPI_SETUP.md guide`);
                 }
                 else {

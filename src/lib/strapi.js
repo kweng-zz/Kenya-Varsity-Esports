@@ -123,33 +123,55 @@ export const strapiAPI = {
     // Get all articles with optional filters
     async getArticles(params = {}) {
         const { page = 1, pageSize = 10, featured, category, game, search, populate = ['image'] } = params;
-        // Build query parameters
-        const queryParams = new URLSearchParams();
-        // Pagination
-        queryParams.append('pagination[page]', page.toString());
-        queryParams.append('pagination[pageSize]', pageSize.toString());
-        // Populate relations
-        populate.forEach(field => {
-            queryParams.append('populate', field);
-        });
-        // Filters
-        if (featured !== undefined) {
-            queryParams.append('filters[featured][$eq]', featured.toString());
+        
+        try {
+            // Use our local API route which handles both Strapi and fallback
+            const queryParams = new URLSearchParams();
+            
+            // Pagination
+            queryParams.append('pagination[page]', page.toString());
+            queryParams.append('pagination[pageSize]', pageSize.toString());
+            
+            // Populate relations
+            populate.forEach(field => {
+                queryParams.append('populate', field);
+            });
+            
+            // Filters
+            if (featured !== undefined) {
+                queryParams.append('filters[featured][$eq]', featured.toString());
+            }
+            if (category) {
+                queryParams.append('filters[category][$eq]', category);
+            }
+            if (game) {
+                queryParams.append('filters[game][$eq]', game);
+            }
+            if (search) {
+                queryParams.append('filters[$or][0][title][$containsi]', search);
+                queryParams.append('filters[$or][1][description][$containsi]', search);
+                queryParams.append('filters[$or][2][content][$containsi]', search);
+            }
+            
+            // Sort by publishedAt descending (newest first)
+            queryParams.append('sort', 'publishedAt:desc');
+            
+            const response = await fetch(`/api/strapi/articles?${queryParams.toString()}`);
+            
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching articles:', error);
+            // Return fallback data
+            return { 
+                data: [], 
+                meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } },
+                fallback: true 
+            };
         }
-        if (category) {
-            queryParams.append('filters[category][$eq]', category);
-        }
-        if (game) {
-            queryParams.append('filters[game][$eq]', game);
-        }
-        if (search) {
-            queryParams.append('filters[$or][0][title][$containsi]', search);
-            queryParams.append('filters[$or][1][description][$containsi]', search);
-            queryParams.append('filters[$or][2][content][$containsi]', search);
-        }
-        // Sort by publishedAt descending (newest first)
-        queryParams.append('sort', 'publishedAt:desc');
-        return fetchAPI(`/articles?${queryParams.toString()}`);
     },
     // Get a single article by slug
     async getArticleBySlug(slug) {

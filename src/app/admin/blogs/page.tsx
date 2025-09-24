@@ -71,7 +71,7 @@ export default function AdminBlogsPage() {
 
       const transformedArticles = response.data.map(transformStrapiArticle);
       setArticles(transformedArticles);
-      setTotalPages(response.meta.pagination?.pageCount || 1);
+      setTotalPages(response.meta?.pagination?.pageCount || 1);
     } catch (error) {
       console.error('Error loading articles:', error);
       setError('Failed to load articles. Using fallback data.');

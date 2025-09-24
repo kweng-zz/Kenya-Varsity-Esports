@@ -43,9 +43,9 @@ class StrapiAPI {
   ): Promise<T> {
     const url = `${this.baseURL}/api${endpoint}`;
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -199,6 +199,175 @@ export const getStrapiMedia = (media: any) => {
   
   const { url } = media.data?.attributes || media;
   return url?.startsWith('/') ? getStrapiURL(url) : url;
+};
+
+// Additional API methods for backward compatibility
+export const strapiAPI = {
+  async getArticles(params?: {
+    page?: number;
+    pageSize?: number;
+    category?: string;
+    game?: string;
+    search?: string;
+    featured?: boolean;
+    populate?: string[];
+  }): Promise<StrapiResponse<any[]>> {
+    try {
+      const searchParams: any = {};
+      
+      if (params?.page) searchParams.pagination = { page: params.page, pageSize: params.pageSize || 10 };
+      if (params?.category) searchParams.filters = { category: { $eq: params.category } };
+      if (params?.search) searchParams.filters = { ...searchParams.filters, title: { $containsi: params.search } };
+      if (params?.populate) searchParams.populate = params.populate;
+      
+      const response = await strapi.find('articles', searchParams);
+      
+      // Ensure data is always an array
+      return {
+        data: Array.isArray(response.data) ? response.data : [],
+        meta: response.meta
+      };
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      // Return empty array on error to prevent filter crashes
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+  },
+
+  async getCategories(): Promise<string[]> {
+    try {
+      const response = await strapi.find('categories');
+      return response.data.map((cat: any) => cat.attributes?.name || cat.name);
+    } catch (error) {
+      console.warn('Could not fetch categories from Strapi, using defaults');
+      return ['Tournament Results', 'Championship', 'News', 'Reviews', 'Updates'];
+    }
+  },
+
+  async getGames(): Promise<string[]> {
+    try {
+      const response = await strapi.find('games');
+      return response.data.map((game: any) => game.attributes?.name || game.name);
+    } catch (error) {
+      console.warn('Could not fetch games from Strapi, using defaults');
+      return ['PUBG Mobile', 'Call of Duty Mobile', 'Free Fire', 'Fortnite', 'Multiple Games'];
+    }
+  },
+
+  async getArticleBySlug(slug: string): Promise<StrapiResponse<any[]>> {
+    try {
+      const searchParams: any = {
+        filters: { slug: { $eq: slug } },
+        populate: ['image']
+      };
+      
+      const response = await strapi.find('articles', searchParams);
+      
+      // Ensure data is always an array
+      return {
+        data: Array.isArray(response.data) ? response.data : [],
+        meta: response.meta
+      };
+    } catch (error) {
+      console.error('Error fetching article by slug:', error);
+      // Return empty array on error
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+  },
+
+  async getFeaturedArticles(limit: number = 1): Promise<StrapiResponse<any[]>> {
+    try {
+      const searchParams: any = {
+        filters: { featured: { $eq: true } },
+        populate: ['image'],
+        pagination: { pageSize: limit },
+        sort: ['publishedAt:desc']
+      };
+      
+      const response = await strapi.find('articles', searchParams);
+      
+      // Ensure data is always an array
+      return {
+        data: Array.isArray(response.data) ? response.data : [],
+        meta: response.meta
+      };
+    } catch (error) {
+      console.error('Error fetching featured articles:', error);
+      // Return empty array on error
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: limit,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+  }
+};
+
+// Transform function for Strapi articles
+export interface TransformedArticle {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  slug: string;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  featured: boolean;
+  category: string;
+  game: string;
+  author: string;
+  tags: string[];
+  imageUrl: string | null;
+  image: any;
+}
+
+export const transformStrapiArticle = (article: any): TransformedArticle => {
+  const attributes = article.attributes || article;
+  
+  return {
+    id: String(article.id || ''),
+    title: String(attributes.title || ''),
+    description: String(attributes.description || ''),
+    content: String(attributes.content || ''),
+    slug: String(attributes.slug || ''),
+    publishedAt: String(attributes.publishedAt || attributes.createdAt || new Date().toISOString()),
+    createdAt: String(attributes.createdAt || new Date().toISOString()),
+    updatedAt: String(attributes.updatedAt || new Date().toISOString()),
+    featured: Boolean(attributes.featured),
+    category: String(attributes.category || 'General'),
+    game: String(attributes.game || ''),
+    author: String(attributes.author || 'KUER Team'),
+    tags: Array.isArray(attributes.tags) ? attributes.tags : [],
+    imageUrl: getStrapiMedia(attributes.image) || null,
+    image: attributes.image || null
+  };
 };
 
 // Export types

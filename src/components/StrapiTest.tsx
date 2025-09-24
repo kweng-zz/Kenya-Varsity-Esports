@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { strapi } from '@/lib/strapi';
+import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
 
 interface Article {
   id: number;
@@ -29,15 +29,24 @@ export default function StrapiTest() {
       setError(null);
 
       // Try to fetch articles from Strapi
-      const response = await strapi.find<Article>('articles', {
-        populate: '*',
-        sort: ['publishedAt:desc'],
-        pagination: {
-          pageSize: 10,
-        },
+      const response = await strapiAPI.getArticles({
+        pageSize: 10,
+        populate: ['*']
       });
 
-      setArticles(response.data);
+      // Transform the response to match the expected format
+      const transformedArticles = response.data.map((article: any) => ({
+        id: article.id,
+        attributes: {
+          title: article.title || article.attributes?.title || 'Untitled',
+          content: article.content || article.attributes?.content || 'No content',
+          publishedAt: article.publishedAt || article.attributes?.publishedAt || new Date().toISOString(),
+          createdAt: article.createdAt || article.attributes?.createdAt || new Date().toISOString(),
+          updatedAt: article.updatedAt || article.attributes?.updatedAt || new Date().toISOString(),
+        }
+      }));
+
+      setArticles(transformedArticles);
     } catch (err: any) {
       console.error('Error fetching articles:', err);
       setError(err.message);

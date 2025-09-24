@@ -281,7 +281,7 @@ export const BlogsOverviewSection = () => {
           populate: ["image"],
         });
         fetchedArticles = response.data.map(transformStrapiArticle);
-        setTotalPages(response.meta.pagination?.pageCount || 1);
+        setTotalPages(response.meta?.pagination?.pageCount || 1);
       } else {
         // Fallback data (copy your fallback array here)
         fetchedArticles = []; // Add your fallback data here

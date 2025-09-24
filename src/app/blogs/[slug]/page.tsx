@@ -173,7 +173,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           updatedAt: '2025-09-19T19:38:52.809Z',
           featured: false,
           category: 'News',
-          game: null,
+          game: 'General',
           author: 'Tonny Maina',
           tags: [],
           imageUrl: '/images/B34R-CL4N-with-name.png',

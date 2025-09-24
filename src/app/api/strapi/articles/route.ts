@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       articles: transformedArticles,
-      pagination: response.meta.pagination
+      pagination: response.meta?.pagination
     });
 
   } catch (error) {

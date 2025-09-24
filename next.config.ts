@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Optimize for Vercel deployment
   output: 'standalone',
   
+  // Fix workspace root warning
+  outputFileTracingRoot: __dirname,
+  
   // Image optimization
   images: {
     domains: [
@@ -48,11 +51,8 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Experimental features
-  experimental: {
-    // Enable if you're using app directory features
-    serverComponentsExternalPackages: ['@strapi/strapi'],
-  },
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['@strapi/strapi'],
 
   // TypeScript configuration
   typescript: {

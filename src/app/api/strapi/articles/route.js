@@ -9,8 +9,48 @@ const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const ARTICLES_FILE = path.join(process.cwd(), 'public', 'articles.json');
 
 function ensureArticlesFile() {
-    if (!fs.existsSync(ARTICLES_FILE)) {
-        const initialData = {
+    try {
+        if (!fs.existsSync(ARTICLES_FILE)) {
+            const publicDir = path.dirname(ARTICLES_FILE);
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir, { recursive: true });
+            }
+            const initialData = {
+                articles: [
+                    {
+                        id: '1',
+                        title: 'MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY',
+                        description: 'As the Only Non-Nairobi Winner in the Kenya University Esports Rankings',
+                        content: 'MMUST has made history by becoming the first non-Nairobi university to win the Kenya University Esports Rankings.',
+                        slug: 'mmust-makes-history',
+                        publishedAt: '2024-01-15T00:00:00.000Z',
+                        createdAt: '2024-01-15T00:00:00.000Z',
+                        updatedAt: '2024-01-15T00:00:00.000Z',
+                        featured: true,
+                        category: 'Tournament Results',
+                        game: 'PUBG Mobile',
+                        author: 'KUER Team',
+                        tags: ['MMUST', 'Tournament', 'Victory'],
+                        imageUrl: '/images/Join our tournaments.png'
+                    }
+                ],
+                nextId: 2
+            };
+            fs.writeFileSync(ARTICLES_FILE, JSON.stringify(initialData, null, 2));
+        }
+    } catch (error) {
+        console.error('Error ensuring articles file:', error);
+    }
+}
+
+function readArticles() {
+    try {
+        ensureArticlesFile();
+        const data = fs.readFileSync(ARTICLES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading articles:', error);
+        return {
             articles: [
                 {
                     id: '1',
@@ -31,14 +71,7 @@ function ensureArticlesFile() {
             ],
             nextId: 2
         };
-        fs.writeFileSync(ARTICLES_FILE, JSON.stringify(initialData, null, 2));
     }
-}
-
-function readArticles() {
-    ensureArticlesFile();
-    const data = fs.readFileSync(ARTICLES_FILE, 'utf8');
-    return JSON.parse(data);
 }
 
 // Get articles

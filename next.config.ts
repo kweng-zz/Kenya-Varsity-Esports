@@ -11,7 +11,10 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       'localhost',
-      'your-strapi-domain.onrender.com', // Replace with your actual Render domain
+      'c.animaapp.com', // Add animaapp.com domain
+      'images.ctfassets.net', // Contentful images
+      'fra.cloud.appwrite.io', // Appwrite images
+      'cloud.appwrite.io', // Appwrite images (general)
     ],
     remotePatterns: [
       {
@@ -25,6 +28,30 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '1337',
         pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'c.animaapp.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.ctfassets.net',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.cloud.appwrite.io',
+        port: '',
+        pathname: '/v1/storage/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fra.cloud.appwrite.io',
+        port: '',
+        pathname: '/v1/storage/**',
       }
     ],
   },
@@ -32,6 +59,9 @@ const nextConfig: NextConfig = {
   // Environment variables
   env: {
     SKIP_STRAPI_BUILD: process.env.SKIP_STRAPI_BUILD || 'true',
+    NEXT_PUBLIC_CONTENTFUL_SPACE_ID: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID,
+    NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN: process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN,
+    NEXT_PUBLIC_FALLBACK_MODE: process.env.NEXT_PUBLIC_FALLBACK_MODE,
   },
 
   // Webpack configuration

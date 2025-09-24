@@ -9,5 +9,10 @@
     "env": {
       "SKIP_STRAPI_BUILD": "true"
     }
+  },
+  "functions": {
+    "src/app/api/contentful/**/*.ts": {
+      "maxDuration": 60
+    }
   }
 }

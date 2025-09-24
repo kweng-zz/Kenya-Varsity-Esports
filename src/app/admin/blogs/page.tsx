@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
+import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
 import { Plus, Edit, Trash2, Eye, Search, Filter, Calendar, User, Tag } from 'lucide-react';
 import Link from 'next/link';
 
@@ -61,15 +61,14 @@ export default function AdminBlogsPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await strapiAPI.getArticles({
+      const response = await contentfulAPI.getArticles({
         page: currentPage,
         pageSize: articlesPerPage,
         category: selectedCategory || undefined,
         search: searchTerm || undefined,
-        populate: ['image']
       });
 
-      const transformedArticles = response.data.map(transformStrapiArticle);
+      const transformedArticles = response.data;
       setArticles(transformedArticles);
       setTotalPages(response.meta?.pagination?.pageCount || 1);
     } catch (error) {
@@ -106,8 +105,8 @@ export default function AdminBlogsPage() {
   const loadFilters = async () => {
     try {
       const [categoriesData, gamesData] = await Promise.all([
-        strapiAPI.getCategories(),
-        strapiAPI.getGames()
+        contentfulAPI.getCategories(),
+        contentfulAPI.getGames()
       ]);
       
       setCategories(categoriesData);
@@ -144,7 +143,7 @@ export default function AdminBlogsPage() {
     if (!confirm('Are you sure you want to delete this article?')) return;
 
     try {
-      const response = await fetch(`/api/strapi/articles/${articleId}`, {
+      const response = await fetch(`/api/contentful/articles/${articleId}`, {
         method: 'DELETE',
       });
 
@@ -176,6 +175,13 @@ export default function AdminBlogsPage() {
     setIsSubmitting(true);
 
     try {
+      // Check if we're in fallback mode
+      if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+        alert('Demo Mode Active\n\nArticle creation is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Generate slug if not provided
       if (!formData.slug && formData.title) {
         formData.slug = generateSlug(formData.title);
@@ -200,13 +206,13 @@ export default function AdminBlogsPage() {
       let response;
       if (editingArticle) {
         // Update existing article
-        response = await fetch(`/api/strapi/articles/${editingArticle.id}`, {
+        response = await fetch(`/api/contentful/articles/${editingArticle.id}`, {
           method: 'PUT',
           body: submitFormData,
         });
       } else {
         // Create new article
-        response = await fetch('/api/strapi/articles/create', {
+        response = await fetch('/api/contentful/articles/create', {
           method: 'POST',
           body: submitFormData,
         });
@@ -221,9 +227,11 @@ export default function AdminBlogsPage() {
         setEditingArticle(null);
         loadArticles();
       } else {
-        // Handle specific Strapi connection errors
-        if (result.details && result.details.includes('Strapi')) {
-          alert(`Strapi Connection Error: ${result.details}\n\nTo use blog management:\n1. Start Strapi: cd kuer && npm run develop\n2. Configure environment variables\n3. Follow STRAPI_SETUP.md guide`);
+        // Handle specific error types
+        if (response.status === 503 && result.details?.includes('fallback mode')) {
+          alert('Demo Mode Active\n\nArticle creation is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
+        } else if (result.details && (result.details.includes('Contentful') || result.details.includes('Space not found'))) {
+          alert(`Contentful Connection Error: ${result.details}\n\nTo use blog management:\n1. Configure Contentful credentials in .env\n2. Run the setup script: node scripts/setup-contentful.cjs\n3. Follow CONTENTFUL_SETUP.md guide`);
         } else {
           throw new Error(result.error || 'Failed to save article');
         }
@@ -234,7 +242,7 @@ export default function AdminBlogsPage() {
       
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
-          errorMessage += 'Cannot connect to server. Please check if Strapi is running.';
+          errorMessage += 'Cannot connect to server. Please check if Contentful is configured properly.';
         } else {
           errorMessage += error.message;
         }
@@ -444,8 +452,20 @@ export default function AdminBlogsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Blog Management</h1>
-            <p className="text-gray-400">Manage your blog posts and articles</p>
+            <h1 className="text-4xl font-bold mb-2">
+              Blog Management
+              {process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' && (
+                <span className="ml-3 px-3 py-1 text-sm bg-yellow-600 text-yellow-100 rounded-full">
+                  Demo Mode
+                </span>
+              )}
+            </h1>
+            <p className="text-gray-400">
+              {process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' 
+                ? 'Demo interface - Article creation is disabled in demo mode'
+                : 'Manage your blog posts and articles'
+              }
+            </p>
           </div>
           <div className="flex gap-4">
             <Link

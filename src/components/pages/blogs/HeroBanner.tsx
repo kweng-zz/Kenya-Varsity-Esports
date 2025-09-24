@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
+import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
 
 export const HeroBannerSection = () => {
   const [featuredArticle, setFeaturedArticle] = useState<TransformedArticle | null>(null);
@@ -14,19 +14,23 @@ export const HeroBannerSection = () => {
 
   const loadFeaturedArticle = async () => {
     try {
-      // Check if Strapi is configured
-      if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
-        console.log('Strapi not configured, using fallback content');
+      // Check if we're in fallback mode
+      if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+        console.log('Fallback mode enabled, using fallback content');
         setFeaturedArticle(null);
         setLoading(false);
         return;
       }
 
-      console.log('Loading featured article from Strapi...');
-      const response = await strapiAPI.getFeaturedArticles(1);
+      console.log('Loading featured article from Contentful...');
+      const response = await contentfulAPI.getArticles({
+        page: 1,
+        pageSize: 1,
+        featured: true
+      });
       
       if (response.data.length > 0) {
-        const article = transformStrapiArticle(response.data[0]);
+        const article = response.data[0];
         console.log('Featured article loaded:', article);
         setFeaturedArticle(article);
       } else {
@@ -34,7 +38,7 @@ export const HeroBannerSection = () => {
         setFeaturedArticle(null);
       }
     } catch (error) {
-      console.log('Strapi not available, using fallback content');
+      console.log('Contentful not available, using fallback content');
       setFeaturedArticle(null);
     } finally {
       setLoading(false);

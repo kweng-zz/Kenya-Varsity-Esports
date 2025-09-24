@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
+import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
 import { Navigation } from '@/components/Navigation';
 import { FooterSection } from '@/components/Footer';
 import { BlogPostContent } from '@/components/pages/blogs/BlogPostContent';
@@ -17,40 +17,33 @@ interface BlogPostPageProps {
 // ✅ Generate static params (only needs slug/published, safe for build)
 export async function generateStaticParams() {
   try {
-    // Check if Strapi is available during build
-    if (!process.env.NEXT_PUBLIC_STRAPI_URL) {
+    // Check if Contentful is available during build
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID) {
       // Return fallback slugs for build time
       return [
-        { slug: 'safaricom-game-conference-kuer-showcases-the-future-of-university-esportsinkenya' },
-        { slug: 'b34r-cl4n-official-kuer-sponsor' },
         { slug: 'mmust-makes-history' },
         { slug: 'tuk-season-2-champions' },
-        { slug: 'season-3-registration-open' },
-        { slug: 'new-games-added-kuer-lineup' }
+        { slug: 'new-tournament-format-announced-for-season-3' }
       ];
     }
 
-    const response = await strapiAPI.getArticles({ pageSize: 100 });
+    const response = await contentfulAPI.getArticles({ pageSize: 100 });
     const publishedArticles = response.data.filter(article => {
-      // Handle both flat and nested structures
-      const slug = article.slug || article.attributes?.slug;
-      return slug; // Only include articles with valid slugs
+      return article.slug; // Only include articles with valid slugs
     });
 
     return publishedArticles.map((article) => {
-      const slug = article.slug || article.attributes?.slug;
       return {
-        slug: slug || 'unknown-article',
+        slug: article.slug || 'unknown-article',
       };
     });
   } catch (error) {
     console.error('❌ Error generating static params:', error);
-    // Return fallback slugs if Strapi is not available
+    // Return fallback slugs if Contentful is not available
     return [
       { slug: 'mmust-makes-history' },
       { slug: 'tuk-season-2-champions' },
-      { slug: 'season-3-registration-open' },
-      { slug: 'new-games-added-kuer-lineup' }
+      { slug: 'new-tournament-format-announced-for-season-3' }
     ];
   }
 }
@@ -60,13 +53,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   try {
     const { slug } = await params;
     
-    // Try to fetch from Strapi
-    if (process.env.NEXT_PUBLIC_STRAPI_URL) {
+    // Try to fetch from Contentful
+    if (process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
       try {
-        const response = await strapiAPI.getArticleBySlug(slug);
+        const response = await contentfulAPI.getArticleBySlug(slug);
         
         if (response.data.length > 0) {
-          const article: TransformedArticle = transformStrapiArticle(response.data[0]);
+          const article: TransformedArticle = response.data[0];
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com';
           const postUrl = `${baseUrl}/blogs/${article.slug}`;
           
@@ -104,8 +97,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
             },
           };
         }
-      } catch (strapiError) {
-        console.error('❌ Error fetching metadata from Strapi:', strapiError);
+      } catch (contentfulError) {
+        console.error('❌ Error fetching metadata from Contentful:', contentfulError);
       }
     }
 
@@ -128,16 +121,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   let article: TransformedArticle | null = null;
   
   try {
-    // First try to fetch from Strapi directly (server-side)
-    if (process.env.NEXT_PUBLIC_STRAPI_URL) {
+    // First try to fetch from Contentful directly (server-side)
+    if (process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
       try {
-        const response = await strapiAPI.getArticleBySlug(slug);
+        const response = await contentfulAPI.getArticleBySlug(slug);
         
         if (response.data.length > 0) {
-          article = transformStrapiArticle(response.data[0]);
+          article = response.data[0];
         }
-      } catch (strapiError) {
-        console.error('❌ Error fetching from Strapi directly:', strapiError);
+      } catch (contentfulError) {
+        console.error('❌ Error fetching from Contentful directly:', contentfulError);
         // Continue to fallback
       }
     }

@@ -38,10 +38,11 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider> {/* <-- Wrap the app */}
-          <HydrationFix />
-          <div suppressHydrationWarning>
-            {children}
-          </div>
+          <HydrationFix>
+            <div suppressHydrationWarning>
+              {children}
+            </div>
+          </HydrationFix>
         </AuthProvider>
       </body>
     </html>

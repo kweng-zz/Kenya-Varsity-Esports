@@ -1,0 +1,21 @@
+{
+  "articles": [
+    {
+      "id": "1",
+      "title": "MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY",
+      "description": "As the Only Non-Nairobi Winner in the Kenya University Esports Rankings",
+      "content": "MMUST has made history by becoming the first non-Nairobi university to win the Kenya University Esports Rankings. This remarkable achievement showcases the growing talent and dedication of esports players outside the capital city.",
+      "slug": "mmust-makes-history",
+      "publishedAt": "2024-01-15T00:00:00.000Z",
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z",
+      "featured": true,
+      "category": "Tournament Results",
+      "game": "PUBG Mobile",
+      "author": "KUER Team",
+      "tags": ["MMUST", "Tournament", "Victory"],
+      "imageUrl": "/images/Join our tournaments.png"
+    }
+  ],
+  "nextId": 2
+}

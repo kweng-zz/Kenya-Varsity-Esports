@@ -41,6 +41,11 @@ class StrapiAPI {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Check if Strapi is configured
+    if (!this.baseURL) {
+      throw new Error('Strapi URL not configured');
+    }
+
     const url = `${this.baseURL}/api${endpoint}`;
     
     const headers: Record<string, string> = {
@@ -56,19 +61,38 @@ class StrapiAPI {
       const response = await fetch(url, {
         ...options,
         headers,
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       });
 
-      const data = await response.json();
-
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(
-          data.error?.message || `HTTP ${response.status}: ${response.statusText}`
-        );
+        // Try to get error message from response
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch {
+          // If JSON parsing fails, use the default error message
+        }
+        throw new Error(errorMessage);
       }
 
+      const data = await response.json();
       return data;
     } catch (error) {
       console.error(`Strapi API Error (${endpoint}):`, error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('timeout')) {
+          throw new Error('Strapi server is not responding. Please check if Strapi is running.');
+        }
+        if (error.message.includes('fetch')) {
+          throw new Error('Cannot connect to Strapi server. Please check the server URL and network connection.');
+        }
+      }
+      
       throw error;
     }
   }
@@ -212,6 +236,22 @@ export const strapiAPI = {
     featured?: boolean;
     populate?: string[];
   }): Promise<StrapiResponse<any[]>> {
+    // Check if we're in fallback mode or Strapi is not configured
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !STRAPI_URL) {
+      console.log('Strapi disabled, using fallback data');
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+
     try {
       const searchParams: any = {};
       
@@ -245,6 +285,12 @@ export const strapiAPI = {
   },
 
   async getCategories(): Promise<string[]> {
+    // Check if we're in fallback mode or Strapi is not configured
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !STRAPI_URL) {
+      console.log('Strapi disabled, using default categories');
+      return ['Tournament Results', 'Championship', 'News', 'Reviews', 'Updates'];
+    }
+
     try {
       const response = await strapi.find('categories');
       return response.data.map((cat: any) => cat.attributes?.name || cat.name);
@@ -255,6 +301,12 @@ export const strapiAPI = {
   },
 
   async getGames(): Promise<string[]> {
+    // Check if we're in fallback mode or Strapi is not configured
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !STRAPI_URL) {
+      console.log('Strapi disabled, using default games');
+      return ['PUBG Mobile', 'Call of Duty Mobile', 'Free Fire', 'Fortnite', 'Multiple Games'];
+    }
+
     try {
       const response = await strapi.find('games');
       return response.data.map((game: any) => game.attributes?.name || game.name);
@@ -265,6 +317,22 @@ export const strapiAPI = {
   },
 
   async getArticleBySlug(slug: string): Promise<StrapiResponse<any[]>> {
+    // Check if we're in fallback mode or Strapi is not configured
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !STRAPI_URL) {
+      console.log('Strapi disabled, returning empty article data');
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+
     try {
       const searchParams: any = {
         filters: { slug: { $eq: slug } },
@@ -296,6 +364,22 @@ export const strapiAPI = {
   },
 
   async getFeaturedArticles(limit: number = 1): Promise<StrapiResponse<any[]>> {
+    // Check if we're in fallback mode or Strapi is not configured
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !STRAPI_URL) {
+      console.log('Strapi disabled, using fallback featured articles');
+      return {
+        data: [],
+        meta: {
+          pagination: {
+            page: 1,
+            pageSize: limit,
+            pageCount: 0,
+            total: 0
+          }
+        }
+      };
+    }
+
     try {
       const searchParams: any = {
         filters: { featured: { $eq: true } },

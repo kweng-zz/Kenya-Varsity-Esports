@@ -9,23 +9,42 @@ const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 const ARTICLES_FILE = path.join(process.cwd(), 'public', 'articles.json');
 
 function ensureArticlesFile() {
-    if (!fs.existsSync(ARTICLES_FILE)) {
-        const initialData = {
-            articles: [],
-            nextId: 1
-        };
-        fs.writeFileSync(ARTICLES_FILE, JSON.stringify(initialData, null, 2));
+    try {
+        if (!fs.existsSync(ARTICLES_FILE)) {
+            const publicDir = path.dirname(ARTICLES_FILE);
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir, { recursive: true });
+            }
+            const initialData = {
+                articles: [],
+                nextId: 1
+            };
+            fs.writeFileSync(ARTICLES_FILE, JSON.stringify(initialData, null, 2));
+        }
+    } catch (error) {
+        console.error('Error ensuring articles file:', error);
+        throw new Error('Failed to initialize articles storage');
     }
 }
 
 function readArticles() {
-    ensureArticlesFile();
-    const data = fs.readFileSync(ARTICLES_FILE, 'utf8');
-    return JSON.parse(data);
+    try {
+        ensureArticlesFile();
+        const data = fs.readFileSync(ARTICLES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading articles:', error);
+        return { articles: [], nextId: 1 };
+    }
 }
 
 function writeArticles(data) {
-    fs.writeFileSync(ARTICLES_FILE, JSON.stringify(data, null, 2));
+    try {
+        fs.writeFileSync(ARTICLES_FILE, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error writing articles:', error);
+        throw new Error('Failed to save article');
+    }
 }
 
 // Create new article

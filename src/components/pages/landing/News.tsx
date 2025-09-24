@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { strapiAPI, transformStrapiArticle, TransformedArticle } from '@/lib/strapi';
+import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
 
 // Define the TypeScript interface for a single news article's data.
 interface NewsArticle {
@@ -36,28 +36,69 @@ const NewsCard = ({ article }: NewsCardProps) => {
   };
 
   // Ensure we have a valid image URL with proper fallback
-  const getImageUrl = (url?: string) => {
-    if (!url) return '/images/Join our tournaments.png';
-    
-    // If it's already a full URL, return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+  const getImageUrl = (url?: string | object | null) => {
+    // Handle null, undefined, or empty string
+    if (!url || url === '' || url === null || url === undefined) {
+      return '/images/Join our tournaments.png';
     }
     
-    // If it starts with /, it's already a proper path
-    if (url.startsWith('/')) {
-      return url;
+    // Handle object case (from Strapi image objects)
+    if (typeof url === 'object' && url !== null) {
+      // Try to extract URL from object
+      const urlObj = url as any;
+      if (urlObj.url && typeof urlObj.url === 'string' && urlObj.url.trim() !== '') {
+        const extractedUrl = urlObj.url.trim();
+        if (extractedUrl.startsWith('http')) {
+          return extractedUrl;
+        }
+        if (extractedUrl.startsWith('/uploads/')) {
+          const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+          return `${strapiUrl}${extractedUrl}`;
+        }
+        return extractedUrl.startsWith('/') ? extractedUrl : `/images/${extractedUrl}`;
+      }
+      // If object doesn't have url property, use fallback
+      return '/images/Join our tournaments.png';
     }
     
-    // Otherwise, assume it needs /images/ prefix
-    return `/images/${url}`;
+    // Handle string case
+    if (typeof url === 'string') {
+      const trimmedUrl = url.trim();
+      
+      // Check for empty string after trimming
+      if (trimmedUrl === '') {
+        return '/images/Join our tournaments.png';
+      }
+      
+      // If it's already a full URL, return as is
+      if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+        return trimmedUrl;
+      }
+      
+      // Handle Strapi uploads
+      if (trimmedUrl.startsWith('/uploads/')) {
+        const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+        return `${strapiUrl}${trimmedUrl}`;
+      }
+      
+      // If it starts with /, it's already a proper path
+      if (trimmedUrl.startsWith('/')) {
+        return trimmedUrl;
+      }
+      
+      // Otherwise, assume it needs /images/ prefix
+      return `/images/${trimmedUrl}`;
+    }
+    
+    // Fallback for any other case
+    return '/images/Join our tournaments.png';
   };
 
   // Initialize the image URL when component mounts or imageUrl changes
   useEffect(() => {
     setImageError(false);
     const processedUrl = getImageUrl(imageUrl);
-    console.log('Processing image URL:', { original: imageUrl, processed: processedUrl });
+    console.log('Processing image URL:', { original: typeof imageUrl, processed: processedUrl });
     setCurrentImageUrl(processedUrl);
   }, [imageUrl]);
 
@@ -123,27 +164,24 @@ const LatestNews = () => {
       try {
         setLoading(true);
         
-        // Try to fetch from Strapi directly using the same approach as blogs page
-        if (process.env.NEXT_PUBLIC_STRAPI_URL) {
-          const response = await strapiAPI.getFeaturedArticles(2);
-          if (response.data && response.data.length > 0) {
-            const transformedArticles = response.data.map(transformStrapiArticle);
-            const newsArticles = transformedArticles.map((article: TransformedArticle) => ({
-              id: article.id,
-              title: article.title,
-              description: article.description,
-              imageUrl: article.imageUrl || undefined, // Convert null to undefined to match NewsArticle interface
-              category: article.category,
-              date: article.publishedAt,
-              slug: article.slug
-            }));
-            setArticles(newsArticles);
-            setLoading(false);
-            return;
-          }
+        // Try to fetch from Contentful
+        const response = await contentfulAPI.getFeaturedArticles(2);
+        if (response.data && response.data.length > 0) {
+          const newsArticles = response.data.map((article: TransformedArticle) => ({
+            id: article.id,
+            title: article.title,
+            description: article.description,
+            imageUrl: article.imageUrl || undefined, // Convert null to undefined to match NewsArticle interface
+            category: article.category,
+            date: article.publishedAt,
+            slug: article.slug
+          }));
+          setArticles(newsArticles);
+          setLoading(false);
+          return;
         }
       } catch (error) {
-        console.log('Strapi not available, using fallback data:', error);
+        console.log('Contentful not available, using fallback data:', error);
       }
 
       // Fallback to static articles

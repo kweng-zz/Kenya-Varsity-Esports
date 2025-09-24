@@ -33,6 +33,12 @@ let client: Client | null = null;
 let databases: Databases | null = null;
 
 const initializeAppwrite = () => {
+  // Check if we're in fallback mode
+  if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+    console.log('Fallback mode enabled, Appwrite disabled for banners');
+    return null;
+  }
+
   if (!client) {
     const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
     const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;

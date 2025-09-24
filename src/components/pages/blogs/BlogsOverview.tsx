@@ -3,7 +3,8 @@
 import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import { Search, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { strapiAPI, transformStrapiArticle, TransformedArticle } from "@/lib/strapi";
+import { contentfulAPI, transformContentfulArticle, TransformedArticle } from "@/lib/contentful";
+import { ImageWithFallback } from "@/components/HydrationFix";
 
 // Search Input Component
 const SearchInput = ({
@@ -101,9 +102,6 @@ const FilterDropdown = ({
 
 // Blog Card Component
 const BlogCard = ({ article }: { article: TransformedArticle }) => {
-  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
-  const [imageError, setImageError] = useState<boolean>(false);
-
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -113,59 +111,49 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
 
   // Ensure we have a valid image URL with proper fallback
   const getImageUrl = (url?: string | null) => {
-    if (!url || url.trim() === '') return '/images/Join our tournaments.png';
+    // Handle null, undefined, or empty string
+    if (!url || url === null || url === undefined || url.trim() === '') {
+      return '/images/Join our tournaments.png';
+    }
+    
+    const trimmedUrl = url.trim();
     
     // If it's already a full URL, return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
     }
     
     // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
-    if (url.startsWith('/uploads/')) {
+    if (trimmedUrl.startsWith('/uploads/')) {
       const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-      return `${strapiUrl}${url}`;
+      return `${strapiUrl}${trimmedUrl}`;
     }
     
     // If it starts with /, assume it's a local image
-    if (url.startsWith('/')) {
-      return url;
+    if (trimmedUrl.startsWith('/')) {
+      return trimmedUrl;
     }
     
     // Otherwise, assume it needs /images/ prefix
-    return `/images/${url}`;
+    return `/images/${trimmedUrl}`;
   };
 
-  // Initialize the image URL when component mounts or imageUrl changes
-  useEffect(() => {
-    setImageError(false);
-    const processedUrl = getImageUrl(article.imageUrl);
-    console.log('Processing blog image URL:', { original: article.imageUrl, processed: processedUrl });
-    setCurrentImageUrl(processedUrl);
-  }, [article.imageUrl]);
-
-  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : (currentImageUrl || '/images/Join our tournaments.png');
+  const imageUrl = getImageUrl(article.imageUrl);
 
   return (
     <Link href={`/blogs/${article.slug}`}>
       <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
         <div className="relative h-48 bg-gray-800">
-          <img
-            src={displayImageUrl}
+          <ImageWithFallback
+            src={imageUrl}
             alt={article.title}
+            fallbackSrc="/images/Join our tournaments.png"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              console.error('Blog image failed to load:', displayImageUrl);
-              if (!imageError) {
-                setImageError(true);
-              }
-            }}
-            onLoad={() => {
-              // Reset error state if image loads successfully
-              if (imageError) {
-                setImageError(false);
-              }
+            onError={() => {
+              console.error('Blog image failed to load:', imageUrl);
             }}
           />
+          
           {article.featured && (
             <div className="absolute top-2 left-2 bg-[#961c18] text-white px-2 py-1 rounded text-xs font-semibold">
               Featured
@@ -271,21 +259,15 @@ export const BlogsOverviewSection = () => {
       setError(null);
       let fetchedArticles: TransformedArticle[] = [];
 
-      if (process.env.NEXT_PUBLIC_STRAPI_URL) {
-        const response = await strapiAPI.getArticles({
-          page: currentPage,
-          pageSize: articlesPerPage,
-          category: selectedCategory || undefined,
-          game: selectedGame || undefined,
-          search: searchTerm || undefined,
-          populate: ["image"],
-        });
-        fetchedArticles = response.data.map(transformStrapiArticle);
-        setTotalPages(response.meta?.pagination?.pageCount || 1);
-      } else {
-        // Fallback data (copy your fallback array here)
-        fetchedArticles = []; // Add your fallback data here
-      }
+      const response = await contentfulAPI.getArticles({
+        page: currentPage,
+        pageSize: articlesPerPage,
+        category: selectedCategory || undefined,
+        game: selectedGame || undefined,
+        search: searchTerm || undefined,
+      });
+      fetchedArticles = response.data;
+      setTotalPages(response.meta?.pagination?.pageCount || 1);
 
       setArticles(fetchedArticles);
     } catch (err) {
@@ -298,7 +280,7 @@ export const BlogsOverviewSection = () => {
 
   const loadFilters = async () => {
     try {
-      const [categoriesData, gamesData] = await Promise.all([strapiAPI.getCategories(), strapiAPI.getGames()]);
+      const [categoriesData, gamesData] = await Promise.all([contentfulAPI.getCategories(), contentfulAPI.getGames()]);
       setCategories(categoriesData);
       setGames(gamesData);
     } catch {

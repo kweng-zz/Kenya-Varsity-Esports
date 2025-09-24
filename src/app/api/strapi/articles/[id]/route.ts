@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
-
-// Update article
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check if Strapi URL is configured (allow localhost:1337 as it's the default)
-    if (!STRAPI_URL) {
-      return NextResponse.json({
-        success: false,
-        error: 'Strapi is not configured',
-        details: 'Please configure NEXT_PUBLIC_STRAPI_URL environment variable'
-      }, { status: 503 });
-    }
-
     const { id } = await params;
     const formData = await request.formData();
     
-    // Extract form fields
+    // Extract form data
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const content = formData.get('content') as string;
@@ -30,141 +17,113 @@ export async function PUT(
     const game = formData.get('game') as string;
     const author = formData.get('author') as string;
     const featured = formData.get('featured') === 'true';
-    const tags = formData.get('tags') as string;
-    const image = formData.get('image') as File;
+    const tags = (formData.get('tags') as string)?.split(',').map(tag => tag.trim()).filter(tag => tag) || [];
+    const image = formData.get('image') as File | null;
 
     // Validate required fields
     if (!title || !description || !content || !category) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing required fields'
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    // Generate slug if not provided
-    const finalSlug = slug || title
-      .toLowerCase()
-      .replace(/[^a-z0-9 -]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+    // Check if Strapi is configured
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
+    const strapiToken = process.env.STRAPI_API_TOKEN;
 
-    let imageId = null;
+    if (!strapiUrl || !strapiToken) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Strapi not configured',
+          details: 'Please configure Strapi connection in environment variables'
+        },
+        { status: 500 }
+      );
+    }
 
-    // Upload new image if provided
-    if (image && image.size > 0) {
+    // Prepare article data
+    const articleData = {
+      title,
+      description,
+      content,
+      slug: slug || title.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-'),
+      category,
+      game: game || null,
+      author: author || 'KUER Team',
+      featured,
+      tags,
+    };
+
+    // Update article in Strapi
+    const updateResponse = await fetch(`${strapiUrl}/api/articles/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${strapiToken}`,
+      },
+      body: JSON.stringify({ data: articleData }),
+    });
+
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP ${updateResponse.status}: ${updateResponse.statusText}`);
+    }
+
+    const updatedArticle = await updateResponse.json();
+
+    // Handle image upload if provided
+    if (image && updatedArticle.data?.id) {
       try {
         const imageFormData = new FormData();
         imageFormData.append('files', image);
+        imageFormData.append('ref', 'api::article.article');
+        imageFormData.append('refId', updatedArticle.data.id.toString());
+        imageFormData.append('field', 'image');
 
-        const imageResponse = await fetch(`${STRAPI_URL}/api/upload`, {
+        const uploadResponse = await fetch(`${strapiUrl}/api/upload`, {
           method: 'POST',
           headers: {
-            ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+            'Authorization': `Bearer ${strapiToken}`,
           },
           body: imageFormData,
         });
 
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          imageId = imageData[0]?.id;
+        if (!uploadResponse.ok) {
+          console.warn('Image upload failed, but article was updated successfully');
         }
-      } catch (error) {
-        console.error('Error uploading image:', error);
+      } catch (imageError) {
+        console.warn('Image upload error:', imageError);
+        // Don't fail the entire request if image upload fails
       }
     }
-
-    // Convert content string to blocks format for Strapi
-    const contentBlocks = content ? [
-      {
-        type: 'paragraph',
-        children: [
-          {
-            type: 'text',
-            text: content
-          }
-        ]
-      }
-    ] : [];
-
-    // Create update data
-    const updateData = {
-      data: {
-        title,
-        description,
-        content: contentBlocks,
-        slug: finalSlug,
-        category,
-        game: game || null,
-        author: author || 'KUER Team',
-        featured,
-        tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [],
-        ...(imageId && { image: imageId }),
-      }
-    };
-
-    // Try to update article by documentId first (Strapi v5), then by id
-    let response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    // If not found by documentId, try to find by id and get documentId
-    if (!response.ok && response.status === 404) {
-      const findResponse = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-        },
-      });
-
-      if (findResponse.ok) {
-        const findData = await findResponse.json();
-        if (findData.data && findData.data.length > 0) {
-          const documentId = findData.data[0].documentId;
-          response = await fetch(`${STRAPI_URL}/api/articles/${documentId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-            },
-            body: JSON.stringify(updateData),
-          });
-        }
-      }
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Strapi API error:', errorData);
-      throw new Error(`Failed to update article: ${response.status}`);
-    }
-
-    const updatedArticle = await response.json();
 
     return NextResponse.json({
       success: true,
-      article: updatedArticle,
+      data: updatedArticle.data,
       message: 'Article updated successfully'
     });
 
   } catch (error) {
     console.error('Error updating article:', error);
     
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to update article',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    let errorMessage = 'Failed to update article';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: errorMessage,
+        details: 'Please check server logs for more information'
+      },
+      { status: 500 }
+    );
   }
 }
 
-// Delete article
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -172,44 +131,32 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Try to delete article by documentId first (Strapi v5), then by id
-    let response = await fetch(`${STRAPI_URL}/api/articles/${id}`, {
+    // Check if Strapi is configured
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
+    const strapiToken = process.env.STRAPI_API_TOKEN;
+
+    if (!strapiUrl || !strapiToken) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Strapi not configured',
+          details: 'Please configure Strapi connection in environment variables'
+        },
+        { status: 500 }
+      );
+    }
+
+    // Delete article from Strapi
+    const deleteResponse = await fetch(`${strapiUrl}/api/articles/${id}`, {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json',
-        ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+        'Authorization': `Bearer ${strapiToken}`,
       },
     });
 
-    // If not found by documentId, try to find by id and get documentId
-    if (!response.ok && response.status === 404) {
-      const findResponse = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-        },
-      });
-
-      if (findResponse.ok) {
-        const findData = await findResponse.json();
-        if (findData.data && findData.data.length > 0) {
-          const documentId = findData.data[0].documentId;
-          response = await fetch(`${STRAPI_URL}/api/articles/${documentId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-            },
-          });
-        }
-      }
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Strapi API error:', errorData);
-      throw new Error(`Failed to delete article: ${response.status}`);
+    if (!deleteResponse.ok) {
+      const errorData = await deleteResponse.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP ${deleteResponse.status}: ${deleteResponse.statusText}`);
     }
 
     return NextResponse.json({
@@ -220,72 +167,18 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting article:', error);
     
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to delete article',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
-}
+    let errorMessage = 'Failed to delete article';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
 
-// Get single article
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-
-    // Try to get article by documentId first (Strapi v5), then by id
-    let response = await fetch(`${STRAPI_URL}/api/articles/${id}?populate=image`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: errorMessage,
+        details: 'Please check server logs for more information'
       },
-    });
-
-    // If not found by documentId, try to find by id using filters
-    if (!response.ok && response.status === 404) {
-      response = await fetch(`${STRAPI_URL}/api/articles?filters[id][$eq]=${id}&populate=image`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(STRAPI_API_TOKEN && { Authorization: `Bearer ${STRAPI_API_TOKEN}` }),
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data.length > 0) {
-          return NextResponse.json({
-            success: true,
-            article: { data: data.data[0], meta: {} }
-          });
-        }
-      }
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Strapi API error:', errorData);
-      throw new Error(`Failed to get article: ${response.status}`);
-    }
-
-    const article = await response.json();
-
-    return NextResponse.json({
-      success: true,
-      article
-    });
-
-  } catch (error) {
-    console.error('Error getting article:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to get article',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      { status: 500 }
+    );
   }
 }

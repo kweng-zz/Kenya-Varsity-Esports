@@ -162,13 +162,37 @@ export const strapiAPI = {
                 throw new Error(`API error: ${response.status}`);
             }
             
-            return await response.json();
+            const result = await response.json();
+            
+            // Ensure the result has the expected structure
+            return {
+                data: Array.isArray(result.data) ? result.data : [],
+                meta: result.meta || { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } },
+                fallback: result.fallback || false
+            };
         } catch (error) {
             console.error('Error fetching articles:', error);
-            // Return fallback data
+            // Return fallback data with default article
             return { 
-                data: [], 
-                meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } },
+                data: [
+                    {
+                        id: '1',
+                        title: 'MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY',
+                        description: 'As the Only Non-Nairobi Winner in the Kenya University Esports Rankings',
+                        content: 'MMUST has made history by becoming the first non-Nairobi university to win the Kenya University Esports Rankings.',
+                        slug: 'mmust-makes-history',
+                        publishedAt: '2024-01-15T00:00:00.000Z',
+                        createdAt: '2024-01-15T00:00:00.000Z',
+                        updatedAt: '2024-01-15T00:00:00.000Z',
+                        featured: true,
+                        category: 'Tournament Results',
+                        game: 'PUBG Mobile',
+                        author: 'KUER Team',
+                        tags: ['MMUST', 'Tournament', 'Victory'],
+                        imageUrl: '/images/Join our tournaments.png'
+                    }
+                ], 
+                meta: { pagination: { page: 1, pageSize: 1, pageCount: 1, total: 1 } },
                 fallback: true 
             };
         }
@@ -193,20 +217,25 @@ export const strapiAPI = {
         try {
             const response = await this.getArticles({ pageSize: 100 });
             const categories = new Set();
-            response.data.forEach(article => {
-                if (!article)
-                    return;
-                // Handle both flat and nested structures
-                const category = article.category || article.attributes?.category;
-                if (category) {
-                    categories.add(category);
-                }
-            });
-            return Array.from(categories).sort();
+            
+            // Ensure response.data exists and is an array
+            if (response && response.data && Array.isArray(response.data)) {
+                response.data.forEach(article => {
+                    if (!article) return;
+                    // Handle both flat and nested structures
+                    const category = article.category || article.attributes?.category;
+                    if (category) {
+                        categories.add(category);
+                    }
+                });
+            }
+            
+            const result = Array.from(categories).sort();
+            return result.length > 0 ? result : ['Tournament Results', 'Championship', 'News', 'Reviews', 'Updates'];
         }
         catch (error) {
             console.error('Error fetching categories:', error);
-            return [];
+            return ['Tournament Results', 'Championship', 'News', 'Reviews', 'Updates'];
         }
     },
     // Get games (unique values from articles)
@@ -214,20 +243,25 @@ export const strapiAPI = {
         try {
             const response = await this.getArticles({ pageSize: 100 });
             const games = new Set();
-            response.data.forEach(article => {
-                if (!article)
-                    return;
-                // Handle both flat and nested structures
-                const game = article.game || article.attributes?.game;
-                if (game) {
-                    games.add(game);
-                }
-            });
-            return Array.from(games).sort();
+            
+            // Ensure response.data exists and is an array
+            if (response && response.data && Array.isArray(response.data)) {
+                response.data.forEach(article => {
+                    if (!article) return;
+                    // Handle both flat and nested structures
+                    const game = article.game || article.attributes?.game;
+                    if (game) {
+                        games.add(game);
+                    }
+                });
+            }
+            
+            const result = Array.from(games).sort();
+            return result.length > 0 ? result : ['PUBG Mobile', 'Call of Duty Mobile', 'Free Fire', 'Fortnite', 'Multiple Games'];
         }
         catch (error) {
             console.error('Error fetching games:', error);
-            return [];
+            return ['PUBG Mobile', 'Call of Duty Mobile', 'Free Fire', 'Fortnite', 'Multiple Games'];
         }
     }
 };

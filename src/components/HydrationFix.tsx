@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { getSafeImageSrc } from '@/utils/imageUtils';
 
 interface HydrationFixProps {
   children: React.ReactNode;
@@ -43,15 +44,16 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   onLoad,
   ...props
 }) => {
-  const [currentSrc, setCurrentSrc] = useState(src);
+  const [currentSrc, setCurrentSrc] = useState(getSafeImageSrc(src, fallbackSrc));
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setCurrentSrc(src);
+    const safeSrc = getSafeImageSrc(src, fallbackSrc);
+    setCurrentSrc(safeSrc);
     setHasError(false);
     setIsLoading(true);
-  }, [src]);
+  }, [src, fallbackSrc]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error('Image failed to load:', currentSrc);

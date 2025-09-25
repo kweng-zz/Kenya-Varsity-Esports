@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
+import { SafeImage } from "@/components/SafeImage";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { 
   FaInstagram, 
@@ -31,11 +32,12 @@ const TeamMemberCard = ({ member, index }: { member: TeamMember; index: number }
     <div className="flex-shrink-0 w-[300px] h-[400px] relative group cursor-pointer">
       {/* Background Image */}
       <div className="absolute inset-0 rounded-none overflow-hidden">
-        <Image
+        <SafeImage
           src={imageError ? "https://placehold.co/300x400/111111/FFFFFF?text=Team+Member" : member.backgroundImage}
           alt={member.name}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
+          fallbackSrc="https://placehold.co/300x400/111111/FFFFFF?text=Team+Member"
           onError={() => setImageError(true)}
         />
         {/* Gradient overlay */}

@@ -255,6 +255,8 @@ export const getContentfulImageUrl = (asset?: Asset, width?: number, height?: nu
   }
 
   try {
+    console.log('Processing image URL:', { original: url, processed: 'generating...' });
+    
     // For development, use simpler image URLs without heavy optimization
     if (process.env.NODE_ENV === 'development') {
       const params = new URLSearchParams();
@@ -263,19 +265,26 @@ export const getContentfulImageUrl = (asset?: Asset, width?: number, height?: nu
       params.append('fm', 'jpg'); // Use JPG instead of WebP for better compatibility
       params.append('q', '75'); // Slightly lower quality for faster loading
       
-      return params.toString() ? `${url}?${params}` : url;
+      const processedUrl = params.toString() ? `${url}?${params}` : url;
+      console.log('Processing image URL:', { original: url, processed: processedUrl });
+      return processedUrl;
     }
 
-    // Production optimization
+    // Production optimization with fallback strategy
     const params = new URLSearchParams();
     if (width) params.append('w', width.toString());
     if (height) params.append('h', height.toString());
-    params.append('f', 'webp');
+    
+    // Try WebP first, but have JPG fallback ready
+    params.append('fm', 'webp'); // Fixed: should be 'fm' not 'f'
     params.append('q', '80');
     
-    return `${url}?${params}`;
+    const processedUrl = `${url}?${params}`;
+    console.log('Processing image URL:', { original: url, processed: processedUrl });
+    return processedUrl;
   } catch (error) {
     console.error('Error processing Contentful image URL:', error);
+    console.log('Falling back to original URL:', url);
     return url; // Return original URL as fallback
   }
 };

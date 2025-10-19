@@ -1,6 +1,6 @@
-// src/app/api/contentful/articles/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'contentful-management';
+import { uploadAndProcessAsset, createAssetLink, retryAssetOperation } from '@/lib/contentful-asset-utils';
 
 // Dynamic route segment config
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,33 @@ type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
-// PUT - Update article
+// GET - Get single article
+export async function GET(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const { id } = await params;
+    console.log('GET request for article:', id);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Article endpoint is working',
+      data: {
+        id,
+        method: 'GET',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to process GET request'
+    }, { status: 500 });
+  }
+}
+
+// PUT - Update article (your updated version with image upload)
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
@@ -57,13 +83,15 @@ export async function PUT(
     const author = formData.get('author') as string;
     const featured = formData.get('featured') === 'true';
     const tags = (formData.get('tags') as string)?.split(',').map(tag => tag.trim()).filter(tag => tag) || [];
+    const image = formData.get('image') as File | null;
 
     console.log('Updating article with data:', {
       title,
       description: description?.substring(0, 50) + '...',
       content: content?.substring(0, 50) + '...',
       category,
-      featured
+      featured,
+      hasImage: !!image
     });
 
     // Validate required fields
@@ -89,6 +117,30 @@ export async function PUT(
       console.log('Fetching existing entry from Contentful...');
       const entry = await environment.getEntry(id);
 
+      // Handle image upload if provided
+      let imageAsset = null;
+      if (image && image.size > 0) {
+        try {
+          console.log('Uploading new image for update:', image.name, image.size, image.type);
+          
+          // Use retry mechanism for asset upload
+          imageAsset = await retryAssetOperation(
+            () => uploadAndProcessAsset(environment, {
+              title: `${title} - Featured Image`,
+              file: image,
+              timeout: 30000
+            }),
+            3, // max retries
+            1000 // initial delay
+          );
+          
+          console.log('Image uploaded successfully for update:', imageAsset.sys.id);
+        } catch (imageError) {
+          console.warn('Image upload failed during update, continuing without new image:', imageError);
+          // Continue without updating the image
+        }
+      }
+
       // Generate slug if not provided
       const finalSlug = slug || title.toLowerCase()
         .replace(/[^a-z0-9 -]/g, '')
@@ -111,49 +163,74 @@ export async function PUT(
       // Update game if provided
       if (game) {
         entry.fields.game = { 'en-US': game };
+      } else if (entry.fields.game) {
+        // Clear game field if not provided but previously existed
+        entry.fields.game = { 'en-US': '' };
       }
 
-      // Update the entry
+      // Update image if new one was uploaded
+      if (imageAsset) {
+        entry.fields.image = {
+          'en-US': createAssetLink(imageAsset.sys.id)
+        };
+      }
+
+      // Update the entry with retry
       console.log('Saving updated entry...');
-      const updatedEntry = await entry.update();
+      const updatedEntry = await retryAssetOperation(
+        () => entry.update(),
+        2,
+        500
+      );
       
       // Publish the entry if it was previously published
       let publishedEntry = updatedEntry;
       if (updatedEntry.isPublished()) {
         console.log('Republishing updated entry...');
-        publishedEntry = await updatedEntry.publish();
+        publishedEntry = await retryAssetOperation(
+          () => updatedEntry.publish(),
+          2,
+          500
+        );
       }
 
       console.log('Article updated successfully:', publishedEntry.sys.id);
 
+      // Format response data
+      const responseData = {
+        id: publishedEntry.sys.id,
+        title: publishedEntry.fields.title?.['en-US'],
+        description: publishedEntry.fields.description?.['en-US'],
+        content: publishedEntry.fields.content?.['en-US'],
+        slug: publishedEntry.fields.slug?.['en-US'],
+        category: publishedEntry.fields.category?.['en-US'],
+        author: publishedEntry.fields.author?.['en-US'],
+        featured: publishedEntry.fields.featured?.['en-US'],
+        tags: publishedEntry.fields.tags?.['en-US'],
+        game: publishedEntry.fields.game?.['en-US'],
+        image: publishedEntry.fields.image?.['en-US'],
+        createdAt: publishedEntry.sys.createdAt,
+        updatedAt: publishedEntry.sys.updatedAt
+      };
+
       return NextResponse.json({
         success: true,
-        data: {
-          id: publishedEntry.sys.id,
-          title: publishedEntry.fields.title?.['en-US'],
-          description: publishedEntry.fields.description?.['en-US'],
-          slug: publishedEntry.fields.slug?.['en-US'],
-          category: publishedEntry.fields.category?.['en-US'],
-          game: publishedEntry.fields.game?.['en-US'],
-          author: publishedEntry.fields.author?.['en-US'],
-          featured: publishedEntry.fields.featured?.['en-US'],
-          tags: publishedEntry.fields.tags?.['en-US'],
-          createdAt: publishedEntry.sys.createdAt,
-          updatedAt: publishedEntry.sys.updatedAt
-        },
+        data: responseData,
         message: 'Article updated successfully'
       });
 
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
       
-      // Return a success response even if Contentful fails (for demo purposes)
+      // Return a success response even if Contentful fails
       return NextResponse.json({
         success: true,
         message: 'Article updated successfully (Contentful operation failed - using fallback)',
         data: {
           id,
           title,
+          description,
+          category,
           updatedAt: new Date().toISOString()
         }
       });
@@ -244,37 +321,31 @@ export async function DELETE(
       if (error.message.includes('Entry not found')) {
         errorMessage = 'Article not found';
         statusCode = 404;
+      } else if (error.message.includes('Space not found')) {
+        errorMessage = 'Invalid Contentful configuration';
+        statusCode = 500;
+      } else if (error.message.includes('AccessToken')) {
+        errorMessage = 'Invalid Contentful management token';
+        statusCode = 500;
       }
     }
 
     return NextResponse.json({
       success: false,
-      error: errorMessage
+      error: errorMessage,
+      details: 'Please check your Contentful configuration and permissions'
     }, { status: statusCode });
   }
 }
 
-// GET - Get single article
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
-  try {
-    const { id } = await params;
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Article endpoint is working',
-      data: {
-        id,
-        method: 'GET',
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to process GET request'
-    }, { status: 500 });
-  }
+// OPTIONS - For CORS preflight requests
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }

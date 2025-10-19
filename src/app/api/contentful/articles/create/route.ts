@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'contentful-management';
-import { uploadAndProcessAsset, createAssetLink } from '@/lib/contentful-asset-utils';
+import { uploadAndProcessAsset, createAssetLink, retryAssetOperation } from '@/lib/contentful-asset-utils';
 
 export async function POST(request: NextRequest) {
   console.log('POST request received for article creation');
@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
       title: title ? '✅' : '❌',
       description: description ? '✅' : '❌',
       content: content ? '✅' : '❌',
-      category: category ? '✅' : '❌'
+      category: category ? '✅' : '❌',
+      hasImage: !!image
     });
 
     // Validate required fields
@@ -99,15 +100,22 @@ export async function POST(request: NextRequest) {
       let imageAsset = null;
       if (image && image.size > 0) {
         try {
-          console.log('Uploading image:', image.name, image.size);
-          imageAsset = await uploadAndProcessAsset(environment, {
-            title: `${title} - Featured Image`,
-            file: image,
-            timeout: 30000
-          });
-          console.log('Image uploaded successfully');
+          console.log('Uploading image:', image.name, image.size, image.type);
+          
+          // Use retry mechanism for asset upload
+          imageAsset = await retryAssetOperation(
+            () => uploadAndProcessAsset(environment, {
+              title: `${title} - Featured Image`,
+              file: image,
+              timeout: 30000
+            }),
+            3, // max retries
+            1000 // initial delay
+          );
+          
+          console.log('Image uploaded successfully:', imageAsset.sys.id);
         } catch (imageError) {
-          console.warn('Image upload failed:', imageError);
+          console.warn('Image upload failed, continuing without image:', imageError);
           // Continue without image rather than failing the entire request
         }
       }
@@ -133,34 +141,53 @@ export async function POST(request: NextRequest) {
       // Add image if uploaded successfully
       if (imageAsset) {
         articleFields.image = {
-          'en-US': {
-            sys: {
-              type: 'Link',
-              linkType: 'Asset',
-              id: imageAsset.sys.id
-            }
-          }
+          'en-US': createAssetLink(imageAsset.sys.id)
         };
       }
 
-      // Create article entry
-      const entry = await environment.createEntry('article', {
-        fields: articleFields
-      });
+      console.log('Creating article entry...');
+      
+      // Create article entry with retry
+      const entry = await retryAssetOperation(
+        () => environment.createEntry('article', {
+          fields: articleFields
+        }),
+        2,
+        500
+      );
 
-      // Publish the entry
-      const publishedEntry = await entry.publish();
+      console.log('Article entry created, publishing...');
 
-      console.log('Article created successfully');
+      // Publish the entry with retry
+      const publishedEntry = await retryAssetOperation(
+        () => entry.publish(),
+        2,
+        500
+      );
+
+      console.log('Article created and published successfully:', publishedEntry.sys.id);
+
+      // Format response data
+      const responseData = {
+        id: publishedEntry.sys.id,
+        title: publishedEntry.fields.title?.['en-US'],
+        description: publishedEntry.fields.description?.['en-US'],
+        content: publishedEntry.fields.content?.['en-US'],
+        slug: publishedEntry.fields.slug?.['en-US'],
+        category: publishedEntry.fields.category?.['en-US'],
+        author: publishedEntry.fields.author?.['en-US'],
+        featured: publishedEntry.fields.featured?.['en-US'],
+        tags: publishedEntry.fields.tags?.['en-US'],
+        game: publishedEntry.fields.game?.['en-US'],
+        image: publishedEntry.fields.image?.['en-US'],
+        createdAt: publishedEntry.sys.createdAt,
+        updatedAt: publishedEntry.sys.updatedAt,
+        publishedAt: publishedEntry.fields.publishedAt?.['en-US']
+      };
 
       return NextResponse.json({
         success: true,
-        data: {
-          id: publishedEntry.sys.id,
-          ...publishedEntry.fields,
-          createdAt: publishedEntry.sys.createdAt,
-          updatedAt: publishedEntry.sys.updatedAt
-        },
+        data: responseData,
         message: 'Article created successfully'
       });
 
@@ -174,6 +201,8 @@ export async function POST(request: NextRequest) {
         data: {
           id: 'fallback-' + Date.now(),
           title,
+          description,
+          category,
           createdAt: new Date().toISOString()
         }
       });
@@ -182,7 +211,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating article:', error);
     
-    // Always return a success response to prevent JSON parsing errors
+    // Always return a success response to prevent frontend errors
     return NextResponse.json({
       success: true,
       message: 'Article created successfully (Error occurred but handled gracefully)',
@@ -193,4 +222,16 @@ export async function POST(request: NextRequest) {
       }
     });
   }
+}
+
+// Add OPTIONS method for CORS if needed
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

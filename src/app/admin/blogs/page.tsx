@@ -248,9 +248,9 @@ export default function AdminBlogsPage() {
     let url;
     
     if (editingArticle) {
-      // Update existing article
-      url = `/api/contentful/articles/${editingArticle.id}`;
-      console.log('Updating article:', { 
+      // 🚨 TEMPORARY FIX: Use POST instead of PUT
+      url = `/api/contentful/articles/${editingArticle.id}/update`;
+      console.log('🔄 Updating article (using POST workaround):', { 
         id: editingArticle.id, 
         url,
         title: formData.title,
@@ -258,9 +258,8 @@ export default function AdminBlogsPage() {
       });
       
       response = await fetch(url, {
-        method: 'PUT',
+        method: 'POST', // Use POST instead of PUT
         body: submitFormData,
-        // Don't set Content-Type header - let browser set it with boundary
       });
     } else {
       // Create new article
@@ -297,7 +296,7 @@ export default function AdminBlogsPage() {
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
       console.error('Non-JSON response:', text);
-      throw new Error('Server returned non-JSON response. Check server logs.');
+      throw new Error('Server returned non-JJSON response. Check server logs.');
     }
 
     const result = await response.json();
@@ -325,15 +324,9 @@ export default function AdminBlogsPage() {
     console.error('Error submitting form:', error);
     let errorMessage = 'Failed to save article: ';
     
-    // FIXED: Proper error handling with correct syntax
     if (error instanceof Error) {
       if (error.message.includes('405') || error.message.includes('Method not allowed')) {
-        errorMessage = 'Editing is currently unavailable. The PUT method is not allowed on the server. ';
-        
-        // Add debugging information
-        if (editingArticle) {
-          errorMessage += `\n\nDebug Info:\n- Article ID: ${editingArticle.id}\n- Endpoint: /api/contentful/articles/${editingArticle.id}\n- Method: PUT\n\nPlease check that:\n1. The API route exists at the correct path\n2. The PUT method is exported from the route\n3. The deployment includes the latest API route changes`;
-        }
+        errorMessage = 'Editing is currently unavailable. Please try again later or contact support.';
       } else if (error.message.includes('fetch') || error.message.includes('Network')) {
         errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
       } else if (error.message.includes('JSON')) {

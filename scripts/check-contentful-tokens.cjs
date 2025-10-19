@@ -6,6 +6,7 @@
  * This script helps you identify which tokens you have and what they're for.
  */
 
+require('dotenv').config();
 const { createClient } = require('contentful');
 const { createClient: createManagementClient } = require('contentful-management');
 
@@ -71,13 +72,34 @@ async function checkToken(spaceId, token, tokenType) {
 async function main() {
   log.title('🔑 CONTENTFUL TOKEN CHECKER');
   
-  const spaceId = 'gk83salrhozo';
-  const tokens = {
-    'tb8HyulKWftPO7KL7FeY5u1JauthKI_fyquKQ8NSImA': 'Unknown',
-    'hb7rwiSlTyveNS3UgOLHkRnybu4U33BqR6T6BSUfHjg': 'Unknown'
-  };
+  // Read from environment variables
+  const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || 'gk83salrhozo';
+  const deliveryToken = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+  const previewToken = process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN;
+  const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   
   log.info(`Testing tokens for Space ID: ${spaceId}`);
+  log.info(`Reading from .env file...\n`);
+  
+  const tokens = {};
+  
+  if (deliveryToken && deliveryToken !== 'your_access_token_here') {
+    tokens[deliveryToken] = 'Delivery Token (from .env)';
+  }
+  
+  if (previewToken && previewToken !== 'your_preview_token_here') {
+    tokens[previewToken] = 'Preview Token (from .env)';
+  }
+  
+  if (managementToken && managementToken !== 'your_management_token_here') {
+    tokens[managementToken] = 'Management Token (from .env)';
+  }
+  
+  if (Object.keys(tokens).length === 0) {
+    log.error('No valid tokens found in .env file!');
+    log.warning('Please check your .env file and ensure tokens are set.');
+    return;
+  }
   
   for (const [token, type] of Object.entries(tokens)) {
     log.info(`\nTesting token: ${token.substring(0, 10)}...${token.substring(token.length - 6)}`);

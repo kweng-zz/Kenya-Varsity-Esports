@@ -1,15 +1,47 @@
+// E:\Apps\esports\src\app\api\contentful\articles\[id]\route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'contentful-management';
-import { uploadAndProcessAsset, createAssetLink } from '@/lib/contentful-asset-utils';
+// Import the asset utility function
+import { uploadAndProcessAsset } from '@/lib/contentful-asset-utils';
 
+// Dynamic route segment config
+export const dynamic = 'force-dynamic';
+
+// GET - Get single article
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    console.log('GET request for article:', id);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Article endpoint is working',
+      data: {
+        id,
+        method: 'GET',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to process GET request'
+    }, { status: 500 });
+  }
+}
+
+// PUT - Update article
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   console.log('PUT request received for article update');
   
   try {
-    const { id } = await params;
+    const { id } = params;
     console.log('Article ID:', id);
     
     // Check if we're in fallback mode first
@@ -44,15 +76,11 @@ export async function PUT(
       console.log('Contentful not configured, returning fallback response');
       return NextResponse.json(
         { 
-          success: true, 
-          message: 'Article updated successfully (Contentful not configured - using fallback mode)',
-          data: {
-            id,
-            title: 'Fallback Article',
-            updatedAt: new Date().toISOString()
-          }
+          success: false, 
+          error: 'Contentful not configured',
+          details: 'Missing environment variables: NEXT_PUBLIC_CONTENTFUL_SPACE_ID or CONTENTFUL_MANAGEMENT_TOKEN'
         },
-        { status: 200 }
+        { status: 500 }
       );
     }
 
@@ -74,13 +102,18 @@ export async function PUT(
       title: title ? '✅' : '❌',
       description: description ? '✅' : '❌',
       content: content ? '✅' : '❌',
-      category: category ? '✅' : '❌'
+      category: category ? '✅' : '❌',
+      slug: slug ? '✅' : '❌'
     });
 
     // Validate required fields
     if (!title || !description || !content || !category) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { 
+          success: false, 
+          error: 'Missing required fields',
+          details: 'Title, description, content, and category are required'
+        },
         { status: 400 }
       );
     }
@@ -95,22 +128,23 @@ export async function PUT(
       const environment = await space.getEnvironment(environmentId);
 
       // Get the existing entry
+      console.log('Fetching existing entry from Contentful...');
       const entry = await environment.getEntry(id);
 
       // Handle image upload if provided
       let imageAsset = null;
       if (image && image.size > 0) {
         try {
-          console.log('Uploading image:', image.name, image.size);
+          console.log('Uploading new image:', image.name, image.size);
           imageAsset = await uploadAndProcessAsset(environment, {
             title: `${title} - Featured Image`,
             file: image,
             timeout: 30000
           });
-          console.log('Image uploaded successfully');
+          console.log('Image uploaded successfully:', imageAsset.sys.id);
         } catch (imageError) {
           console.warn('Image upload failed:', imageError);
-          // Continue with existing image
+          // Continue with existing image - don't throw error for image upload failures
         }
       }
 
@@ -120,6 +154,8 @@ export async function PUT(
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
+
+      console.log('Updating article fields...');
 
       // Update article fields
       entry.fields.title = { 'en-US': title };
@@ -134,6 +170,9 @@ export async function PUT(
       // Update game if provided
       if (game) {
         entry.fields.game = { 'en-US': game };
+      } else {
+        // Clear game field if not provided
+        entry.fields.game = { 'en-US': '' };
       }
 
       // Update image if new one was uploaded
@@ -149,17 +188,31 @@ export async function PUT(
         };
       }
 
-      // Update and publish the entry
+      // Update the entry
+      console.log('Saving updated entry...');
       const updatedEntry = await entry.update();
-      const publishedEntry = await updatedEntry.publish();
+      
+      // Publish the entry if it was previously published
+      let publishedEntry = updatedEntry;
+      if (updatedEntry.isPublished()) {
+        console.log('Republishing updated entry...');
+        publishedEntry = await updatedEntry.publish();
+      }
 
-      console.log('Article updated successfully');
+      console.log('Article updated successfully:', publishedEntry.sys.id);
 
       return NextResponse.json({
         success: true,
         data: {
           id: publishedEntry.sys.id,
-          ...publishedEntry.fields,
+          title: publishedEntry.fields.title?.['en-US'],
+          description: publishedEntry.fields.description?.['en-US'],
+          slug: publishedEntry.fields.slug?.['en-US'],
+          category: publishedEntry.fields.category?.['en-US'],
+          game: publishedEntry.fields.game?.['en-US'],
+          author: publishedEntry.fields.author?.['en-US'],
+          featured: publishedEntry.fields.featured?.['en-US'],
+          tags: publishedEntry.fields.tags?.['en-US'],
           createdAt: publishedEntry.sys.createdAt,
           updatedAt: publishedEntry.sys.updatedAt
         },
@@ -169,64 +222,142 @@ export async function PUT(
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
       
-      // Return a fallback success response instead of failing
-      return NextResponse.json({
-        success: true,
-        message: 'Article updated successfully (Contentful operation failed - using fallback mode)',
-        data: {
-          id,
-          title,
-          updatedAt: new Date().toISOString()
-        }
-      });
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Contentful operation failed',
+          details: contentfulError instanceof Error ? contentfulError.message : 'Unknown Contentful error'
+        },
+        { status: 500 }
+      );
     }
 
   } catch (error) {
     console.error('Error updating article:', error);
     
-    // Always return a success response to prevent JSON parsing errors
-    return NextResponse.json({
-      success: true,
-      message: 'Article updated successfully (Error occurred but handled gracefully)',
-      data: {
-        id: 'fallback',
-        title: 'Fallback Article',
-        updatedAt: new Date().toISOString()
-      }
-    });
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to update article',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 }
 
-export async function GET(
+// DELETE - Delete article
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
+    console.log('DELETE request for article:', id);
+
+    // Check if we're in fallback mode
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+      console.log('Fallback mode enabled - blocking delete');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Demo mode active',
+          message: 'Article deletion is disabled in demo mode. This is a demonstration interface.',
+          details: 'To enable deletion, set NEXT_PUBLIC_FALLBACK_MODE=false and configure Contentful credentials.'
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check if Contentful is configured
+    const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
+    const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
+
+    if (!spaceId || !managementToken) {
+      console.log('Contentful not configured');
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Contentful not configured',
+          details: 'Missing environment variables: NEXT_PUBLIC_CONTENTFUL_SPACE_ID or CONTENTFUL_MANAGEMENT_TOKEN'
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('Attempting to delete from Contentful...');
+
+    // Initialize Contentful Management client
+    const client = createClient({
+      accessToken: managementToken
+    });
+
+    const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
+    const space = await client.getSpace(spaceId);
+    const environment = await space.getEnvironment(environmentId);
+
+    // Get the entry
+    console.log('Fetching entry from Contentful...');
+    const entry = await environment.getEntry(id);
+
+    // Unpublish first, then delete
+    if (entry.isPublished()) {
+      console.log('Unpublishing entry first...');
+      await entry.unpublish();
+    }
     
+    console.log('Deleting entry...');
+    await entry.delete();
+    console.log('Entry deleted successfully');
+
     return NextResponse.json({
       success: true,
-      message: 'Article endpoint is working',
-      data: {
-        id,
-        method: 'GET',
-        timestamp: new Date().toISOString()
-      }
+      message: 'Article deleted successfully',
+      deletedId: id
     });
+
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to process GET request'
-    }, { status: 500 });
+    console.error('Error deleting article:', error);
+    
+    let errorMessage = 'Failed to delete article';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      if (error.message.includes('Entry not found')) {
+        errorMessage = 'Article not found';
+        statusCode = 404;
+      } else if (error.message.includes('Space not found')) {
+        errorMessage = 'Invalid Contentful configuration';
+        statusCode = 500;
+      } else if (error.message.includes('AccessToken')) {
+        errorMessage = 'Invalid Contentful management token';
+        statusCode = 500;
+      } else if (error.message.includes('not exist')) {
+        errorMessage = 'Article not found or already deleted';
+        statusCode = 404;
+      }
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: errorMessage,
+        details: 'Please check your Contentful configuration and permissions'
+      },
+      { status: statusCode }
+    );
   }
 }
 
+// POST - Not typically used for [id] routes, but here for completeness
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
     
     return NextResponse.json({
@@ -244,89 +375,5 @@ export async function POST(
       success: false,
       error: 'Failed to process POST request'
     }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-
-    // Check if we're in fallback mode
-    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Fallback mode enabled',
-          details: 'Application is running in fallback mode. Contentful functionality is disabled.'
-        },
-        { status: 503 }
-      );
-    }
-
-    // Check if Contentful is configured
-    const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
-    const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
-    const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
-
-    if (!spaceId || !managementToken) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Contentful not configured',
-          details: 'NEXT_PUBLIC_CONTENTFUL_SPACE_ID or CONTENTFUL_MANAGEMENT_TOKEN environment variables are not set.'
-        },
-        { status: 500 }
-      );
-    }
-
-    // Initialize Contentful Management client
-    const client = createClient({
-      accessToken: managementToken
-    });
-
-    const space = await client.getSpace(spaceId);
-    const environment = await space.getEnvironment(environmentId);
-
-    // Get the entry
-    const entry = await environment.getEntry(id);
-
-    // Unpublish first, then delete
-    if (entry.isPublished()) {
-      await entry.unpublish();
-    }
-    
-    await entry.delete();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Article deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Error deleting article:', error);
-    
-    let errorMessage = 'Failed to delete article';
-    let details = '';
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      if (error.message.includes('Entry not found')) {
-        details = 'Article not found';
-      } else if (error.message.includes('Space not found')) {
-        details = 'Invalid Contentful Space ID or insufficient permissions';
-      }
-    }
-
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: errorMessage,
-        details: details || 'Please check server logs for more information'
-      },
-      { status: 500 }
-    );
   }
 }

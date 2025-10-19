@@ -129,7 +129,7 @@ export function Navigation() {
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
                 <Link
-                  href="http://kuer-drab.vercel.app"
+                  href="/tournament-registration"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsProfileDropdownOpen(false)}
                 >

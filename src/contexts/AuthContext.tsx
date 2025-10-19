@@ -9,9 +9,9 @@ let account: Account | null = null;
 let databases: Databases | null = null;
 
 const initializeAppwrite = (): { account: Account; databases: Databases } | null => {
-  // Check if we're in auth fallback mode
-  if (process.env.NEXT_PUBLIC_AUTH_FALLBACK_MODE === 'true') {
-    console.log('Auth fallback mode enabled, Appwrite disabled');
+  // Check if we're in fallback mode
+  if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+    console.log('Fallback mode enabled, Appwrite disabled');
     return null;
   }
 
@@ -151,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!appwrite) {
           console.warn('Appwrite not configured, using demo mode');
           
-          // In auth fallback mode, provide a demo user with admin privileges
-          if (process.env.NEXT_PUBLIC_AUTH_FALLBACK_MODE === 'true') {
+          // In fallback mode, provide a demo user with admin privileges
+          if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
             const demoUser = {
               $id: 'demo-user-id',
               email: 'demo@kuer.com',

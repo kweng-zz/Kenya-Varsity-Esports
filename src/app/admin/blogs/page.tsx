@@ -125,6 +125,12 @@ export default function AdminBlogsPage() {
   };
 
   const handleEdit = (article: TransformedArticle) => {
+    // Check if we're in fallback mode or if this is a fallback article
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || article.id === '1') {
+      alert('Demo Mode Active\n\nArticle editing is disabled in demo mode. This article is part of the demo data and cannot be modified.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Add CONTENTFUL_MANAGEMENT_TOKEN to .env\n4. Restart the application');
+      return;
+    }
+
     setFormData({
       title: String(article.title || ''),
       description: String(article.description || ''),
@@ -140,27 +146,56 @@ export default function AdminBlogsPage() {
     setShowCreateForm(true);
   };
   const handleDelete = async (articleId: string) => {
-    if (!confirm('Are you sure you want to delete this article?')) return;
+  if (!confirm('Are you sure you want to delete this article? This action cannot be undone.')) return;
 
-    try {
-      const response = await fetch(`/api/contentful/articles/${articleId}`, {
-        method: 'DELETE',
-      });
+  try {
+    console.log('Attempting to delete article:', articleId);
+    
+    const response = await fetch(`/api/contentful/articles/${articleId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-      const result = await response.json();
+    console.log('Delete response status:', response.status);
 
-      if (result.success) {
-        alert('Article deleted successfully');
-        loadArticles();
-      } else {
-        throw new Error(result.error || 'Failed to delete article');
-      }
-    } catch (error) {
-      console.error('Error deleting article:', error);
-      alert('Failed to delete article: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    if (!response.ok) {
+      // Handle HTTP errors
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
-  };
 
+    const result = await response.json();
+    console.log('Delete result:', result);
+
+    if (result.success) {
+      alert(result.message || 'Article deleted successfully');
+      loadArticles(); // Refresh the list
+    } else {
+      throw new Error(result.error || 'Failed to delete article');
+    }
+
+  } catch (error) {
+    console.error('Error deleting article:', error);
+    
+    let errorMessage = 'Failed to delete article: ';
+    if (error instanceof Error) {
+      if (error.message.includes('Demo mode active')) {
+        errorMessage = 'Demo Mode: Article deletion is disabled. Configure Contentful to enable full functionality.';
+      } else if (error.message.includes('Contentful not configured')) {
+        errorMessage = 'Contentful not configured. Please check your environment variables.';
+      } else if (error.message.includes('Article not found')) {
+        errorMessage = 'Article not found. It may have already been deleted.';
+      } else {
+        errorMessage += error.message;
+      }
+    }
+    
+    alert(errorMessage);
+    loadArticles(); // Refresh to ensure consistent state
+  }
+};
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
@@ -170,91 +205,143 @@ export default function AdminBlogsPage() {
       .trim();
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+ const handleFormSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    try {
-      // Check if we're in fallback mode
-      if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-        alert('Demo Mode Active\n\nArticle creation is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Generate slug if not provided
-      if (!formData.slug && formData.title) {
-        formData.slug = generateSlug(formData.title);
-      }
-
-      // Create FormData for file upload
-      const submitFormData = new FormData();
-      submitFormData.append('title', formData.title);
-      submitFormData.append('description', formData.description);
-      submitFormData.append('content', formData.content);
-      submitFormData.append('slug', formData.slug);
-      submitFormData.append('category', formData.category);
-      submitFormData.append('game', formData.game);
-      submitFormData.append('author', formData.author);
-      submitFormData.append('featured', formData.featured.toString());
-      submitFormData.append('tags', formData.tags.join(','));
-      
-      if (formData.image) {
-        submitFormData.append('image', formData.image);
-      }
-
-      let response;
-      if (editingArticle) {
-        // Update existing article
-        response = await fetch(`/api/contentful/articles/${editingArticle.id}`, {
-          method: 'PUT',
-          body: submitFormData,
-        });
-      } else {
-        // Create new article
-        response = await fetch('/api/contentful/articles/create', {
-          method: 'POST',
-          body: submitFormData,
-        });
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert(editingArticle ? 'Article updated successfully!' : 'Article created successfully!');
-        setShowCreateForm(false);
-        setFormData(initialFormData);
-        setEditingArticle(null);
-        loadArticles();
-      } else {
-        // Handle specific error types
-        if (response.status === 503 && result.details?.includes('fallback mode')) {
-          alert('Demo Mode Active\n\nArticle creation is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
-        } else if (result.details && (result.details.includes('Contentful') || result.details.includes('Space not found'))) {
-          alert(`Contentful Connection Error: ${result.details}\n\nTo use blog management:\n1. Configure Contentful credentials in .env\n2. Run the setup script: node scripts/setup-contentful.cjs\n3. Follow CONTENTFUL_SETUP.md guide`);
-        } else {
-          throw new Error(result.error || 'Failed to save article');
-        }
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      let errorMessage = 'Failed to save article: ';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
-          errorMessage += 'Cannot connect to server. Please check if Contentful is configured properly.';
-        } else {
-          errorMessage += error.message;
-        }
-      } else {
-        errorMessage += 'Unknown error';
-      }
-      
-      alert(errorMessage);
-    } finally {
+  try {
+    // Check if we're in fallback mode
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
+      alert('Demo Mode Active\n\nArticle editing is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
       setIsSubmitting(false);
+      return;
     }
-  };
+
+    // Validate required fields
+    if (!formData.title || !formData.description || !formData.content || !formData.category) {
+      alert('Please fill in all required fields: Title, Description, Content, and Category');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Generate slug if not provided
+    const finalSlug = formData.slug || generateSlug(formData.title);
+
+    // Create FormData for file upload
+    const submitFormData = new FormData();
+    submitFormData.append('title', formData.title);
+    submitFormData.append('description', formData.description);
+    submitFormData.append('content', formData.content);
+    submitFormData.append('slug', finalSlug);
+    submitFormData.append('category', formData.category);
+    submitFormData.append('game', formData.game);
+    submitFormData.append('author', formData.author);
+    submitFormData.append('featured', formData.featured.toString());
+    submitFormData.append('tags', formData.tags.join(','));
+    
+    if (formData.image) {
+      submitFormData.append('image', formData.image);
+      console.log('Including image in form data:', formData.image.name, formData.image.size);
+    }
+
+    let response;
+    let url;
+    
+    if (editingArticle) {
+      // Update existing article
+      url = `/api/contentful/articles/${editingArticle.id}`;
+      console.log('Updating article:', { 
+        id: editingArticle.id, 
+        url,
+        title: formData.title,
+        hasImage: !!formData.image
+      });
+      
+      response = await fetch(url, {
+        method: 'PUT',
+        body: submitFormData,
+        // Don't set Content-Type header - let browser set it with boundary
+      });
+    } else {
+      // Create new article
+      url = '/api/contentful/articles/create';
+      console.log('Creating new article:', { 
+        url,
+        title: formData.title,
+        hasImage: !!formData.image
+      });
+      
+      response = await fetch(url, {
+        method: 'POST',
+        body: submitFormData,
+      });
+    }
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    // Handle non-200 responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server returned error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Non-JSON response:', text);
+      throw new Error('Server returned non-JSON response. Check server logs.');
+    }
+
+    const result = await response.json();
+    console.log('Response result:', result);
+
+    if (result.success) {
+      alert(editingArticle ? 'Article updated successfully!' : 'Article created successfully!');
+      setShowCreateForm(false);
+      setFormData(initialFormData);
+      setEditingArticle(null);
+      loadArticles();
+    } else {
+      // Handle specific error types
+      if (result.error?.includes('Demo mode active')) {
+        alert('Demo Mode Active\n\nArticle editing is disabled in demo mode. This is a demonstration of the admin interface.\n\nTo enable full functionality:\n1. Configure Contentful backend\n2. Set NEXT_PUBLIC_FALLBACK_MODE=false in .env\n3. Restart the application');
+      } else if (result.details && (result.details.includes('Contentful') || result.details.includes('Space not found'))) {
+        alert(`Contentful Connection Error: ${result.details}\n\nTo use blog management:\n1. Configure Contentful credentials in .env\n2. Run the setup script: node scripts/setup-contentful.cjs\n3. Follow CONTENTFUL_SETUP.md guide`);
+      } else if (result.error?.includes('Contentful not configured')) {
+        alert(`Contentful Configuration Error: ${result.error}\n\nPlease check your environment variables.`);
+      } else {
+        throw new Error(result.error || result.details || 'Failed to save article');
+      }
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    let errorMessage = 'Failed to save article: ';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('fetch') || error.message.includes('Network')) {
+        errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
+      } else if (error.message.includes('JSON')) {
+        errorMessage += 'Server returned an invalid response. Please check the server logs.';
+      } else {
+        errorMessage += error.message;
+      }
+    } else {
+      errorMessage += 'Unknown error occurred';
+    }
+    
+    alert(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

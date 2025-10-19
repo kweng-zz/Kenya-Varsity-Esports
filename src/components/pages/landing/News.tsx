@@ -102,7 +102,11 @@ const NewsCard = ({ article }: NewsCardProps) => {
     setCurrentImageUrl(processedUrl);
   }, [imageUrl]);
 
-  const displayImageUrl = imageError ? '/images/Join our tournaments.png' : currentImageUrl;
+  // Ensure displayImageUrl is never empty string
+  const displayImageUrl = imageError 
+    ? '/images/Join our tournaments.png' 
+    : (currentImageUrl && currentImageUrl.trim() !== '' ? currentImageUrl : '/images/Join our tournaments.png');
+  
   const linkHref = `/blogs/${slug}`;
 
   return (
@@ -110,23 +114,29 @@ const NewsCard = ({ article }: NewsCardProps) => {
       <div className="bg-black rounded-none overflow-hidden shadow-lg w-full cursor-pointer group transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-2 hover:bg-[#252525] relative">
         {/* Image section with date overlay */}
         <div className="w-full h-48 bg-gray-800 relative">
-          <img
-            src={displayImageUrl}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
-            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              console.error('Image failed to load:', displayImageUrl);
-              if (!imageError) {
-                setImageError(true);
-              }
-            }}
-            onLoad={() => {
-              // Reset error state if image loads successfully
-              if (imageError) {
-                setImageError(false);
-              }
-            }}
-          />
+          {displayImageUrl && displayImageUrl.trim() !== '' ? (
+            <img
+              src={displayImageUrl}
+              alt={title}
+              className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
+              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                console.error('Image failed to load:', displayImageUrl);
+                if (!imageError) {
+                  setImageError(true);
+                }
+              }}
+              onLoad={() => {
+                // Reset error state if image loads successfully
+                if (imageError) {
+                  setImageError(false);
+                }
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-800">
+              <span className="text-gray-500 text-sm">No image available</span>
+            </div>
+          )}
           
           {/* Date badge */}
           <div className="absolute top-2 left-2 bg-black bg-opacity-50 group-hover:bg-opacity-70 text-white text-xs font-semibold px-3 py-1 rounded transition-all duration-300 ease-in-out">

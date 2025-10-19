@@ -36,49 +36,40 @@ export async function GET(
   }
 }
 
+
 // PUT - Update article
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  console.log('PUT request received for article update');
-  
   try {
     const { id } = await params;
-    console.log('Article ID:', id);
-    
-    // Check if we're in fallback mode first
+    console.log('PUT request received for article:', id);
+
+    // Check if we're in fallback mode
     if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-      console.log('Fallback mode enabled, returning demo response');
-      return NextResponse.json(
-        { 
-          success: true, 
-          message: 'Article updated successfully (Demo mode - no actual changes made)',
-          data: {
-            id,
-            title: 'Demo Article',
-            updatedAt: new Date().toISOString()
-          }
-        },
-        { status: 200 }
-      );
+      console.log('Fallback mode enabled for article update');
+      return NextResponse.json({
+        success: true,
+        message: 'Article updated successfully (Demo mode)',
+        data: {
+          id,
+          title: 'Demo Article',
+          updatedAt: new Date().toISOString()
+        }
+      });
     }
 
     // Check if Contentful is configured
     const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
     const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
-    const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 
     if (!spaceId || !managementToken) {
-      console.log('Contentful not configured, returning fallback response');
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Contentful not configured',
-          details: 'Missing environment variables: NEXT_PUBLIC_CONTENTFUL_SPACE_ID or CONTENTFUL_MANAGEMENT_TOKEN'
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Contentful not configured',
+        details: 'Missing environment variables'
+      }, { status: 500 });
     }
 
     const formData = await request.formData();
@@ -93,18 +84,22 @@ export async function PUT(
     const author = formData.get('author') as string;
     const featured = formData.get('featured') === 'true';
     const tags = (formData.get('tags') as string)?.split(',').map(tag => tag.trim()).filter(tag => tag) || [];
-    const image = formData.get('image') as File | null;
+
+    console.log('Updating article with data:', {
+      title,
+      description: description?.substring(0, 50) + '...',
+      content: content?.substring(0, 50) + '...',
+      category,
+      featured
+    });
 
     // Validate required fields
     if (!title || !description || !content || !category) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required fields',
-          details: 'Title, description, content, and category are required'
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields',
+        details: 'Title, description, content, and category are required'
+      }, { status: 400 });
     }
 
     try {
@@ -113,24 +108,13 @@ export async function PUT(
         accessToken: managementToken
       });
 
+      const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
       const space = await client.getSpace(spaceId);
       const environment = await space.getEnvironment(environmentId);
 
       // Get the existing entry
+      console.log('Fetching existing entry from Contentful...');
       const entry = await environment.getEntry(id);
-
-      // Handle image upload if provided
-      let imageAsset = null;
-      if (image && image.size > 0) {
-        try {
-          console.log('Uploading new image:', image.name, image.size);
-          // For now, skip image upload to fix build
-          // imageAsset = await uploadAndProcessAsset(environment, {...});
-          console.log('Image upload skipped for build fix');
-        } catch (imageError) {
-          console.warn('Image upload failed:', imageError);
-        }
-      }
 
       // Generate slug if not provided
       const finalSlug = slug || title.toLowerCase()
@@ -138,6 +122,8 @@ export async function PUT(
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
         .trim();
+
+      console.log('Updating article fields...');
 
       // Update article fields
       entry.fields.title = { 'en-US': title };
@@ -155,13 +141,17 @@ export async function PUT(
       }
 
       // Update the entry
+      console.log('Saving updated entry...');
       const updatedEntry = await entry.update();
       
       // Publish the entry if it was previously published
       let publishedEntry = updatedEntry;
       if (updatedEntry.isPublished()) {
+        console.log('Republishing updated entry...');
         publishedEntry = await updatedEntry.publish();
       }
+
+      console.log('Article updated successfully:', publishedEntry.sys.id);
 
       return NextResponse.json({
         success: true,
@@ -184,29 +174,25 @@ export async function PUT(
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
       
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Contentful operation failed',
-          details: contentfulError instanceof Error ? contentfulError.message : 'Unknown Contentful error'
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Contentful operation failed',
+        details: contentfulError instanceof Error ? contentfulError.message : 'Unknown Contentful error'
+      }, { status: 500 });
     }
 
   } catch (error) {
     console.error('Error updating article:', error);
     
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update article',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update article',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
+
+
 
 // DELETE - Delete article
 export async function DELETE(

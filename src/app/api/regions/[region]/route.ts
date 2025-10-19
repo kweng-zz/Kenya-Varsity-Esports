@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { databases, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
+import { databases, DATABASE_ID, COLLECTIONS, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
 
 // Check if we should use fallback mode
 const useFallbackMode = () => {
@@ -8,10 +8,11 @@ const useFallbackMode = () => {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { region: string } }
+    { params }: { params: Promise<{ region: string }> }
 ) {
     try {
-        const regionSlug = params.region;
+        const { region } = await params;
+        const regionSlug = region;
 
         // Use fallback mode if enabled
         if (useFallbackMode()) {
@@ -80,13 +81,13 @@ export async function GET(
             return NextResponse.json(handleAppwriteSuccess(regionData));
         }
 
-        // Get region info from Appwrite
+        // Get region info from Appwrite - using string queries instead of Query
         const regionsResponse = await databases.listDocuments(
             DATABASE_ID,
             COLLECTIONS.REGIONS,
             [
-                Query.equal('slug', regionSlug),
-                Query.limit(1)
+                `equal("slug", "${regionSlug}")`,
+                'limit(1)'
             ]
         );
 
@@ -104,11 +105,11 @@ export async function GET(
             DATABASE_ID,
             COLLECTIONS.RANKINGS,
             [
-                Query.equal('season', 'september'),
-                Query.equal('region', regionSlug),
-                Query.isNull('gameCategory'), // General rankings only
-                Query.orderDesc('totalPoints'),
-                Query.limit(50)
+                `equal("season", "september")`,
+                `equal("region", "${regionSlug}")`,
+                'isNull("gameCategory")', // General rankings only
+                'orderDesc("totalPoints")',
+                'limit(50)'
             ]
         );
 
@@ -117,11 +118,11 @@ export async function GET(
             DATABASE_ID,
             COLLECTIONS.RANKINGS,
             [
-                Query.equal('season', 'january'),
-                Query.equal('region', regionSlug),
-                Query.isNull('gameCategory'),
-                Query.orderDesc('totalPoints'),
-                Query.limit(50)
+                `equal("season", "january")`,
+                `equal("region", "${regionSlug}")`,
+                'isNull("gameCategory")',
+                'orderDesc("totalPoints")',
+                'limit(50)'
             ]
         );
 

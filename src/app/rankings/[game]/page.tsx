@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from "next/link";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FooterSection, Navigation } from '@/components';
-
 
 // Helper function to get game-specific table headers
 const getGameHeaders = (gameSlug: string) => {
@@ -63,7 +62,7 @@ const getGameHeaders = (gameSlug: string) => {
 };
 
 interface GameRankingPageProps {
-  params: { game: string; };
+  params: Promise<{ game: string }>;
 }
 
 interface GameCategoryRanking {
@@ -96,11 +95,35 @@ interface SeasonData {
 }
 
 export default function GameRankingPage({ params }: GameRankingPageProps) {
+  // Use the use() hook to unwrap the Promise
+  const { game } = use(params);
+  
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<string>('');
   const [gameData, setGameData] = useState<GameCategoryInfo | null>(null);
   const [seasonsData, setSeasonsData] = useState<SeasonData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Define the missing functions
+  const handleSeasonClick = (season: SeasonData) => {
+    if (!season.isActive) {
+      setSelectedSeason(season.title);
+      setShowComingSoonModal(true);
+    }
+  };
+
+  const closeModal = () => {
+    setShowComingSoonModal(false);
+    setSelectedSeason('');
+  };
+
+  const getCurrentSeason = () => {
+    return seasonsData.find(s => s.isActive);
+  };
+
+  const getUpcomingSeason = () => {
+    return seasonsData.find(s => !s.isActive);
+  };
 
   useEffect(() => {
     // Load game categories and rankings from Appwrite via API
@@ -242,8 +265,9 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
           });
         }
 
-        const game = gameCategories[params.game];
-        setGameData(game);
+        // Use the 'game' variable from the awaited params
+        const gameInfo = gameCategories[game];
+        setGameData(gameInfo);
 
         // Set up seasons data - only September season is active for these categories
         const seasons: SeasonData[] = [
@@ -265,27 +289,7 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
     };
 
     loadGameData();
-  }, [params.game]);
-
-  const handleSeasonClick = (season: SeasonData) => {
-    if (!season.isActive) {
-      setSelectedSeason(season.title);
-      setShowComingSoonModal(true);
-    }
-  };
-
-  const closeModal = () => {
-    setShowComingSoonModal(false);
-    setSelectedSeason('');
-  };
-
-  const getCurrentSeason = () => {
-    return seasonsData.find(s => s.isActive);
-  };
-
-  const getUpcomingSeason = () => {
-    return seasonsData.find(s => !s.isActive);
-  };
+  }, [game]); // Update dependency to use 'game' instead of 'params.game'
 
   const renderRankingsTable = (universities: GameCategoryRanking[], isActive: boolean) => {
     if (isActive) {
@@ -302,16 +306,16 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
                     RANK
                   </TableHead>
                   <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(params.game).col1}
+                    {getGameHeaders(game).col1}
                   </TableHead>
                   <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(params.game).col2}
+                    {getGameHeaders(game).col2}
                   </TableHead>
                   <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(params.game).col3}
+                    {getGameHeaders(game).col3}
                   </TableHead>
                   <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(params.game).col4}
+                    {getGameHeaders(game).col4}
                   </TableHead>
                   <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
                     TOTAL
@@ -404,8 +408,8 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
 
   const currentSeason = getCurrentSeason();
   const upcomingSeason = getUpcomingSeason();
-  const isCurrentSeasonGame = currentSeason?.categories.some(c => c.id === gameData.id);
-  const isUpcomingSeasonGame = upcomingSeason?.categories.some(c => c.id === gameData.id);
+  const isCurrentSeasonGame = currentSeason?.categories.some((c: GameCategoryInfo) => c.id === gameData.id);
+  const isUpcomingSeasonGame = upcomingSeason?.categories.some((c: GameCategoryInfo) => c.id === gameData.id);
 
   return (
       <main className="bg-black w-full min-h-screen">

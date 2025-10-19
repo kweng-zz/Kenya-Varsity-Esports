@@ -325,18 +325,18 @@ export default function AdminBlogsPage() {
     console.error('Error submitting form:', error);
     let errorMessage = 'Failed to save article: ';
     
-    if (error instanceof Error) {
-      if (error.message.includes('fetch') || error.message.includes('Network')) {
-        errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
-      } else if (error.message.includes('JSON')) {
-        errorMessage += 'Server returned an invalid response. Please check the server logs.';
-      } else {
-        errorMessage += error.message;
-      }
-    } else {
-      errorMessage += 'Unknown error occurred';
-    }
-    
+    // In your handleFormSubmit catch block, add:
+if (error instanceof Error) {
+  if (error.message.includes('405') || error.message.includes('Method not allowed')) {
+    errorMessage = 'Editing is currently unavailable. The PUT method is not allowed on the server. Please check that the API route exists and exports the PUT method.';
+  } else if (error.message.includes('fetch') || error.message.includes('Network')) {
+    errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
+  } else if (error.message.includes('JSON')) {
+    errorMessage += 'Server returned an invalid response. Please check the server logs.';
+  } else {
+    errorMessage += error.message;
+  }
+}
     alert(errorMessage);
   } finally {
     setIsSubmitting(false);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { databases, DATABASE_ID, COLLECTIONS, ID, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
+import { databases, DATABASE_ID, COLLECTIONS, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
 
 // Check if we should use fallback mode
 const useFallbackMode = () => {
@@ -45,11 +45,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create contact message document
+        // Create contact message document - use native ID generation
         const contactMessage = await databases.createDocument(
             DATABASE_ID,
             COLLECTIONS.CONTACT_MESSAGES,
-            ID.unique(),
+            'unique()', // Let Appwrite generate the ID
             {
                 name: name.trim(),
                 email: email.trim().toLowerCase(),
@@ -81,17 +81,42 @@ export async function GET(request: NextRequest) {
         const type = searchParams.get('type');
         const limit = parseInt(searchParams.get('limit') || '50');
 
-        const queries = [
-            Query.orderDesc('createdAt'),
-            Query.limit(limit)
-        ];
-
-        if (status) {
-            queries.push(Query.equal('status', status));
+        // Use fallback mode if enabled
+        if (useFallbackMode()) {
+            console.log('Using fallback mode for contact GET API');
+            return NextResponse.json(
+                handleAppwriteSuccess([
+                    {
+                        id: 'demo-1',
+                        name: 'John Doe',
+                        email: 'john@example.com',
+                        message: 'This is a demo message',
+                        type: 'general',
+                        status: 'unread',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    }
+                ])
+            );
         }
 
+        // Build queries manually instead of using Query import
+        const queries: string[] = [];
+        
+        // Add ordering
+        queries.push('orderDesc("createdAt")');
+        
+        // Add limit
+        queries.push(`limit(${limit})`);
+        
+        // Add status filter if provided
+        if (status) {
+            queries.push(`equal("status", "${status}")`);
+        }
+        
+        // Add type filter if provided
         if (type) {
-            queries.push(Query.equal('type', type));
+            queries.push(`equal("type", "${type}")`);
         }
 
         const response = await databases.listDocuments(

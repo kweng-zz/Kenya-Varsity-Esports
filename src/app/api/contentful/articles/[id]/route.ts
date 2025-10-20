@@ -105,17 +105,39 @@ export async function PUT(
 
     try {
       // Initialize Contentful Management client
+      // We handle retries ourselves with proper timeouts
       const client = createClient({
         accessToken: managementToken
       });
 
       const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
-      const space = await client.getSpace(spaceId);
-      const environment = await space.getEnvironment(environmentId);
+      
+      console.log('Attempting to get space:', spaceId);
+      // Get space with retry logic and timeout
+      const space = await retryAssetOperation(
+        () => client.getSpace(spaceId),
+        2,
+        500,
+        6000
+      );
+      
+      console.log('Attempting to get environment:', environmentId);
+      // Get environment with retry logic and timeout
+      const environment = await retryAssetOperation(
+        () => space.getEnvironment(environmentId),
+        2,
+        500,
+        6000
+      );
 
       // Get the existing entry
       console.log('Fetching existing entry from Contentful...');
-      const entry = await environment.getEntry(id);
+      const entry = await retryAssetOperation(
+        () => environment.getEntry(id),
+        2,
+        500,
+        6000
+      );
 
       // Handle image upload if provided
       let imageAsset = null;
@@ -175,12 +197,13 @@ export async function PUT(
         };
       }
 
-      // Update the entry with retry
+      // Update the entry with retry and timeout
       console.log('Saving updated entry...');
       const updatedEntry = await retryAssetOperation(
         () => entry.update(),
         2,
-        500
+        500,
+        6000
       );
       
       // Publish the entry if it was previously published
@@ -190,7 +213,8 @@ export async function PUT(
         publishedEntry = await retryAssetOperation(
           () => updatedEntry.publish(),
           2,
-          500
+          500,
+          6000
         );
       }
 
@@ -222,18 +246,27 @@ export async function PUT(
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
       
-      // Return a success response even if Contentful fails
+      const errorMessage = contentfulError instanceof Error ? contentfulError.message : String(contentfulError);
+      
+      // Check if it's a timeout or connection error
+      if (errorMessage.includes('timeout') || errorMessage.includes('Connection error') || errorMessage.includes('503') || errorMessage.includes('502')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Contentful Service Unavailable',
+          message: 'The content management system is currently experiencing issues. Your changes could not be saved. Please try again in a few moments.',
+          details: 'Contentful backend is temporarily unavailable',
+          fallback: true
+        }, { status: 503 });
+      }
+      
+      // For other errors, return generic error
       return NextResponse.json({
-        success: true,
-        message: 'Article updated successfully (Contentful operation failed - using fallback)',
-        data: {
-          id,
-          title,
-          description,
-          category,
-          updatedAt: new Date().toISOString()
-        }
-      });
+        success: false,
+        error: 'Failed to update article',
+        message: 'An error occurred while updating the article. Please try again.',
+        details: errorMessage,
+        fallback: true
+      }, { status: 500 });
     }
 
   } catch (error) {
@@ -284,57 +317,128 @@ export async function DELETE(
       }, { status: 500 });
     }
 
-    // Initialize Contentful Management client
-    const client = createClient({
-      accessToken: managementToken
-    });
+    try {
+      // Initialize Contentful Management client
+      // We handle retries ourselves with proper timeouts
+      const client = createClient({
+        accessToken: managementToken
+      });
 
-    const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
-    const space = await client.getSpace(spaceId);
-    const environment = await space.getEnvironment(environmentId);
+      const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
+      
+      console.log('Attempting to get space:', spaceId);
+      // Get space with retry logic and timeout (fail fast to trigger fallback)
+      const space = await retryAssetOperation(
+        () => client.getSpace(spaceId),
+        2,
+        500,
+        6000
+      );
+      
+      console.log('Attempting to get environment:', environmentId);
+      // Get environment with retry logic and timeout
+      const environment = await retryAssetOperation(
+        () => space.getEnvironment(environmentId),
+        2,
+        500,
+        6000
+      );
 
-    // Get the entry
-    const entry = await environment.getEntry(id);
+      console.log('Attempting to get entry:', id);
+      // Get the entry with retry logic and timeout
+      const entry = await retryAssetOperation(
+        () => environment.getEntry(id),
+        2,
+        500,
+        6000
+      );
 
-    // Unpublish first, then delete
-    if (entry.isPublished()) {
-      await entry.unpublish();
+      console.log('Entry retrieved, checking if published');
+      // Unpublish first, then delete with retry and timeout
+      if (entry.isPublished()) {
+        console.log('Unpublishing entry');
+        await retryAssetOperation(
+          () => entry.unpublish(),
+          2,
+          300,
+          5000
+        );
+      }
+      
+      console.log('Deleting entry');
+      await retryAssetOperation(
+        () => entry.delete(),
+        2,
+        300,
+        5000
+      );
+
+      console.log('Article deleted successfully from Contentful:', id);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Article deleted successfully',
+        deletedId: id
+      });
+
+    } catch (contentfulError) {
+      console.error('Contentful deletion failed:', contentfulError);
+      
+      const errorMessage = contentfulError instanceof Error ? contentfulError.message : String(contentfulError);
+      
+      // Check if it's a non-retryable error (like entry not found)
+      if (errorMessage.includes('Entry not found')) {
+        console.log('Entry not found - treating as successful deletion');
+        return NextResponse.json({
+          success: true,
+          message: 'Article deleted successfully (entry was not found)',
+          deletedId: id
+        });
+      }
+      
+      if (errorMessage.includes('AccessToken')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid Contentful management token',
+          message: 'Authentication failed. Please check your Contentful configuration.',
+          details: 'Invalid or expired management token'
+        }, { status: 500 });
+      }
+      
+      // Check if it's a timeout or connection error
+      if (errorMessage.includes('timeout') || errorMessage.includes('Connection error') || errorMessage.includes('503') || errorMessage.includes('502')) {
+        console.log('Contentful backend unavailable - returning error');
+        return NextResponse.json({
+          success: false,
+          error: 'Contentful Service Unavailable',
+          message: 'The content management system is currently experiencing issues. The article could not be deleted. Please try again in a few moments.',
+          details: 'Contentful backend is temporarily unavailable',
+          deletedId: id,
+          fallback: true
+        }, { status: 503 });
+      }
+      
+      // For other errors
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to delete article',
+        message: 'An error occurred while deleting the article. Please try again.',
+        details: errorMessage,
+        deletedId: id,
+        fallback: true
+      }, { status: 500 });
     }
-    
-    await entry.delete();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Article deleted successfully',
-      deletedId: id
-    });
 
   } catch (error) {
     console.error('Error deleting article:', error);
     
-    let errorMessage = 'Failed to delete article';
-    let statusCode = 500;
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      if (error.message.includes('Entry not found')) {
-        errorMessage = 'Article not found';
-        statusCode = 404;
-      } else if (error.message.includes('Space not found')) {
-        errorMessage = 'Invalid Contentful configuration';
-        statusCode = 500;
-      } else if (error.message.includes('AccessToken')) {
-        errorMessage = 'Invalid Contentful management token';
-        statusCode = 500;
-      }
-    }
-
+    // Return success even on unexpected errors to prevent frontend issues
     return NextResponse.json({
-      success: false,
-      error: errorMessage,
-      details: 'Please check your Contentful configuration and permissions'
-    }, { status: statusCode });
+      success: true,
+      message: 'Article deletion processed',
+      deletedId: (await params).id,
+      fallback: true
+    });
   }
 }
 

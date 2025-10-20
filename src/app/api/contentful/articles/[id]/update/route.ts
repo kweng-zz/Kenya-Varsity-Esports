@@ -75,17 +75,39 @@ export async function POST(
 
     try {
       // Initialize Contentful Management client
+      // We handle retries ourselves with proper timeouts
       const client = createClient({
         accessToken: managementToken
       });
 
       const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
-      const space = await client.getSpace(spaceId);
-      const environment = await space.getEnvironment(environmentId);
+      
+      console.log('Attempting to get space:', spaceId);
+      // Get space with retry logic and timeout
+      const space = await retryAssetOperation(
+        () => client.getSpace(spaceId),
+        2,
+        500,
+        6000
+      );
+      
+      console.log('Attempting to get environment:', environmentId);
+      // Get environment with retry logic and timeout
+      const environment = await retryAssetOperation(
+        () => space.getEnvironment(environmentId),
+        2,
+        500,
+        6000
+      );
 
       // Get the existing entry
       console.log('Fetching existing entry from Contentful...');
-      const entry = await environment.getEntry(id);
+      const entry = await retryAssetOperation(
+        () => environment.getEntry(id),
+        2,
+        500,
+        6000
+      );
 
       // Handle image upload if provided
       let imageAsset = null;
@@ -145,12 +167,13 @@ export async function POST(
         };
       }
 
-      // Update the entry with retry
+      // Update the entry with retry and timeout
       console.log('Saving updated entry...');
       const updatedEntry = await retryAssetOperation(
         () => entry.update(),
         2,
-        500
+        500,
+        6000
       );
       
       // Publish the entry if it was previously published
@@ -160,7 +183,8 @@ export async function POST(
         publishedEntry = await retryAssetOperation(
           () => updatedEntry.publish(),
           2,
-          500
+          500,
+          6000
         );
       }
 
@@ -192,18 +216,27 @@ export async function POST(
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
       
-      // Return a success response even if Contentful fails
+      const errorMessage = contentfulError instanceof Error ? contentfulError.message : String(contentfulError);
+      
+      // Check if it's a timeout or connection error
+      if (errorMessage.includes('timeout') || errorMessage.includes('Connection error') || errorMessage.includes('503') || errorMessage.includes('502')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Contentful Service Unavailable',
+          message: 'The content management system is currently experiencing issues. Your changes could not be saved. Please try again in a few moments.',
+          details: 'Contentful backend is temporarily unavailable',
+          fallback: true
+        }, { status: 503 });
+      }
+      
+      // For other errors, return generic error
       return NextResponse.json({
-        success: true,
-        message: 'Article updated successfully (Contentful operation failed - using fallback)',
-        data: {
-          id,
-          title,
-          description,
-          category,
-          updatedAt: new Date().toISOString()
-        }
-      });
+        success: false,
+        error: 'Failed to update article',
+        message: 'An error occurred while updating the article. Please try again.',
+        details: errorMessage,
+        fallback: true
+      }, { status: 500 });
     }
 
   } catch (error) {

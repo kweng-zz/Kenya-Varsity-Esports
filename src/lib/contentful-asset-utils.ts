@@ -94,24 +94,94 @@ export function createAssetLink(assetId: string) {
 export async function retryAssetOperation<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
-  delay: number = 1000
+  delay: number = 1000,
+  timeout: number = 6000
 ): Promise<T> {
   let lastError: Error;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`Asset operation attempt ${attempt} failed:`, error);
+      console.log(`[Attempt ${attempt}/${maxRetries}] Starting operation with ${timeout}ms timeout`);
       
-      if (attempt < maxRetries) {
-        console.log(`Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
+      // Wrap operation with timeout using Promise.race
+      const result = await Promise.race([
+        operation(),
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            console.warn(`[Attempt ${attempt}/${maxRetries}] Operation timeout after ${timeout}ms`);
+            reject(new Error(`Operation timeout after ${timeout}ms`));
+          }, timeout);
+        })
+      ]);
+      
+      // Clear timeout if operation succeeded
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      console.log(`[Attempt ${attempt}/${maxRetries}] Operation succeeded`);
+      return result;
+      
+    } catch (error) {
+      // Clear timeout on error
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      lastError = error as Error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      console.warn(`[Attempt ${attempt}/${maxRetries}] Failed:`, errorMessage);
+      
+      // Check if this is a retryable error
+      const isRetryable = isRetryableError(errorMessage);
+      
+      if (attempt < maxRetries && isRetryable) {
+        const waitTime = delay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`[Attempt ${attempt}/${maxRetries}] Retryable error. Waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else if (attempt < maxRetries && !isRetryable) {
+        console.warn(`[Attempt ${attempt}/${maxRetries}] Non-retryable error. Stopping retries.`);
+        throw lastError;
+      } else {
+        console.warn(`[Attempt ${attempt}/${maxRetries}] Max retries exhausted. Throwing error.`);
       }
     }
   }
   
   throw lastError!;
+}
+
+function isRetryableError(errorMessage: string): boolean {
+  // Connection errors
+  if (errorMessage.includes('Connection error') || 
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('ECONNRESET') ||
+      errorMessage.includes('ETIMEDOUT') ||
+      errorMessage.includes('EHOSTUNREACH') ||
+      errorMessage.includes('ENETUNREACH')) {
+    return true;
+  }
+  
+  // Backend errors
+  if (errorMessage.includes('503') ||
+      errorMessage.includes('502') ||
+      errorMessage.includes('504') ||
+      errorMessage.includes('Backend fetch failed') ||
+      errorMessage.includes('Service Unavailable')) {
+    return true;
+  }
+  
+  // Timeout errors
+  if (errorMessage.includes('timeout') ||
+      errorMessage.includes('TIMEOUT') ||
+      errorMessage.includes('timed out')) {
+    return true;
+  }
+  
+  // Rate limiting
+  if (errorMessage.includes('429') ||
+      errorMessage.includes('Too Many Requests')) {
+    return true;
+  }
+  
+  return false;
 }

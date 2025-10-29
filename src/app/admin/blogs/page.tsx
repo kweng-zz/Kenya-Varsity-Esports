@@ -288,6 +288,15 @@ export default function AdminBlogsPage() {
         body: errorText
       });
       
+      // Handle specific HTTP errors
+      if (response.status === 405) {
+        throw new Error('Method Not Allowed: The server does not support this operation. Please try again or contact support.');
+      } else if (response.status === 404) {
+        throw new Error('Article not found. It may have been deleted.');
+      } else if (response.status === 503) {
+        throw new Error('Service temporarily unavailable. Please try again in a few moments.');
+      }
+      
       throw new Error(`Server error: ${response.status} ${response.statusText}`);
     }
     

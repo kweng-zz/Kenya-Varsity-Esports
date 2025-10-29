@@ -4,18 +4,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'contentful-management';
 import { uploadAndProcessAsset, createAssetLink, retryAssetOperation } from '@/lib/contentful-asset-utils';
 
-// Dynamic route segment config
+// Ensure this route is always dynamic and not cached
 export const dynamic = 'force-dynamic';
-
-// Route handler for /api/contentful/articles/[id]
-// Supports: GET, PUT, PATCH, DELETE, OPTIONS
+export const revalidate = 0;
 
 // Type for route parameters
 type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
-// GET - Get single article
+/**
+ * GET /api/contentful/articles/[id]
+ * Retrieve a single article by ID
+ */
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
@@ -34,6 +35,7 @@ export async function GET(
       }
     });
   } catch (error) {
+    console.error('GET error:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to process GET request'
@@ -41,7 +43,10 @@ export async function GET(
   }
 }
 
-// PUT - Update article (your updated version with image upload)
+/**
+ * PUT /api/contentful/articles/[id]
+ * Update an existing article
+ */
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
@@ -69,6 +74,7 @@ export async function PUT(
     const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
 
     if (!spaceId || !managementToken) {
+      console.warn('Contentful not configured');
       return NextResponse.json({
         success: false,
         error: 'Contentful not configured',
@@ -110,7 +116,6 @@ export async function PUT(
 
     try {
       // Initialize Contentful Management client
-      // We handle retries ourselves with proper timeouts
       const client = createClient({
         accessToken: managementToken
       });
@@ -277,20 +282,20 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating article:', error);
     
-    // Return success even on error to prevent frontend issues
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({
-      success: true,
-      message: 'Article updated successfully (Error occurred but handled)',
-      data: {
-        id: 'fallback',
-        title: 'Fallback Article',
-        updatedAt: new Date().toISOString()
-      }
-    });
+      success: false,
+      error: 'Failed to update article',
+      message: 'An unexpected error occurred while updating the article.',
+      details: errorMessage
+    }, { status: 500 });
   }
 }
 
-// DELETE - Delete article
+/**
+ * DELETE /api/contentful/articles/[id]
+ * Delete an article
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
@@ -324,7 +329,6 @@ export async function DELETE(
 
     try {
       // Initialize Contentful Management client
-      // We handle retries ourselves with proper timeouts
       const client = createClient({
         accessToken: managementToken
       });
@@ -332,7 +336,7 @@ export async function DELETE(
       const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
       
       console.log('Attempting to get space:', spaceId);
-      // Get space with retry logic and timeout (fail fast to trigger fallback)
+      // Get space with retry logic and timeout
       const space = await retryAssetOperation(
         () => client.getSpace(spaceId),
         2,
@@ -437,17 +441,20 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting article:', error);
     
-    // Return success even on unexpected errors to prevent frontend issues
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({
-      success: true,
-      message: 'Article deletion processed',
-      deletedId: (await params).id,
-      fallback: true
-    });
+      success: false,
+      error: 'Failed to delete article',
+      message: 'An unexpected error occurred while deleting the article.',
+      details: errorMessage
+    }, { status: 500 });
   }
 }
 
-// PATCH - Alias for PUT (some clients may use PATCH)
+/**
+ * PATCH /api/contentful/articles/[id]
+ * Alias for PUT (some clients may use PATCH)
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
@@ -455,14 +462,21 @@ export async function PATCH(
   return PUT(request, { params });
 }
 
-// OPTIONS - For CORS preflight requests
-export async function OPTIONS() {
+/**
+ * OPTIONS /api/contentful/articles/[id]
+ * Handle CORS preflight requests
+ */
+export async function OPTIONS(
+  request: NextRequest,
+  { params }: RouteParams
+) {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, PUT, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
     },
   });
 }

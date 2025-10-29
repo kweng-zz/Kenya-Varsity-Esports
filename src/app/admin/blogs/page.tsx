@@ -248,33 +248,33 @@ export default function AdminBlogsPage() {
     let url;
     
     if (editingArticle) {
-      // 🚨 TEMPORARY FIX: Use POST instead of PUT
-      url = `/api/contentful/articles/${editingArticle.id}/update`;
-      console.log('🔄 Updating article (using POST workaround):', { 
-        id: editingArticle.id, 
-        url,
-        title: formData.title,
-        hasImage: !!formData.image
-      });
-      
-      response = await fetch(url, {
-        method: 'POST', // Use POST instead of PUT
-        body: submitFormData,
-      });
-    } else {
-      // Create new article
-      url = '/api/contentful/articles/create';
-      console.log('Creating new article:', { 
-        url,
-        title: formData.title,
-        hasImage: !!formData.image
-      });
-      
-      response = await fetch(url, {
-        method: 'POST',
-        body: submitFormData,
-      });
-    }
+  // Use PUT method for updates (proper RESTful approach)
+  url = `/api/contentful/articles/${editingArticle.id}`; // Cleaner URL
+  console.log('🔄 Updating article with PUT:', { 
+    id: editingArticle.id, 
+    url,
+    title: formData.title,
+    hasImage: !!formData.image
+  });
+  
+  response = await fetch(url, {
+    method: 'PUT', // Use PUT instead of POST
+    body: submitFormData,
+  });
+} else {
+  // Create new article (POST)
+  url = '/api/contentful/articles';
+  console.log('Creating new article:', { 
+    url,
+    title: formData.title,
+    hasImage: !!formData.image
+  });
+  
+  response = await fetch(url, {
+    method: 'POST',
+    body: submitFormData,
+  });
+}
 
     console.log('Response status:', response.status);
     console.log('Response headers:', Object.fromEntries(response.headers.entries()));

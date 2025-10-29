@@ -1,3 +1,5 @@
+//src/app/api/contentful/articles/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'contentful-management';
 import { uploadAndProcessAsset, createAssetLink, retryAssetOperation } from '@/lib/contentful-asset-utils';

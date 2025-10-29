@@ -7,6 +7,9 @@ import { uploadAndProcessAsset, createAssetLink, retryAssetOperation } from '@/l
 // Dynamic route segment config
 export const dynamic = 'force-dynamic';
 
+// Route handler for /api/contentful/articles/[id]
+// Supports: GET, PUT, PATCH, DELETE, OPTIONS
+
 // Type for route parameters
 type RouteParams = {
   params: Promise<{ id: string }>;

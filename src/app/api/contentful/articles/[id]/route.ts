@@ -444,13 +444,21 @@ export async function DELETE(
   }
 }
 
+// PATCH - Alias for PUT (some clients may use PATCH)
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  return PUT(request, { params });
+}
+
 // OPTIONS - For CORS preflight requests
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, PUT, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });

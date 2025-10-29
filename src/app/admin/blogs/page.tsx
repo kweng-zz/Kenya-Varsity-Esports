@@ -151,7 +151,7 @@ export default function AdminBlogsPage() {
   try {
     console.log('Attempting to delete article:', articleId);
     
-    const response = await fetch(`/api/contentful/articles/${articleId}`, {
+    const response = await fetch(`/api/contentful/articles/update?id=${encodeURIComponent(articleId)}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -248,8 +248,8 @@ export default function AdminBlogsPage() {
     let url;
     
     if (editingArticle) {
-  // Use PUT method for updates (proper RESTful approach)
-  url = `/api/contentful/articles/${editingArticle.id}`; // Cleaner URL
+  // Use PUT method for updates via query parameter (workaround for Vercel routing)
+  url = `/api/contentful/articles/update?id=${encodeURIComponent(editingArticle.id)}`;
   console.log('🔄 Updating article with PUT:', { 
     id: editingArticle.id, 
     url,
@@ -258,7 +258,7 @@ export default function AdminBlogsPage() {
   });
   
   response = await fetch(url, {
-    method: 'PUT', // Use PUT instead of POST
+    method: 'PUT',
     body: submitFormData,
   });
 } else {

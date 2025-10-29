@@ -154,7 +154,25 @@ export async function PUT(request: NextRequest) {
         .replace(/-+/g, '-')
         .trim();
 
-      console.log('Updating article fields...');
+      // Validate slug format
+      if (!finalSlug || !/^[a-z0-9-]+$/.test(finalSlug)) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid slug format',
+          message: 'Slug can only contain lowercase letters, numbers, and hyphens.',
+          details: `Generated slug: "${finalSlug}"`
+        }, { status: 400 });
+      }
+
+      console.log('Updating article fields with data:', {
+        title,
+        slug: finalSlug,
+        category,
+        game: game?.trim() || 'not set',
+        author: author || 'KUER Team',
+        featured,
+        tags: tags.length
+      });
 
       // Update article fields
       entry.fields.title = { 'en-US': title };
@@ -167,11 +185,11 @@ export async function PUT(request: NextRequest) {
       entry.fields.tags = { 'en-US': tags };
 
       // Update game if provided
-      if (game) {
-        entry.fields.game = { 'en-US': game };
-      } else if (entry.fields.game) {
-        // Clear game field if not provided but previously existed
-        entry.fields.game = { 'en-US': '' };
+      if (game && game.trim()) {
+        entry.fields.game = { 'en-US': game.trim() };
+      } else {
+        // Remove game field if not provided or empty
+        delete entry.fields.game;
       }
 
       // Update image if new one was uploaded
@@ -229,9 +247,50 @@ export async function PUT(request: NextRequest) {
 
     } catch (contentfulError) {
       console.error('Contentful operation failed:', contentfulError);
-      
+
       const errorMessage = contentfulError instanceof Error ? contentfulError.message : String(contentfulError);
-      
+      console.error('Full error details:', {
+        message: errorMessage,
+        stack: contentfulError instanceof Error ? contentfulError.stack : undefined,
+        name: contentfulError instanceof Error ? contentfulError.name : undefined
+      });
+
+      // Check for specific Contentful validation errors
+      if (errorMessage.includes('ValidationFailed') || errorMessage.includes('validation')) {
+        console.error('Validation error detected:', errorMessage);
+        return NextResponse.json({
+          success: false,
+          error: 'Validation Error',
+          message: 'The article data failed validation. Please check all required fields and try again.',
+          details: errorMessage,
+          fallback: true
+        }, { status: 400 });
+      }
+
+      // Check for slug uniqueness errors
+      if (errorMessage.includes('unique') || errorMessage.includes('already exists')) {
+        console.error('Uniqueness constraint violated:', errorMessage);
+        return NextResponse.json({
+          success: false,
+          error: 'Duplicate Slug',
+          message: 'An article with this slug already exists. Please choose a different slug.',
+          details: errorMessage,
+          fallback: true
+        }, { status: 409 });
+      }
+
+      // Check for entry not found
+      if (errorMessage.includes('Entry not found') || errorMessage.includes('does not exist')) {
+        console.error('Entry not found:', errorMessage);
+        return NextResponse.json({
+          success: false,
+          error: 'Article Not Found',
+          message: 'The article you are trying to update could not be found.',
+          details: errorMessage,
+          fallback: true
+        }, { status: 404 });
+      }
+
       // Check if it's a timeout or connection error
       if (errorMessage.includes('timeout') || errorMessage.includes('Connection error') || errorMessage.includes('503') || errorMessage.includes('502')) {
         return NextResponse.json({
@@ -242,7 +301,7 @@ export async function PUT(request: NextRequest) {
           fallback: true
         }, { status: 503 });
       }
-      
+
       // For other errors, return generic error
       return NextResponse.json({
         success: false,

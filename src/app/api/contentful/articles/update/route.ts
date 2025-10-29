@@ -123,6 +123,13 @@ export async function PUT(request: NextRequest) {
         6000
       );
 
+      console.log('Entry fetched successfully:', {
+        id: entry.sys.id,
+        published: entry.isPublished(),
+        fields: Object.keys(entry.fields),
+        hasPublishedAt: !!entry.fields.publishedAt
+      });
+
       // Handle image upload if provided
       let imageAsset = null;
       if (image && image.size > 0) {
@@ -174,50 +181,25 @@ export async function PUT(request: NextRequest) {
         tags: tags.length
       });
 
-      // Update article fields
+      // Update only the title field first to test
+      console.log('Testing with minimal update - title only');
       entry.fields.title = { 'en-US': title };
-      entry.fields.description = { 'en-US': description };
-      entry.fields.content = { 'en-US': content };
-      entry.fields.slug = { 'en-US': finalSlug };
-      entry.fields.category = { 'en-US': category };
-      entry.fields.author = { 'en-US': author || 'KUER Team' };
-      entry.fields.featured = { 'en-US': featured };
-      entry.fields.tags = { 'en-US': tags };
 
-      // Update game if provided
-      if (game && game.trim()) {
-        entry.fields.game = { 'en-US': game.trim() };
-      } else {
-        // Remove game field if not provided or empty
-        delete entry.fields.game;
+      // Unpublish first if published, then update, then republish
+      const wasPublished = entry.isPublished();
+      if (wasPublished) {
+        console.log('Unpublishing entry before update...');
+        await entry.unpublish();
       }
 
-      // Update image if new one was uploaded
-      if (imageAsset) {
-        entry.fields.image = {
-          'en-US': createAssetLink(imageAsset.sys.id)
-        };
-      }
-
-      // Update the entry with retry and timeout
       console.log('Saving updated entry...');
-      const updatedEntry = await retryAssetOperation(
-        () => entry.update(),
-        2,
-        500,
-        6000
-      );
-      
+      const updatedEntry = await entry.update();
+
       // Publish the entry if it was previously published
       let publishedEntry = updatedEntry;
-      if (updatedEntry.isPublished()) {
+      if (wasPublished) {
         console.log('Republishing updated entry...');
-        publishedEntry = await retryAssetOperation(
-          () => updatedEntry.publish(),
-          2,
-          500,
-          6000
-        );
+        publishedEntry = await updatedEntry.publish();
       }
 
       console.log('Article updated successfully:', publishedEntry.sys.id);
@@ -302,12 +284,13 @@ export async function PUT(request: NextRequest) {
         }, { status: 503 });
       }
 
-      // For other errors, return generic error
+      // For other errors, return a shorter error message to avoid truncation
+      console.error('Full error message:', errorMessage);
       return NextResponse.json({
         success: false,
-        error: 'Failed to update article',
-        message: 'An error occurred while updating the article. Please try again.',
-        details: errorMessage,
+        error: 'Update failed',
+        message: 'Article update failed. Check server logs for details.',
+        details: errorMessage.substring(0, 100) + (errorMessage.length > 100 ? '...' : ''),
         fallback: true
       }, { status: 500 });
     }

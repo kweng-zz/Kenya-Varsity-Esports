@@ -43,11 +43,7 @@ export const HeroSection = () => {
     overflow: 'hidden' // keeps it clipped inside
   }}
 >
-  <img 
-    src="/images/B34R-CL4N-with-name.png" 
-    alt="B34R-CL4N" 
-    className="max-h-[150px] object-contain"
-  />
+  
 </div>
 
           </div>

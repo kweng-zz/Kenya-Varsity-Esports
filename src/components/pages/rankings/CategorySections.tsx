@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
+import { SEASON_SEMESTERS } from "@/config/seasonConfig";
 
 // Helper function to get KUER placement points table headers
 const getGameHeaders = (gameSlug: string) => {
@@ -42,100 +43,11 @@ interface CategoriesData {
   januaryAdded: GameCategoryInfo[];
 }
 
-// Default fallback data
+// Default empty data
 const getDefaultCategoriesData = (): CategoriesData => {
-  const sampleRankings: GameCategoryRanking[] = [
-    {
-      id: "1",
-      university: "TECHNICAL UNIVERSITY OF KENYA",
-      rank: 1,
-      plnum: 17,
-      ccumW: 842,
-      ccumMW: 0,
-      bonuses: 3,
-      total: 862,
-    },
-    {
-      id: "2",
-      university: "UNIVERSITY OF NAIROBI",
-      rank: 2,
-      plnum: 15,
-      ccumW: 720,
-      ccumMW: 2,
-      bonuses: 5,
-      total: 740,
-    },
-    {
-      id: "3",
-      university: "KENYATTA UNIVERSITY",
-      rank: 3,
-      plnum: 12,
-      ccumW: 650,
-      ccumMW: 1,
-      bonuses: 2,
-      total: 663,
-    },
-  ];
-
   return {
-    septemberMain: [
-      {
-        id: "pubg",
-        name: "PUBGM",
-        title: "PUBGM RANKINGS",
-        description: "Current standings for PUBGM tournament",
-        image: "/images/PUBGM.jpeg",
-        isActive: true,
-        universities: sampleRankings,
-      },
-      {
-        id: "codm",
-        name: "CALL OF DUTY MOBILE",
-        title: "CODM RANKINGS",
-        description: "Current standings for CODM tournament",
-        image: "/images/CODM-BR.png",
-        isActive: true,
-        universities: sampleRankings,
-      },
-      {
-        id: "efootball",
-        name: "EFOOTBALL",
-        title: "EFOOTBALL RANKINGS",
-        description: "Current standings for EFOOTBALL tournament",
-        image: "/images/Efootball-Mobile.png",
-        isActive: true,
-        universities: sampleRankings,
-      },
-    ],
-    septemberAdded: [
-      {
-        id: "codm-mp",
-        name: "CODM-MULTIPLAYER",
-        title: "CODM-MULTIPLAYER RANKINGS",
-        description: "Current standings for CODM-MULTIPLAYER tournament",
-        image: "/images/CODM-MP.png",
-        isActive: true,
-        universities: sampleRankings,
-      },
-      {
-        id: "eafc-2v2",
-        name: "EAFC-2V2",
-        title: "EAFC-2V2 RANKINGS",
-        description: "Current standings for EAFC-2V2 tournament",
-        image: "/images/EAFC--Open.png",
-        isActive: true,
-        universities: sampleRankings,
-      },
-      {
-        id: "eafc-women",
-        name: "EAFC-WOMEN",
-        title: "EAFC-WOMEN RANKINGS",
-        description: "Current standings for EAFC-Women tournament",
-        image: "/images/EAFC-Women.png",
-        isActive: true,
-        universities: sampleRankings,
-      },
-    ],
+    septemberMain: [],
+    septemberAdded: [],
     januaryMain: [],
     januaryAdded: []
   };
@@ -157,7 +69,7 @@ export const CategorySection = () => {
       try {
         console.log('Loading rankings data from API...');
         
-        const response = await fetch('/api/rankings?category=all', {
+        const response = await fetch('/api/rankings/categories', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -248,18 +160,25 @@ export const CategorySection = () => {
   };
 
   const getSeason = (seasonName: 'september' | 'january') => {
+    // Determine which seasons have data
+    const hasSeptemberData = categoriesData?.septemberMain?.length > 0 || categoriesData?.septemberAdded?.length > 0;
+    const hasJanuaryData = categoriesData?.januaryMain?.length > 0 || categoriesData?.januaryAdded?.length > 0;
+
+    const septemberConfig = SEASON_SEMESTERS.september;
+    const januaryConfig = SEASON_SEMESTERS.january;
+
     const seasons = [
       {
         name: 'september' as const,
-        title: 'KUER SEASON 2 OVERALL RANKINGS PER GAME CATEGORY',
-        description: 'Current game category rankings for the September semester',
-        isActive: true,
+        title: `${septemberConfig.titleParts.part1} ${septemberConfig.titleParts.part2} ${septemberConfig.titleParts.part3}`,
+        description: septemberConfig.description,
+        isActive: hasSeptemberData,
       },
       {
         name: 'january' as const,
-        title: 'KUER SEASON 2 OVERALL RANKINGS PER GAME CATEGORY',
-        description: 'Upcoming game category rankings for the January semester',
-        isActive: false,
+        title: `${januaryConfig.titleParts.part1} ${januaryConfig.titleParts.part2} ${januaryConfig.titleParts.part3}`,
+        description: januaryConfig.description,
+        isActive: hasJanuaryData,
       },
     ];
     return seasons.find(s => s.name === seasonName);
@@ -365,11 +284,11 @@ export const CategorySection = () => {
             <>
               <div id="september-season" className="mt-16 text-center">
                 <h2 className="font-bold text-[46px] tracking-[1.84px] mt-17">
-                  <span className="text-white tracking-[0.85px]">KUER </span>
-                  <span className="text-red-900 tracking-[0.85px]">SEASON 2</span>
+                  <span className="text-white tracking-[0.85px]">{SEASON_SEMESTERS.september.titleParts.part1} </span>
+                  <span className="text-red-900 tracking-[0.85px]">{SEASON_SEMESTERS.september.titleParts.part2}</span>
                   <br />
                   <span className="text-white tracking-[0.85px]">
-                    OVERALL RANKINGS PER GAME CATEGORY
+                    {SEASON_SEMESTERS.september.titleParts.part3}
                   </span>
                 </h2>
                 <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">

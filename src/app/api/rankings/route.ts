@@ -163,75 +163,98 @@ export async function GET(request: NextRequest) {
         try {
             // Try to get data from Appwrite
             if (category === 'all') {
-                // Get all game categories and their rankings
-                const [gameCategories, allRankings] = await Promise.all([
-                    databases.listDocuments(
-                        DATABASE_ID,
-                        COLLECTIONS.GAME_CATEGORIES,
-                        [
-                            Query.equal('season', 'september'),
-                            Query.orderAsc('name')
-                        ]
-                    ),
-                    databases.listDocuments(
-                        DATABASE_ID,
-                        COLLECTIONS.RANKINGS,
-                        [
-                            Query.equal('season', 'september'),
-                            Query.isNotNull('gameCategory'),
-                            Query.orderAsc('totalPoints')
-                        ]
-                    )
-                ]);
+                // Get all rankings for September season with game categories
+                const allRankings = await databases.listDocuments(
+                    DATABASE_ID,
+                    COLLECTIONS.RANKINGS,
+                    [
+                        Query.equal('season', 'september'),
+                        Query.isNotNull('gameCategory'),
+                        Query.orderDesc('totalPoints'),
+                        Query.limit(1000)
+                    ]
+                );
 
-                // Group categories by type
-                const septemberMain = gameCategories.documents
-                    .filter((cat: any) => cat.category === 'main')
-                    .map((category: any) => ({
-                        id: category.slug,
+                // Get all tournaments to extract unique game categories
+                const tournamentsResponse = await databases.listDocuments(
+                    DATABASE_ID,
+                    'tournaments',
+                    [
+                        Query.limit(100)
+                    ]
+                );
+
+                console.log('📊 API - Tournaments fetched:', tournamentsResponse.documents.length);
+                console.log('📊 API - Rankings fetched:', allRankings.documents.length);
+
+                // Extract unique game categories from tournaments
+                const uniqueGames = new Map<string, any>();
+                tournamentsResponse.documents.forEach((tournament: any) => {
+                    const gameSlug = tournament.slug || tournament.gameName.toLowerCase().replace(/\s+/g, '-');
+                    if (!uniqueGames.has(gameSlug)) {
+                        uniqueGames.set(gameSlug, {
+                            id: gameSlug,
+                            name: tournament.gameName,
+                            title: `${tournament.gameName.toUpperCase()} RANKINGS`,
+                            description: tournament.description || `Current standings for ${tournament.gameName} tournament`,
+                            image: tournament.featuredImageUrl || `/images/${tournament.gameName.replace(/\s+/g, '')}.png`,
+                            isActive: true,
+                            type: 'main'
+                        });
+                    }
+                });
+
+                console.log('📊 API - Unique game categories extracted:', uniqueGames.size);
+
+                // Group rankings by game category
+                const rankingsByCategory = new Map<string, any[]>();
+                
+                allRankings.documents.forEach((ranking: any) => {
+                    const categorySlug = ranking.gameCategory;
+                    if (!rankingsByCategory.has(categorySlug)) {
+                        rankingsByCategory.set(categorySlug, []);
+                    }
+                    rankingsByCategory.get(categorySlug)!.push(ranking);
+                });
+
+                // Build categories with their rankings
+                const septemberMain: any[] = [];
+                const septemberAdded: any[] = [];
+
+                uniqueGames.forEach((category: any) => {
+                    const categoryRankings = rankingsByCategory.get(category.id) || [];
+                    
+                    // Sort rankings by total points descending
+                    const sortedRankings = categoryRankings.sort((a: any, b: any) => b.totalPoints - a.totalPoints);
+                    
+                    const categoryData = {
+                        id: category.id,
                         name: category.name,
                         title: category.title,
                         description: category.description,
                         image: category.image,
                         isActive: category.isActive,
-                        universities: allRankings.documents
-                            .filter((ranking: any) => ranking.gameCategory === category.slug)
-                            .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
-                            .map((ranking: any, index: number) => ({
-                                id: ranking.$id,
-                                university: ranking.universityName,
-                                rank: index + 1,
-                                plnum: ranking.placementPoints,
-                                ccumW: ranking.participationPoints,
-                                ccumMW: ranking.socialMediaPoints,
-                                bonuses: ranking.bonusPoints,
-                                total: ranking.totalPoints
-                            }))
-                    }));
+                        universities: sortedRankings.map((ranking: any, index: number) => ({
+                            id: ranking.$id,
+                            university: ranking.universityName,
+                            rank: index + 1,
+                            plnum: ranking.placementPoints || 0,
+                            ccumW: ranking.participationPoints || 0,
+                            ccumMW: ranking.socialMediaPoints || 0,
+                            bonuses: ranking.bonusPoints || 0,
+                            total: ranking.totalPoints || 0
+                        }))
+                    };
 
-                const septemberAdded = gameCategories.documents
-                    .filter((cat: any) => cat.category === 'added')
-                    .map((category: any) => ({
-                        id: category.slug,
-                        name: category.name,
-                        title: category.title,
-                        description: category.description,
-                        image: category.image,
-                        isActive: category.isActive,
-                        universities: allRankings.documents
-                            .filter((ranking: any) => ranking.gameCategory === category.slug)
-                            .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
-                            .map((ranking: any, index: number) => ({
-                                id: ranking.$id,
-                                university: ranking.universityName,
-                                rank: index + 1,
-                                plnum: ranking.placementPoints,
-                                ccumW: ranking.participationPoints,
-                                ccumMW: ranking.socialMediaPoints,
-                                bonuses: ranking.bonusPoints,
-                                total: ranking.totalPoints
-                            }))
-                    }));
+                    if (category.type === 'added') {
+                        septemberAdded.push(categoryData);
+                    } else {
+                        septemberMain.push(categoryData);
+                    }
+                });
+
+                console.log('📊 API - September Main categories:', septemberMain.length);
+                console.log('📊 API - September Added categories:', septemberAdded.length);
 
                 return NextResponse.json({
                     success: true,

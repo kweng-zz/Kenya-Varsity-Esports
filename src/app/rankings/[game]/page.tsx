@@ -132,7 +132,7 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
         setLoading(true);
 
         // Fetch all rankings data from Appwrite API
-        const response = await fetch('/api/rankings?category=all');
+        const response = await fetch('/api/rankings/categories');
         let appwriteData = null;
         
         if (response.ok) {
@@ -142,143 +142,76 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
           }
         }
 
-        // Sample rankings data as fallback
-        const sampleRankings: GameCategoryRanking[] = [
-          {
-            id: "1",
-            university: "TECHNICAL UNIVERSITY OF KENYA",
-            rank: 1,
-            plnum: 17,
-            ccumW: 842,
-            ccumMW: 0,
-            bonuses: 3,
-            total: 862,
-          },
-          {
-            id: "2",
-            university: "UNIVERSITY OF NAIROBI",
-            rank: 2,
-            plnum: 15,
-            ccumW: 720,
-            ccumMW: 2,
-            bonuses: 5,
-            total: 740,
-          },
-          {
-            id: "3",
-            university: "KENYATTA UNIVERSITY",
-            rank: 3,
-            plnum: 12,
-            ccumW: 650,
-            ccumMW: 1,
-            bonuses: 2,
-            total: 663,
-          },
-        ];
+        // Build game categories from API data only
+        const gameCategories: Record<string, GameCategoryInfo> = {};
 
-        // Game categories mapping
-        const gameCategories: Record<string, GameCategoryInfo> = {
-          "pubg": {
-            id: "pubg",
-            name: "PUBGM",
-            title: "PUBGM RANKINGS",
-            description: "Current standings for PUBGM tournament",
-            image: "/images/PUBGM.jpeg",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "pubgm": {
-            id: "pubgm",
-            name: "PUBGM",
-            title: "PUBGM RANKINGS",
-            description: "Current standings for PUBGM tournament",
-            image: "/images/PUBGM.jpeg",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "codm": {
-            id: "codm",
-            name: "CALL OF DUTY MOBILE",
-            title: "CODM RANKINGS",
-            description: "Current standings for CODM tournament",
-            image: "/images/CODM-BR.png",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "efootball": {
-            id: "efootball",
-            name: "EFOOTBALL",
-            title: "EFOOTBALL RANKINGS",
-            description: "Current standings for EFOOTBALL tournament",
-            image: "/images/EFootball-Mobile.png",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "codm-mp": {
-            id: "codm-mp",
-            name: "CODM-MULTIPLAYER",
-            title: "CODM-MULTIPLAYER RANKINGS",
-            description: "Current standings for CODM-MULTIPLAYER tournament",
-            image: "/images/CODM-MP.png",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "eafc-2v2": {
-            id: "eafc-2v2",
-            name: "EAFC-2V2",
-            title: "EAFC-2V2 RANKINGS",
-            description: "Current standings for EAFC-2V2 tournament",
-            image: "/images/EAFC--Open.png",
-            isActive: true,
-            universities: sampleRankings,
-          },
-          "eafc-women": {
-            id: "eafc-women",
-            name: "EAFC-WOMEN",
-            title: "EAFC-WOMEN RANKINGS",
-            description: "Current standings for EAFC-Women tournament",
-            image: "/images/EAFC-Women.png",
-            isActive: true,
-            universities: sampleRankings,
-          },
-        };
-
-        // If we have Appwrite data, use it to populate the game categories
         if (appwriteData) {
           const allCategories = [
             ...(appwriteData.septemberMain || []),
-            ...(appwriteData.septemberAdded || [])
+            ...(appwriteData.septemberAdded || []),
+            ...(appwriteData.januaryMain || []),
+            ...(appwriteData.januaryAdded || [])
           ];
 
+          console.log('📊 Game page - All categories:', allCategories.length);
+          console.log('📊 Game page - Looking for game:', game);
+          console.log('📊 Game page - Available game IDs:', allCategories.map((c: any) => c.id));
+
           allCategories.forEach((category: any) => {
-            if (gameCategories[category.id]) {
-              gameCategories[category.id] = {
-                ...gameCategories[category.id],
-                name: category.name,
-                title: category.title,
-                description: category.description,
-                image: category.image,
-                isActive: category.isActive,
-                universities: category.universities.length > 0 ? category.universities : sampleRankings
-              };
-            }
+            gameCategories[category.id] = {
+              id: category.id,
+              name: category.name,
+              title: category.title,
+              description: category.description,
+              image: category.image,
+              isActive: category.isActive,
+              universities: category.universities || []
+            };
           });
         }
 
         // Use the 'game' variable from the awaited params
         const gameInfo = gameCategories[game];
-        setGameData(gameInfo);
+        console.log('📊 Game page - Found game info:', gameInfo);
+        setGameData(gameInfo || null);
 
-        // Set up seasons data - only September season is active for these categories
-        const seasons: SeasonData[] = [
-          {
+        // Determine active season from API data
+        const hasSeptemberData = appwriteData?.septemberMain?.length > 0 || appwriteData?.septemberAdded?.length > 0;
+        const hasJanuaryData = appwriteData?.januaryMain?.length > 0 || appwriteData?.januaryAdded?.length > 0;
+
+        // Set up seasons data based on available data
+        const seasons: SeasonData[] = [];
+        
+        if (hasSeptemberData) {
+          seasons.push({
             seasonName: 'september',
-            title: 'KUER SEASON 2',
-            description: 'Current rankings for the September 2024 semester',
+            title: 'KUER SEASON 3',
+            description: 'Current rankings for the September semester',
             isActive: true,
             categories: Object.values(gameCategories),
-          },
-        ];
+          });
+        }
+
+        if (hasJanuaryData) {
+          seasons.push({
+            seasonName: 'january',
+            title: 'KUER SEASON 3',
+            description: 'Current rankings for the January semester',
+            isActive: true,
+            categories: Object.values(gameCategories),
+          });
+        }
+
+        // If no seasons have data, show a default season
+        if (seasons.length === 0) {
+          seasons.push({
+            seasonName: 'september',
+            title: 'KUER SEASON 3',
+            description: 'Current rankings for the September semester',
+            isActive: true,
+            categories: Object.values(gameCategories),
+          });
+        }
 
         setSeasonsData(seasons);
         setLoading(false);

@@ -154,12 +154,14 @@ export default function AdminPage() {
                     <p>Manage university rankings and scores for different games.</p>
                 </Link>
 
+                
+
                 <Link 
-                    href="/admin/regions" 
+                    href="/admin/regional-rankings" 
                     className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
                 >
-                    <h2 className="text-2xl font-semibold">Regions</h2>
-                    <p>Manage regional divisions and university groupings.</p>
+                    <h2 className="text-2xl font-semibold">Regional Rankings</h2>
+                    <p>Add rankings data and images for each region.</p>
                 </Link>
 
                 <Link 

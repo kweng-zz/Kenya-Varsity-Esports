@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Client, Databases, ID } from 'appwrite';
+import { Client, Databases, ID, Query } from 'appwrite';
 import { isAuthorizedTeamCaptain } from '@/lib/teamCaptains';
 import { getGameBySlug, Game } from '@/lib/gamesData';
 
@@ -54,7 +55,7 @@ interface Tournament {
 
 interface PlayerInfo {
   name: string;
-  email: string;
+  studentId: string;
   university: string;
   inGameId?: string;
   additionalInfo?: string;
@@ -64,6 +65,7 @@ interface TournamentRegistrationData {
   tournamentId: string;
   playerName: string;
   email: string;
+  studentId: string;
   university?: string;
   teamName?: string;
   players?: string; // JSON string
@@ -121,9 +123,18 @@ export default function TournamentRegistrationPage() {
           return;
         }
 
+        const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID;
+        const tournamentsCollectionId = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID || 'tournaments';
+
+        if (!dbId) {
+          console.warn('Database ID not configured');
+          setLoadingTournaments(false);
+          return;
+        }
+
         const response = await appwrite.databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID!
+          dbId,
+          tournamentsCollectionId
         );
         
         // Filter tournaments that are open for registration
@@ -190,7 +201,7 @@ export default function TournamentRegistrationPage() {
           for (let i = 1; i < requiredPlayers; i++) {
             initialPlayers.push({
               name: '',
-              email: '',
+              studentId: '',
               university: profile?.university || '',
               inGameId: '',
               additionalInfo: ''
@@ -202,7 +213,7 @@ export default function TournamentRegistrationPage() {
           for (let i = 0; i < maxSubstitutes; i++) {
             initialSubstitutes.push({
               name: '',
-              email: '',
+              studentId: '',
               university: profile?.university || '',
               inGameId: '',
               additionalInfo: ''
@@ -253,7 +264,7 @@ export default function TournamentRegistrationPage() {
       // Validate required team players for team-based tournaments
       if (selectedGame && selectedGame.rules.tournamentType !== 'individual') {
         const requiredPlayerCount = selectedGame.rules.minTeamSize - 1; // Excluding captain
-        const filledPlayers = players.filter(p => p.name.trim() && p.email.trim());
+        const filledPlayers = players.filter(p => p.name.trim() && p.studentId.trim());
         
         if (filledPlayers.length < requiredPlayerCount) {
           setMessage({ 
@@ -266,26 +277,13 @@ export default function TournamentRegistrationPage() {
       }
 
       // Filter and prepare team data
-      const filteredPlayers = players.filter(p => p.name.trim() && p.email.trim());
-      const filteredSubstitutes = substitutes.filter(s => s.name.trim() && s.email.trim());
+      const filteredPlayers = players.filter(p => p.name.trim() && p.studentId.trim());
+      const filteredSubstitutes = substitutes.filter(s => s.name.trim() && s.studentId.trim());
 
       // Combine players and substitutes into a single structure
       const teamData = {
         players: filteredPlayers,
         substitutes: filteredSubstitutes
-      };
-
-      const registrationData: Omit<TournamentRegistrationData, '$id' | '$createdAt' | '$updatedAt' | '$collectionId' | '$permissions'> = {
-        tournamentId: selectedTournament,
-        playerName: profile.fullname,
-        email: user.email,
-        university: profile.university || '',
-        teamName: teamName.trim() || undefined,
-        players: (filteredPlayers.length > 0 || filteredSubstitutes.length > 0) ? JSON.stringify(teamData) : undefined,
-        additionalInfo: additionalInfo.trim() || undefined,
-        status: 'pending',
-        registrationDate: new Date().toISOString(),
-        userId: user.$id
       };
 
       const appwrite = initializeAppwrite();
@@ -295,9 +293,53 @@ export default function TournamentRegistrationPage() {
         return;
       }
 
+      const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID;
+      const registrationsCollectionId = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID || 'tournament_registrations';
+
+      if (!dbId) {
+        setMessage({ type: 'error', text: 'Database configuration missing. Please try again later.' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if student ID has already registered for any tournament
+      try {
+        const existingRegistrations = await appwrite.databases.listDocuments(
+          dbId,
+          registrationsCollectionId,
+          [Query.equal('studentId', profile.student_id || '')]
+        );
+
+        if (existingRegistrations.documents.length > 0) {
+          setMessage({ 
+            type: 'error', 
+            text: 'Your student ID has already been used to register for a tournament. Each student ID can only register once.' 
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking existing registrations:', error);
+        // Continue with registration even if check fails
+      }
+
+      const registrationData: Omit<TournamentRegistrationData, '$id' | '$createdAt' | '$updatedAt' | '$collectionId' | '$permissions'> = {
+        tournamentId: selectedTournament,
+        playerName: profile.fullname,
+        email: user.email,
+        studentId: profile.student_id || '',
+        university: profile.university || '',
+        teamName: teamName.trim() || undefined,
+        players: (filteredPlayers.length > 0 || filteredSubstitutes.length > 0) ? JSON.stringify(teamData) : undefined,
+        additionalInfo: additionalInfo.trim() || undefined,
+        status: 'pending',
+        registrationDate: new Date().toISOString(),
+        userId: user.$id
+      };
+
       await appwrite.databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        dbId,
+        registrationsCollectionId,
         ID.unique(),
         registrationData
       );
@@ -378,9 +420,17 @@ export default function TournamentRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-8">
+   <div 
+  className="min-h-screen bg-black text-white py-8"
+  style={{ 
+    backgroundImage: "url('/images/Mask Group.png')",
+    backgroundSize: "500px 700px", // width height
+    backgroundPosition: "left",
+    backgroundRepeat: "no-repeat"
+  }}
+>
       <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="bg-transparent rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold text-center mb-8 text-[#961c18]">
             Tournament Registration
           </h1>
@@ -394,8 +444,8 @@ export default function TournamentRegistrationPage() {
                 <p className="font-medium">{profile?.fullname}</p>
               </div>
               <div>
-                <span className="text-gray-400">Email:</span>
-                <p className="font-medium">{user.email}</p>
+                <span className="text-gray-400">Student ID:</span>
+                <p className="font-medium">{profile?.student_id || 'Not provided'}</p>
               </div>
               {profile?.university && (
                 <div>
@@ -403,6 +453,10 @@ export default function TournamentRegistrationPage() {
                   <p className="font-medium">{profile.university}</p>
                 </div>
               )}
+              <div>
+                <span className="text-gray-400">Email:</span>
+                <p className="font-medium text-xs">{user.email}</p>
+              </div>
             </div>
           </div>
 
@@ -527,13 +581,13 @@ export default function TournamentRegistrationPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium mb-1">
-                                Email *
+                                Student ID *
                               </label>
                               <input
-                                type="email"
-                                value={player.email}
-                                onChange={(e) => updatePlayer(index, 'email', e.target.value)}
-                                placeholder="Enter player's email"
+                                type="text"
+                                value={player.studentId}
+                                onChange={(e) => updatePlayer(index, 'studentId', e.target.value)}
+                                placeholder="Enter player's student ID"
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
                                 required
                               />
@@ -593,13 +647,13 @@ export default function TournamentRegistrationPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium mb-1">
-                                Email
+                                Student ID
                               </label>
                               <input
-                                type="email"
-                                value={substitute.email}
-                                onChange={(e) => updateSubstitute(index, 'email', e.target.value)}
-                                placeholder="Enter substitute's email"
+                                type="text"
+                                value={substitute.studentId}
+                                onChange={(e) => updateSubstitute(index, 'studentId', e.target.value)}
+                                placeholder="Enter substitute's student ID"
                                 className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
                               />
                             </div>
@@ -687,7 +741,7 @@ export default function TournamentRegistrationPage() {
             <button
               type="submit"
               disabled={isSubmitting || tournaments.length === 0}
-              className="w-full py-3 px-4 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+              className="w-full py-3 px-4 bg-[#961c18] hover:bg-black disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">
@@ -699,6 +753,16 @@ export default function TournamentRegistrationPage() {
               )}
             </button>
           </form>
+
+          {/* Return to Homepage Button */}
+          <div className="mt-6">
+            <Link
+              href="/"
+              className="w-full py-3 px-4 bg-red-900 hover:bg-black text-white font-medium rounded-lg transition-colors text-center block"
+            >
+              Return to Homepage
+            </Link>
+          </div>
 
           <div className="mt-6 p-4 bg-gray-700 rounded-lg">
             <h3 className="font-semibold mb-2">Important Notes:</h3>

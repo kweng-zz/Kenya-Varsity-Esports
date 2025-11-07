@@ -2,6 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
+import { SEASON_REGIONAL } from "@/config/seasonConfig";
+
+interface University {
+  id: string;
+  name: string;
+  pubgm: number;
+  codmBR: number;
+  codmMP: number;
+  efootball: number;
+  total: number;
+}
+
+interface RegionalRanking {
+  $id: string;
+  region: string;
+  image: string;
+  universities: University[];
+}
 
 interface RegionInfo {
   id: string;
@@ -17,31 +35,69 @@ export const GamePackageSection = () => {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [regions, setRegions] = useState<RegionInfo[]>([]);
+  const [regionalRankings, setRegionalRankings] = useState<RegionalRanking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadRegions = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/regions');
-        const result = await response.json();
         
-        if (result.success && result.data) {
-          setRegions(result.data);
-          console.log(`Loaded ${result.data.length} regions from ${result.source}`);
+        // Load regions
+        const regionsResponse = await fetch('/api/regions');
+        const regionsResult = await regionsResponse.json();
+        
+        if (regionsResult.success && regionsResult.data) {
+          setRegions(regionsResult.data);
+          console.log(`Loaded ${regionsResult.data.length} regions from ${regionsResult.source}`);
         } else {
-          console.error('Failed to load regions:', result.error);
+          console.error('Failed to load regions:', regionsResult.error);
           setRegions([]);
         }
+
+        // Load regional rankings
+        const rankingsResponse = await fetch('/api/admin/regional-rankings');
+        const rankingsResult = await rankingsResponse.json();
+        
+        if (rankingsResult.success && rankingsResult.data) {
+          const processedRankings = rankingsResult.data.map((doc: any) => {
+            let universities = [];
+            if (doc.universities) {
+              if (typeof doc.universities === 'string') {
+                try {
+                  universities = JSON.parse(doc.universities);
+                } catch (e) {
+                  universities = [];
+                }
+              } else if (Array.isArray(doc.universities)) {
+                universities = doc.universities;
+              }
+            }
+            
+            return {
+              $id: doc.$id,
+              region: doc.region || '',
+              image: doc.image || '',
+              universities
+            };
+          });
+          
+          setRegionalRankings(processedRankings);
+          console.log(`Loaded ${processedRankings.length} regional rankings`);
+        } else {
+          console.error('Failed to load regional rankings:', rankingsResult.error);
+          setRegionalRankings([]);
+        }
       } catch (error) {
-        console.error('Error loading regions:', error);
+        console.error('Error loading data:', error);
         setRegions([]);
+        setRegionalRankings([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadRegions();
+    loadData();
   }, []);
 
   const handleRegionClick = (region: RegionInfo) => {
@@ -62,9 +118,9 @@ export const GamePackageSection = () => {
         <div className="relative w-full h-full bg-[url(https://c.animaapp.com/mdpqpsw8vIfLwh/img/group-677.png)] bg-cover bg-center">
           <div className="max-w-5xl mx-auto text-center mb-12">
             <h2 className="font-['Hind',Helvetica] font-bold text-5xl tracking-wider leading-[70.2px] mt-25">
-              <span className="text-white">KUER </span>
-              <span className="text-[#961c18]">SEASON 2</span>
-              <span className="text-white"> OVERALL REGIONAL RANKINGS</span>
+              <span className="text-white">{SEASON_REGIONAL.titleParts.part1} </span>
+              <span className="text-[#961c18]">{SEASON_REGIONAL.titleParts.part2}</span>
+              <span className="text-white"> {SEASON_REGIONAL.titleParts.part3}</span>
             </h2>
           </div>
           <div className="flex items-center justify-center h-64">
@@ -83,9 +139,9 @@ export const GamePackageSection = () => {
       <div className="relative w-full h-full bg-[url(https://c.animaapp.com/mdpqpsw8vIfLwh/img/group-677.png)] bg-cover bg-center">
         <div className="max-w-5xl mx-auto text-center mb-12">
           <h2 className="font-['Hind',Helvetica] font-bold text-5xl tracking-wider leading-[70.2px] mt-25">
-            <span className="text-white">KUER </span>
-            <span className="text-[#961c18]">SEASON 2</span>
-            <span className="text-white"> OVERALL REGIONAL RANKINGS</span>
+            <span className="text-white">{SEASON_REGIONAL.titleParts.part1} </span>
+            <span className="text-[#961c18]">{SEASON_REGIONAL.titleParts.part2}</span>
+            <span className="text-white"> {SEASON_REGIONAL.titleParts.part3}</span>
           </h2>
         </div>
 
@@ -137,6 +193,43 @@ export const GamePackageSection = () => {
             }
           })}
         </div>
+
+        {/* Regional Rankings Section */}
+        {regionalRankings.length > 0 && (
+          <div className="mt-20 max-w-7xl mx-auto px-4 pb-20">
+            <div className="text-center mb-12">
+              <h3 className="font-['Hind',Helvetica] font-bold text-4xl tracking-wider text-white mb-4">
+                REGIONAL RANKINGS
+              </h3>
+              <p className="text-[#aaaaaa] text-lg">University standings by region</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-x-20 gap-y-8 justify-items-center">
+              {regionalRankings.map((ranking, index) => (
+                <Link
+                  key={`${ranking.$id}-${index}`}
+                  href={`/regional-rankings/${ranking.region.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="relative h-[430px] w-[360px] block transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer overflow-hidden"
+                >
+                  {ranking.image && (
+                    <img
+                      src={ranking.image}
+                      alt={ranking.region}
+                      className="w-[360px] h-[430px] object-cover border border-white"
+                    />
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="text-center">
+                      <h3 className="text-white text-lg font-bold mb-2">{ranking.region}</h3>
+                      <p className="text-white/90 text-sm">View Rankings</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Coming Soon Modal */}

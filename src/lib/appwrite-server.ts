@@ -1,0 +1,74 @@
+import { Client, Databases, Query } from 'node-appwrite';
+
+// Server-side Appwrite configuration with API key authentication
+let client: Client | null = null;
+let databases: Databases | null = null;
+
+const initializeAppwrite = () => {
+  if (client && databases) {
+    return { client, databases };
+  }
+
+  const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+  const apiKey = process.env.APPWRITE_API_KEY;
+
+  if (!endpoint || !projectId || !apiKey) {
+    console.error('Appwrite server configuration missing:', {
+      endpoint: !!endpoint,
+      projectId: !!projectId,
+      apiKey: !!apiKey
+    });
+    return null;
+  }
+
+  try {
+    client = new Client()
+      .setEndpoint(endpoint)
+      .setProject(projectId)
+      .setKey(apiKey);
+
+    databases = new Databases(client);
+    console.log('✅ Appwrite server client initialized');
+    return { client, databases };
+  } catch (error) {
+    console.error('Failed to initialize Appwrite server client:', error);
+    return null;
+  }
+};
+
+export const getAppwriteServer = () => {
+  return initializeAppwrite();
+};
+
+export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
+export const COLLECTIONS = {
+  RANKINGS: process.env.NEXT_PUBLIC_APPWRITE_RANKINGS_COLLECTION_ID || 'rankings',
+  REGIONS: process.env.NEXT_PUBLIC_APPWRITE_REGIONS_COLLECTION_ID || 'regions',
+  REGIONAL_RANKINGS: process.env.NEXT_PUBLIC_APPWRITE_REGIONAL_RANKINGS_COLLECTION_ID || 'regional_rankings',
+  GAME_CATEGORIES: process.env.NEXT_PUBLIC_APPWRITE_GAME_CATEGORIES_COLLECTION_ID || 'game-categories',
+  UNIVERSITIES: process.env.NEXT_PUBLIC_APPWRITE_UNIVERSITIES_COLLECTION_ID || 'universities',
+  SPONSORS: process.env.NEXT_PUBLIC_APPWRITE_SPONSORS_COLLECTION_ID || 'sponsors',
+  CONTACT_MESSAGES: process.env.NEXT_PUBLIC_APPWRITE_CONTACT_MESSAGES_COLLECTION_ID || 'contact-messages',
+};
+
+// Helper function to handle Appwrite errors
+export const handleAppwriteError = (error: any) => {
+  console.error('Appwrite error:', error);
+  return {
+    success: false,
+    error: error.message || 'An error occurred',
+    data: null
+  };
+};
+
+// Helper function for successful responses
+export const handleAppwriteSuccess = (data: any, message = 'Success') => {
+  return {
+    success: true,
+    message,
+    data
+  };
+};
+
+export { Query };

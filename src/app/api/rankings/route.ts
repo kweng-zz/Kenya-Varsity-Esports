@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { databases, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
+import { getAppwriteServer, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite-server';
 
 // Check if we should use fallback mode
 const useFallbackMode = () => {
@@ -161,10 +161,16 @@ export async function GET(request: NextRequest) {
         }
 
         try {
+            // Initialize Appwrite server
+            const appwrite = getAppwriteServer();
+            if (!appwrite) {
+                throw new Error('Appwrite server not initialized');
+            }
+
             // Try to get data from Appwrite
             if (category === 'all') {
                 // Get all rankings for September season with game categories
-                const allRankings = await databases.listDocuments(
+                const allRankings = await appwrite.databases.listDocuments(
                     DATABASE_ID,
                     COLLECTIONS.RANKINGS,
                     [
@@ -176,7 +182,7 @@ export async function GET(request: NextRequest) {
                 );
 
                 // Get all tournaments to extract unique game categories
-                const tournamentsResponse = await databases.listDocuments(
+                const tournamentsResponse = await appwrite.databases.listDocuments(
                     DATABASE_ID,
                     'tournaments',
                     [
@@ -284,7 +290,7 @@ export async function GET(request: NextRequest) {
                 queries.push(Query.equal('region', region));
             }
 
-            const response = await databases.listDocuments(
+            const response = await appwrite.databases.listDocuments(
                 DATABASE_ID,
                 COLLECTIONS.RANKINGS,
                 queries

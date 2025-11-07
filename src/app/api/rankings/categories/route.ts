@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { databases, DATABASE_ID, COLLECTIONS, Query } from '@/lib/appwrite';
+import { getAppwriteServer, DATABASE_ID, COLLECTIONS, Query } from '@/lib/appwrite-server';
 
 // Check if we should use fallback mode
 const useFallbackMode = () => {
@@ -29,11 +29,17 @@ export async function GET(request: NextRequest) {
         }
 
         try {
+            // Initialize Appwrite server
+            const appwrite = getAppwriteServer();
+            if (!appwrite) {
+                throw new Error('Appwrite server not initialized');
+            }
+
             // First try to get game categories from GAME_CATEGORIES collection
             let gameCategories: any[] = [];
             
             try {
-                const gameCategoriesResponse = await databases.listDocuments(
+                const gameCategoriesResponse = await appwrite.databases.listDocuments(
                     DATABASE_ID,
                     COLLECTIONS.GAME_CATEGORIES,
                     [Query.limit(100)]
@@ -47,7 +53,7 @@ export async function GET(request: NextRequest) {
             // If no game categories found, extract from tournaments
             if (gameCategories.length === 0) {
                 try {
-                    const tournamentsResponse = await databases.listDocuments(
+                    const tournamentsResponse = await appwrite.databases.listDocuments(
                         DATABASE_ID,
                         'tournaments',
                         [Query.limit(100)]
@@ -82,7 +88,7 @@ export async function GET(request: NextRequest) {
             // Get all rankings for the specified season with game categories
             let allRankings: any[] = [];
             try {
-                const rankingsResponse = await databases.listDocuments(
+                const rankingsResponse = await appwrite.databases.listDocuments(
                     DATABASE_ID,
                     COLLECTIONS.RANKINGS,
                     [

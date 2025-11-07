@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { databases, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite';
+import { getAppwriteServer, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite-server';
 
 // Check if we should use fallback mode
 const useFallbackMode = () => {
@@ -52,6 +52,24 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(handleAppwriteSuccess(sampleRankings.slice(0, limit)));
         }
 
+        const appwrite = getAppwriteServer();
+        if (!appwrite) {
+            console.error('Appwrite server not initialized, using fallback data');
+            const sampleRankings = [
+                {
+                    id: "1",
+                    university: "TECHNICAL UNIVERSITY OF KENYA",
+                    rank: 1,
+                    pubgm: 17,
+                    codmBR: 842,
+                    codmMP: 0,
+                    efootball: 3,
+                    total: 862,
+                }
+            ];
+            return NextResponse.json(handleAppwriteSuccess(sampleRankings.slice(0, limit)));
+        }
+
         const queries = [
             Query.equal('season', 'september'),
             Query.isNull('gameCategory'), // General rankings have no specific game category
@@ -63,7 +81,7 @@ export async function GET(request: NextRequest) {
             queries.push(Query.equal('region', region));
         }
 
-        const response = await databases.listDocuments(
+        const response = await appwrite.databases.listDocuments(
             DATABASE_ID,
             COLLECTIONS.RANKINGS,
             queries

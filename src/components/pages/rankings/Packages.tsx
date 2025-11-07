@@ -145,56 +145,7 @@ export const GamePackageSection = () => {
           </h2>
         </div>
 
-        <div className="max-w-7xl mx-auto grid grid-cols-3 gap-x-20 gap-y-8 justify-items-center">
-          {regions.map((region, index) => {
-            if (region.isActive) {
-              return (
-                <Link
-                  key={`${region.id}-${index}`}
-                  href={`/regions/${region.slug}`}
-                  className="relative h-[430px] w-[360px] block transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer overflow-hidden"
-                >
-                  <img
-                    className="w-[360px] h-[430px] object-cover border border-white"
-                    alt={region.name}
-                    src={region.image}
-                  />
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <div className="text-center">
-                      <h3 className="text-white text-lg font-bold mb-2">{region.name}</h3>
-                      <p className="text-white/90 text-sm">View Rankings</p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            } else {
-              return (
-                <div
-                  key={`${region.id}-${index}`}
-                  onClick={() => handleRegionClick(region)}
-                  className="relative h-[430px] w-[360px] transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer overflow-hidden group"
-                >
-                  <img
-                    className="w-[360px] h-[430px] object-cover border border-white"
-                    alt={region.name}
-                    src={region.image}
-                  />
-                  {/* Coming Soon Overlay */}
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="text-center">
-                      <h3 className="text-white text-lg font-bold mb-2">COMING SOON</h3>
-                      <p className="text-white/90 text-sm">{region.name}</p>
-                      <p className="text-white/70 text-xs mt-1">Click for details</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-          })}
-        </div>
-
-        {/* Regional Rankings Section */}
+        {/* Regional Rankings Section - Only Display User-Created Regional Rankings */}
         {regionalRankings.length > 0 && (
           <div className="mt-20 max-w-7xl mx-auto px-4 pb-20">
             <div className="text-center mb-12">

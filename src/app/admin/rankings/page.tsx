@@ -1,11 +1,10 @@
 'use client';
 
+// Force rebuild - Fixed 401 Unauthorized error
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, X, Search, AlertTriangle } from 'lucide-react';
-import { databases, DATABASE_ID, COLLECTIONS, Query } from '@/lib/appwrite';
-import { ID } from 'appwrite';
 import { kenyanUniversities } from '@/types/universities';
 
 interface GameCategory {
@@ -159,22 +158,22 @@ export default function AdminRankings() {
 
   const loadRankings = async () => {
     try {
-      const queries = [
-        Query.equal('season', filterSeason),
-        Query.orderDesc('total'),
-        Query.limit(100)
-      ];
-
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        COLLECTIONS.RANKINGS,
-        queries
-      );
-
-      setRankings(response.documents as unknown as Ranking[]);
+      const response = await fetch(`/api/admin/rankings?season=${filterSeason}&limit=100`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setRankings(result.data as unknown as Ranking[]);
+      } else {
+        throw new Error(result.error || 'Failed to load rankings');
+      }
     } catch (err) {
-      console.error('Error loading rankings:', err);
-      setError('Failed to load rankings');
+      console.error('❌ Error loading rankings:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load rankings');
     }
   };
 
@@ -200,51 +199,47 @@ export default function AdminRankings() {
       const total = calculateTotal();
       const region = formData.region || getUniversityRegion(formData.universityName);
       
-      // Generate universityId from university name (convert to lowercase and replace spaces with hyphens)
-      const universityId = formData.universityName
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-
-      // Calculate rank based on total score (will be updated after save)
-      const rank = 0;
-      const now = new Date().toISOString();
-
       const rankingData: any = {
-        universityId: universityId,
         universityName: formData.universityName,
         region: region,
         season: formData.season,
-        rank: rank,
-        placementPoints: 0,
-        participationPoints: 0,
-        socialMediaPoints: 0,
-        bonusPoints: 0,
-        totalPoints: total,
-        createdAt: now,
-        updatedAt: now
+        totalPoints: total
       };
 
+      // Add game category scores
+      gameCategories.forEach(cat => {
+        rankingData[cat.slug] = formData[cat.slug] || 0;
+      });
+
       if (editingRanking) {
-        await databases.updateDocument(
-          DATABASE_ID,
-          COLLECTIONS.RANKINGS,
-          editingRanking.$id,
-          rankingData
-        );
+        const response = await fetch(`/api/admin/rankings/${editingRanking.$id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rankingData)
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update ranking');
+        }
       } else {
-        await databases.createDocument(
-          DATABASE_ID,
-          COLLECTIONS.RANKINGS,
-          ID.unique(),
-          rankingData
-        );
+        const response = await fetch('/api/admin/rankings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rankingData)
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create ranking');
+        }
       }
 
+      console.log('✅ Ranking saved successfully');
       await loadRankings();
       resetForm();
     } catch (err) {
-      console.error('Error saving ranking:', err);
+      console.error('❌ Error saving ranking:', err);
       setError(err instanceof Error ? err.message : 'Failed to save ranking');
     } finally {
       setIsSaving(false);
@@ -283,14 +278,25 @@ export default function AdminRankings() {
     if (!confirm('Are you sure you want to delete this ranking?')) return;
 
     try {
-      await databases.deleteDocument(
-        DATABASE_ID,
-        COLLECTIONS.RANKINGS,
-        id
-      );
+      setError(null);
+      const response = await fetch(`/api/admin/rankings/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete ranking');
+      }
+      
+      console.log('✅ Ranking deleted successfully');
       await loadRankings();
     } catch (err) {
-      console.error('Error deleting ranking:', err);
+      console.error('❌ Error deleting ranking:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete ranking');
     }
   };
@@ -314,22 +320,26 @@ export default function AdminRankings() {
 
       for (const ranking of filteredRankings) {
         try {
-          await databases.deleteDocument(
-            DATABASE_ID,
-            COLLECTIONS.RANKINGS,
-            ranking.$id
-          );
-          deletedCount++;
+          const response = await fetch(`/api/admin/rankings/${ranking.$id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.ok) {
+            deletedCount++;
+          } else {
+            failedCount++;
+          }
         } catch (error) {
           console.error(`Failed to delete ranking ${ranking.$id}:`, error);
           failedCount++;
         }
       }
 
-      setError(`Deletion complete! Deleted: ${deletedCount}, Failed: ${failedCount}`);
+      setError(`✅ Deletion complete! Deleted: ${deletedCount}, Failed: ${failedCount}`);
       await loadRankings();
     } catch (err) {
-      console.error('Error during bulk delete:', err);
+      console.error('❌ Error during bulk delete:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete rankings');
     } finally {
       setIsLoading(false);

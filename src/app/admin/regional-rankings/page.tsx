@@ -259,18 +259,25 @@ export default function AdminRegionalRankingsPage() {
     if (!confirm('Are you sure you want to delete this ranking?')) return;
     
     try {
+      setError(null);
       const response = await fetch(`/api/admin/regional-rankings/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete ranking');
       }
       
+      console.log('✅ Regional ranking deleted successfully');
       await loadData();
     } catch (err) {
-      console.error('Error deleting ranking:', err);
+      console.error('❌ Error deleting ranking:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete ranking');
     }
   };

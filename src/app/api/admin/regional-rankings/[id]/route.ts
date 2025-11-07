@@ -71,16 +71,26 @@ export async function DELETE(
         const databases = initializeAppwrite();
         const { id } = await params;
 
+        if (!id) {
+            return NextResponse.json({
+                success: false,
+                error: 'ID is required'
+            }, { status: 400 });
+        }
+
         await databases.deleteDocument(
             DATABASE_ID,
             COLLECTION_ID,
             id
         );
 
-        return NextResponse.json({
-            success: true,
-            message: 'Regional ranking deleted successfully'
-        });
+        return NextResponse.json(
+            {
+                success: true,
+                message: 'Regional ranking deleted successfully'
+            },
+            { status: 200 }
+        );
     } catch (error: any) {
         console.error('Error deleting regional ranking:', error);
         return NextResponse.json({

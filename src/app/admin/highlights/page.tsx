@@ -86,8 +86,8 @@ export default function AdminVideoHighlightsPage() {
   const [editingHighlightId, setEditingHighlightId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<VideoHighlight>>({});
 
-  // Fetch highlights from Appwrite
-  const fetchHighlights = async () => {
+  // Fetch highlights from Appwrite - wrapped in useCallback to prevent infinite loops
+  const fetchHighlights = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const appwrite = initializeAppwrite();
@@ -115,23 +115,18 @@ export default function AdminVideoHighlightsPage() {
       
       setHighlights(mappedHighlights);
       
-      // If no highlights exist, create default ones
-      if (mappedHighlights.length === 0) {
-        await createDefaultHighlights();
-      }
-      
     } catch (err) {
       console.error('Error fetching highlights:', err);
       if (err && typeof err === 'object' && 'code' in err && err.code === 404) {
-        // Collection doesn't exist, create default highlights
-        await createDefaultHighlights();
+        // Collection doesn't exist, show empty state
+        setHighlights([]);
       } else {
         setError('Failed to load video highlights');
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Check if user is admin
   useEffect(() => {
@@ -140,12 +135,12 @@ export default function AdminVideoHighlightsPage() {
     }
   }, [user, profile, loading, router]);
 
-  // Fetch highlights from Appwrite
+  // Fetch highlights from Appwrite - only when user/profile changes
   useEffect(() => {
     if (user && profile?.isAdmin) {
       fetchHighlights();
     }
-  }, [user, profile, fetchHighlights]);
+  }, [user, profile?.isAdmin, fetchHighlights]);
 
   const createDefaultHighlights = async () => {
     try {
@@ -233,6 +228,7 @@ export default function AdminVideoHighlightsPage() {
       const appwrite = initializeAppwrite();
       if (!appwrite?.databases) {
         setError('Appwrite not configured. Please try again.');
+        setIsSaving(false);
         return;
       }
       
@@ -274,6 +270,7 @@ export default function AdminVideoHighlightsPage() {
       const appwrite = initializeAppwrite();
       if (!appwrite?.databases) {
         setError('Appwrite not configured. Please try again.');
+        setIsSaving(false);
         return;
       }
       
@@ -409,6 +406,7 @@ export default function AdminVideoHighlightsPage() {
       const appwrite = initializeAppwrite();
       if (!appwrite?.databases) {
         setError('Appwrite not configured. Please try again.');
+        setIsSaving(false);
         return;
       }
       

@@ -1,5 +1,5 @@
 // Cache version - increment this when you make breaking changes to the data structure
-const CACHE_VERSION = '1.1';
+const CACHE_VERSION = '1.2';
 
 // Types for tournaments page data management
 export interface GameInfo {

@@ -1,3 +1,6 @@
+// Cache version - increment this when you make breaking changes to the data structure
+const CACHE_VERSION = '1.1';
+
 // Types for tournaments page data management
 export interface GameInfo {
   id: string;
@@ -162,10 +165,17 @@ export const getTournamentsPageData = (): TournamentsPageData => {
   }
   
   try {
+    const savedVersion = localStorage.getItem('tournamentsPageDataVersion');
     const savedData = localStorage.getItem('tournamentsPageData');
-    if (savedData) {
-      return JSON.parse(savedData);
+    
+    // If version mismatch or no data, use default and update cache
+    if (savedVersion !== CACHE_VERSION || !savedData) {
+      localStorage.setItem('tournamentsPageDataVersion', CACHE_VERSION);
+      localStorage.setItem('tournamentsPageData', JSON.stringify(defaultData));
+      return defaultData;
     }
+    
+    return JSON.parse(savedData);
   } catch (error) {
     console.error('Error loading tournaments page data:', error);
   }
@@ -180,6 +190,7 @@ export const saveTournamentsPageData = (data: TournamentsPageData): void => {
   
   try {
     const updatedData = { ...data, lastUpdated: new Date().toISOString() };
+    localStorage.setItem('tournamentsPageDataVersion', CACHE_VERSION);
     localStorage.setItem('tournamentsPageData', JSON.stringify(updatedData));
   } catch (error) {
     console.error('Error saving tournaments page data:', error);

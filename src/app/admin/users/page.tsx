@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Client, Databases, Query } from 'appwrite';
+import { mailchimpClientService, MailchimpContact } from '@/lib/mailchimp-client';
 
 // Lazy initialization to avoid build-time issues
 let client: Client | null = null;
@@ -59,6 +60,12 @@ export default function AdminUsersPage() {
   const [filter, setFilter] = useState<'all' | 'admins' | 'captains' | 'regular'>('all');
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  
+  // Mailchimp states
+  const [mailchimpStats, setMailchimpStats] = useState<any>(null);
+  const [syncingToMailchimp, setSyncingToMailchimp] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [connectionTest, setConnectionTest] = useState<{ success?: boolean; message?: string }>({});
 
   // Redirect if not admin
   useEffect(() => {
@@ -103,6 +110,103 @@ export default function AdminUsersPage() {
     };
 
     fetchUsers();
+  }, [user, profile]);
+
+  // Mailchimp functions
+  const testMailchimpConnection = async () => {
+    const result = await mailchimpClientService.testConnection();
+    setConnectionTest({
+      success: result.success,
+      message: result.success ? '✅ Connected to Mailchimp successfully!' : `❌ ${result.error}`
+    });
+  };
+
+  const fetchMailchimpStats = async () => {
+    const result = await mailchimpClientService.getAudienceStats();
+    if (result.success) {
+      setMailchimpStats(result.stats);
+    } else {
+      console.error('Failed to fetch Mailchimp stats:', result.error);
+    }
+  };
+
+  const syncAllUsersToMailchimp = async () => {
+    if (!users.length) return;
+
+    setSyncingToMailchimp(true);
+    setSyncProgress(0);
+    setError(null);
+
+    try {
+      const contacts: MailchimpContact[] = users.map(user => ({
+        email: user.email,
+        fullname: user.fullname,
+        university: user.university,
+        student_id: user.student_id,
+        phone_number: user.phone_number,
+      }));
+
+      setSyncProgress(30);
+      const result = await mailchimpClientService.addContactsBatch(contacts);
+      setSyncProgress(100);
+
+      if (result.success && result.data) {
+        setError(`✅ Successfully synced ${result.data.total} users to Mailchimp! 
+          Added: ${result.data.added}, Updated: ${result.data.updated}, Errors: ${result.data.errors}`);
+        
+        if (result.data.errorMessages && result.data.errorMessages.length > 0) {
+          console.log('Mailchimp errors:', result.data.errorMessages);
+        }
+        
+        await fetchMailchimpStats();
+      } else {
+        setError(`❌ Failed to sync users: ${result.error}`);
+      }
+    } catch (error: any) {
+      setError(`❌ Sync failed: ${error.message}`);
+    } finally {
+      setSyncingToMailchimp(false);
+      setTimeout(() => setSyncProgress(0), 2000);
+    }
+  };
+
+  const syncUserToMailchimp = async (userProfile: UserProfile) => {
+    setUpdatingUsers(prev => new Set(prev).add(userProfile.$id));
+    setError(null);
+
+    try {
+      const contact: MailchimpContact = {
+        email: userProfile.email,
+        fullname: userProfile.fullname,
+        university: userProfile.university,
+        student_id: userProfile.student_id,
+        phone_number: userProfile.phone_number,
+      };
+
+      const result = await mailchimpClientService.addContact(contact);
+
+      if (result.success) {
+        setError(`✅ ${userProfile.fullname} synced to Mailchimp successfully!`);
+      } else {
+        setError(`❌ Failed to sync ${userProfile.fullname}: ${result.error}`);
+      }
+    } catch (error: any) {
+      setError(`❌ Sync failed: ${error.message}`);
+    } finally {
+      setUpdatingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userProfile.$id);
+        return newSet;
+      });
+    }
+  };
+
+  // Fetch stats on component mount
+  useEffect(() => {
+    if (user && profile?.isAdmin) {
+      fetchMailchimpStats();
+      testMailchimpConnection();
+    }
   }, [user, profile]);
 
   // Sync with Team Captains Manager localStorage
@@ -301,6 +405,83 @@ export default function AdminUsersPage() {
           </button>
         </div>
 
+        {/* Mailchimp Integration Section */}
+        <div className="mb-8 bg-gray-800 rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-4">Mailchimp Newsletter</h2>
+          
+          {/* Connection Test */}
+          {connectionTest.message && (
+            <div className={`mb-4 p-3 rounded ${
+              connectionTest.success ? 'bg-green-900/20 border border-green-600/30' : 'bg-red-900/20 border border-red-600/30'
+            }`}>
+              <p className={connectionTest.success ? 'text-green-200' : 'text-red-200'}>
+                {connectionTest.message}
+              </p>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-gray-700 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Local Users</div>
+              <div className="text-2xl font-bold text-white">{users.length}</div>
+            </div>
+            
+            <div className="bg-gray-700 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Mailchimp Subscribers</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {mailchimpStats ? mailchimpStats.totalSubscribers : 'Loading...'}
+              </div>
+            </div>
+            
+            <div className="bg-gray-700 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Sync Status</div>
+              <div className="text-lg font-bold text-green-400">
+                {users.length - (mailchimpStats?.totalSubscribers || 0)} to sync
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={syncAllUsersToMailchimp}
+              disabled={syncingToMailchimp || users.length === 0}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {syncingToMailchimp ? 'Syncing...' : `Sync All ${users.length} Users to Mailchimp`}
+            </button>
+            
+            <button
+              onClick={fetchMailchimpStats}
+              className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors"
+            >
+              Refresh Stats
+            </button>
+
+            <button
+              onClick={testMailchimpConnection}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+            >
+              Test Connection
+            </button>
+          </div>
+
+          {/* Progress Bar */}
+          {syncingToMailchimp && (
+            <div className="mt-4">
+              <div className="flex justify-between text-sm text-gray-400 mb-2">
+                <span>Syncing to Mailchimp...</span>
+                <span>{syncProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${syncProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Status Message */}
         {error && (
           <div className={`mb-6 rounded-lg p-4 ${
@@ -368,6 +549,7 @@ export default function AdminUsersPage() {
                   <th className="px-6 py-4 text-left text-white font-bold">University</th>
                   <th className="px-6 py-4 text-center text-white font-bold">Admin</th>
                   <th className="px-6 py-4 text-center text-white font-bold">Team Captain</th>
+                  <th className="px-6 py-4 text-center text-white font-bold">Mailchimp</th>
                   <th className="px-6 py-4 text-center text-white font-bold">Joined</th>
                 </tr>
               </thead>
@@ -389,7 +571,7 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => updateUserRole(userProfile.$id, 'isAdmin', !userProfile.isAdmin)}
-                        disabled={updatingUsers.has(userProfile.$id) || userProfile.$id === user.$id}
+                        disabled={updatingUsers.has(userProfile.$id) || userProfile.$id === user?.$id}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                           userProfile.isAdmin
                             ? 'bg-green-600 text-white hover:bg-green-700'
@@ -399,7 +581,7 @@ export default function AdminUsersPage() {
                         {updatingUsers.has(userProfile.$id) ? 'Updating...' : 
                          userProfile.isAdmin ? 'Admin' : 'Make Admin'}
                       </button>
-                      {userProfile.$id === user.$id && (
+                      {userProfile.$id === user?.$id && (
                         <div className="text-xs text-gray-500 mt-1">You</div>
                       )}
                     </td>
@@ -415,6 +597,15 @@ export default function AdminUsersPage() {
                       >
                         {updatingUsers.has(userProfile.$id) ? 'Updating...' : 
                          userProfile.isTeamCaptain ? 'Captain' : 'Make Captain'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => syncUserToMailchimp(userProfile)}
+                        disabled={updatingUsers.has(userProfile.$id)}
+                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {updatingUsers.has(userProfile.$id) ? 'Syncing...' : 'Sync'}
                       </button>
                     </td>
                     <td className="px-6 py-4 text-center">

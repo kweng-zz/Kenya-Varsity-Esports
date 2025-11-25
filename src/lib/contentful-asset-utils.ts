@@ -93,33 +93,36 @@ export function createAssetLink(assetId: string) {
 
 export async function retryAssetOperation<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3,
-  delay: number = 1000,
-  timeout: number = 6000
+  maxRetries?: number,
+  delay?: number,
+  timeout?: number
 ): Promise<T> {
+  const finalMaxRetries = maxRetries ?? 3;
+  const finalDelay = delay ?? 1000;
+  const finalTimeout = timeout ?? 6000;
   let lastError: Error;
   
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= finalMaxRetries; attempt++) {
     let timeoutId: NodeJS.Timeout | null = null;
     
     try {
-      console.log(`[Attempt ${attempt}/${maxRetries}] Starting operation with ${timeout}ms timeout`);
+      console.log(`[Attempt ${attempt}/${finalMaxRetries}] Starting operation with ${finalTimeout}ms timeout`);
       
       // Wrap operation with timeout using Promise.race
       const result = await Promise.race([
         operation(),
         new Promise<T>((_, reject) => {
           timeoutId = setTimeout(() => {
-            console.warn(`[Attempt ${attempt}/${maxRetries}] Operation timeout after ${timeout}ms`);
-            reject(new Error(`Operation timeout after ${timeout}ms`));
-          }, timeout);
+            console.warn(`[Attempt ${attempt}/${finalMaxRetries}] Operation timeout after ${finalTimeout}ms`);
+            reject(new Error(`Operation timeout after ${finalTimeout}ms`));
+          }, finalTimeout);
         })
       ]);
       
       // Clear timeout if operation succeeded
       if (timeoutId) clearTimeout(timeoutId);
       
-      console.log(`[Attempt ${attempt}/${maxRetries}] Operation succeeded`);
+      console.log(`[Attempt ${attempt}/${finalMaxRetries}] Operation succeeded`);
       return result;
       
     } catch (error) {
@@ -129,20 +132,20 @@ export async function retryAssetOperation<T>(
       lastError = error as Error;
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      console.warn(`[Attempt ${attempt}/${maxRetries}] Failed:`, errorMessage);
+      console.warn(`[Attempt ${attempt}/${finalMaxRetries}] Failed:`, errorMessage);
       
       // Check if this is a retryable error
       const isRetryable = isRetryableError(errorMessage);
       
-      if (attempt < maxRetries && isRetryable) {
-        const waitTime = delay * Math.pow(2, attempt - 1); // Exponential backoff
-        console.log(`[Attempt ${attempt}/${maxRetries}] Retryable error. Waiting ${waitTime}ms before retry ${attempt + 1}/${maxRetries}...`);
+      if (attempt < finalMaxRetries && isRetryable) {
+        const waitTime = finalDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`[Attempt ${attempt}/${finalMaxRetries}] Retryable error. Waiting ${waitTime}ms before retry ${attempt + 1}/${finalMaxRetries}...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
-      } else if (attempt < maxRetries && !isRetryable) {
-        console.warn(`[Attempt ${attempt}/${maxRetries}] Non-retryable error. Stopping retries.`);
+      } else if (attempt < finalMaxRetries && !isRetryable) {
+        console.warn(`[Attempt ${attempt}/${finalMaxRetries}] Non-retryable error. Stopping retries.`);
         throw lastError;
       } else {
-        console.warn(`[Attempt ${attempt}/${maxRetries}] Max retries exhausted. Throwing error.`);
+        console.warn(`[Attempt ${attempt}/${finalMaxRetries}] Max retries exhausted. Throwing error.`);
       }
     }
   }

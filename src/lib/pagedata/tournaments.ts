@@ -90,51 +90,7 @@ const defaultData: TournamentsPageData = {
       category: 'main',
       order: 3
     },
-    // September Season - Added Games
-    {
-      id: 'free-fire-sep',
-      name: 'Free Fire',
-      slug: 'free-fire',
-      image: 'https://c.animaapp.com/md9thhqb0sYxAU/img/free-fire.png',
-      route: '/games/free-fire',
-      isActive: true,
-      season: 'september',
-      category: 'added',
-      order: 1
-    },
-    {
-      id: 'bloodstrike-sep',
-      name: 'Bloodstrike',
-      slug: 'bloodstrike',
-      image: '/images/Bloodstrike.png',
-      route: '/games/bloodstrike',
-      isActive: true,
-      season: 'september',
-      category: 'added',
-      order: 2
-    },
-    {
-      id: 'chess-sep',
-      name: 'Chess',
-      slug: 'chess',
-      image: '/images/Chess.png',
-      route: '/games/chess',
-      isActive: true,
-      season: 'september',
-      category: 'added',
-      order: 3
-    },
-    {
-      id: 'ea-fc-2v2-sep',
-      name: 'EA-FC 2V2',
-      slug: 'ea-fc-2v2',
-      image: '/images/EAFC--Open.png',
-      route: '/games/ea-fc-2v2',
-      isActive: true,
-      season: 'september',
-      category: 'added',
-      order: 4
-    },
+    
     // January Season - Main Games
     {
       id: 'codm-mp-jan',
@@ -181,17 +137,7 @@ const defaultData: TournamentsPageData = {
       category: 'added',
       order: 1
     },
-    {
-      id: 'fights-women-jan',
-      name: 'Fights-Women',
-      slug: 'fightgames-women',
-      image: '/images/Fighting-Games-Women.png',
-      route: '/games/fightgames-women',
-      isActive: false,
-      season: 'january',
-      category: 'added',
-      order: 2
-    },
+    
     {
       id: 'valorant-jan',
       name: 'Valorant',
@@ -203,28 +149,8 @@ const defaultData: TournamentsPageData = {
       category: 'added',
       order: 3
     },
-    {
-      id: 'rocket-league-jan',
-      name: 'Rocket League',
-      slug: 'rocketleague',
-      image: '/images/Rocket-League.png',
-      route: '/games/rocketleague',
-      isActive: false,
-      season: 'january',
-      category: 'added',
-      order: 4
-    },
-    {
-      id: 'nba2k-jan',
-      name: 'NBA2K',
-      slug: 'nba2k',
-      image: '/images/NBA2k.png',
-      route: '/games/nba2k',
-      isActive: false,
-      season: 'january',
-      category: 'added',
-      order: 5
-    }
+    
+    
   ],
   lastUpdated: new Date().toISOString()
 };

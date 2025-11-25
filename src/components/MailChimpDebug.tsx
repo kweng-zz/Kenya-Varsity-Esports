@@ -28,7 +28,8 @@ export default function MailchimpDebug() {
         connectionTest
       });
     } catch (error) {
-      setDebugInfo({ error: error.message });
+      const message = error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error);
+      setDebugInfo({ error: message });
     } finally {
       setLoading(false);
     }

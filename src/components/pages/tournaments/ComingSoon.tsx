@@ -28,8 +28,8 @@ export const ComingSoonSection = () => {
         <div className="mb-16 text-center">
           
           <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">
-            The gaming titles that may join future seasons. <Link href="/contact" className="text-red-600/50 underline">Contact Us</Link>
-            <br /> if you wish a game to be added in the roster.
+             <Link href="/contact" className="text-red-600/50 underline">Contact Us</Link>
+            <br /> If you wish a game to be added in the roster.
           </p>
         </div>
 

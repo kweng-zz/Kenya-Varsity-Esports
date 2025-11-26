@@ -43,6 +43,7 @@ export const ContactForm = () => {
         setErrorMessage('');
 
         try {
+            console.log('📤 Submitting contact form...');
             const response = await fetch('/api/contact', {
                 method: 'POST',
                 headers: {
@@ -54,17 +55,21 @@ export const ContactForm = () => {
                 }),
             });
 
+            console.log('📊 Response status:', response.status);
             const result = await response.json();
+            console.log('📊 Response data:', result);
 
-            if (result.success) {
+            if (result.success || response.ok) {
+                console.log('✅ Form submitted successfully');
                 setSubmitStatus('success');
                 setFormData({ name: '', email: '', message: '' });
             } else {
+                console.error('❌ Form submission failed:', result.error);
                 setSubmitStatus('error');
                 setErrorMessage(result.error || 'Failed to send message');
             }
         } catch (error) {
-            console.error('Contact form error:', error);
+            console.error('❌ Contact form error:', error);
             setSubmitStatus('error');
             setErrorMessage('Network error. Please try again.');
         } finally {

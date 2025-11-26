@@ -45,6 +45,7 @@
     "setup:tickets": "node scripts/setup-ticket-collections.js",
     "setup:tournament-registration": "node scripts/setup-tournament-registration-collection.js",
     "migrate:tournament-registration": "node scripts/migrate-tournament-registration-schema.js",
+    "setup:game-categories": "node scripts/setup-game-category-rankings.js",
     "setup:contentful": "node scripts/setup-contentful.js",
     "verify:contentful": "node scripts/verify-contentful.js",
     "setup:strapi-deploy": "node scripts/setup-strapi-deployment.js",

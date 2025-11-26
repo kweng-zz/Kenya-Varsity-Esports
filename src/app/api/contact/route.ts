@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
   try {
     // Validate environment variables
     if (!validateEnv()) {
+      console.error('❌ Missing Zoho environment variables');
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { success: false, error: 'Server configuration error - missing email credentials' },
         { status: 500 }
       );
     }
@@ -40,10 +41,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, message } = body;
 
+    console.log('📧 Contact form submission received:', { name, email });
+
     // Validate input
     if (!name || !email || !message) {
+      console.error('❌ Missing required fields:', { name: !!name, email: !!email, message: !!message });
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -51,14 +55,29 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.error('❌ Invalid email format:', email);
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { success: false, error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
     // Create transporter
+    console.log('🔌 Creating Zoho SMTP transporter...');
     const transporter = createTransporter();
+
+    // Test connection
+    try {
+      console.log('🧪 Testing SMTP connection...');
+      await transporter.verify();
+      console.log('✅ SMTP connection verified');
+    } catch (verifyError) {
+      console.error('❌ SMTP connection failed:', verifyError);
+      return NextResponse.json(
+        { success: false, error: 'Email service connection failed. Please try again later.' },
+        { status: 503 }
+      );
+    }
 
     // Email to KUER
     const mailOptions = {
@@ -86,8 +105,18 @@ export async function POST(request: NextRequest) {
       replyTo: email,
     };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email to KUER
+    console.log('📤 Sending email to KUER...');
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log('✅ Email sent to KUER:', info.messageId);
+    } catch (sendError) {
+      console.error('❌ Failed to send email to KUER:', sendError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to send email. Please check your email and try again.' },
+        { status: 500 }
+      );
+    }
 
     // Optional: Send confirmation email to user
     const confirmationEmail = {
@@ -123,20 +152,23 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      await transporter.sendMail(confirmationEmail);
+      console.log('📤 Sending confirmation email to user...');
+      const confirmInfo = await transporter.sendMail(confirmationEmail);
+      console.log('✅ Confirmation email sent:', confirmInfo.messageId);
     } catch (confirmError) {
-      console.error('Error sending confirmation email:', confirmError);
+      console.error('⚠️ Error sending confirmation email (non-critical):', confirmError);
       // Don't fail the request if confirmation email fails
     }
 
+    console.log('✅ Contact form processed successfully');
     return NextResponse.json(
-      { message: 'Email sent successfully' },
+      { success: true, message: 'Email sent successfully' },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Unexpected error in contact form:', error);
     return NextResponse.json(
-      { error: 'Failed to send email' },
+      { success: false, error: 'An unexpected error occurred. Please try again later.' },
       { status: 500 }
     );
   }

@@ -8,7 +8,15 @@ import { FooterSection, Navigation } from '@/components';
 
 // Helper function to get game-specific table headers
 const getGameHeaders = (gameSlug: string) => {
+  const normalizedSlug = gameSlug.toLowerCase();
+  
   const headerMap: Record<string, { col1: string; col2: string; col3: string; col4: string }> = {
+    "pubg-mobile": {
+      col1: "KILLS",
+      col2: "PLACEMENT",
+      col3: "SURVIVAL",
+      col4: "CHICKEN DINNERS"
+    },
     "pubg": {
       col1: "KILLS",
       col2: "PLACEMENT",
@@ -21,10 +29,28 @@ const getGameHeaders = (gameSlug: string) => {
       col3: "SURVIVAL",
       col4: "CHICKEN DINNERS"
     },
+    "call-of-duty-mobile-br": {
+      col1: "KILLS",
+      col2: "WINS",
+      col3: "PLACEMENT",
+      col4: "MVP COUNT"
+    },
     "codm": {
       col1: "KILLS",
       col2: "WINS",
       col3: "PLACEMENT",
+      col4: "MVP COUNT"
+    },
+    "codm-br": {
+      col1: "KILLS",
+      col2: "WINS",
+      col3: "PLACEMENT",
+      col4: "MVP COUNT"
+    },
+    "codm-multiplayer": {
+      col1: "KILLS",
+      col2: "WINS",
+      col3: "K/D RATIO",
       col4: "MVP COUNT"
     },
     "codm-mp": {
@@ -33,10 +59,28 @@ const getGameHeaders = (gameSlug: string) => {
       col3: "K/D RATIO",
       col4: "MVP COUNT"
     },
+    "efootball-mobile": {
+      col1: "GOALS",
+      col2: "WINS",
+      col3: "CLEAN SHEETS",
+      col4: "MATCHES WON"
+    },
     "efootball": {
       col1: "GOALS",
       col2: "WINS",
       col3: "CLEAN SHEETS",
+      col4: "MATCHES WON"
+    },
+    "eafc-1-v1-open": {
+      col1: "GOALS",
+      col2: "WINS",
+      col3: "ASSISTS",
+      col4: "MATCHES WON"
+    },
+    "eafc-1v1": {
+      col1: "GOALS",
+      col2: "WINS",
+      col3: "ASSISTS",
       col4: "MATCHES WON"
     },
     "eafc-2v2": {
@@ -50,10 +94,57 @@ const getGameHeaders = (gameSlug: string) => {
       col2: "WINS",
       col3: "ASSISTS",
       col4: "MATCHES WON"
+    },
+    "valorant": {
+      col1: "KILLS",
+      col2: "WINS",
+      col3: "HEADSHOTS",
+      col4: "ROUNDS WON"
+    },
+    "fights": {
+      col1: "WINS",
+      col2: "KNOCKOUTS",
+      col3: "POINTS",
+      col4: "MATCHES WON"
     }
   };
 
-  return headerMap[gameSlug] || {
+  // Try exact match first
+  if (headerMap[normalizedSlug]) {
+    return headerMap[normalizedSlug];
+  }
+
+  // Try partial matches for common patterns
+  if (normalizedSlug.includes("pubg")) {
+    return headerMap["pubg-mobile"];
+  }
+  if (normalizedSlug.includes("codm") || normalizedSlug.includes("call-of-duty")) {
+    if (normalizedSlug.includes("multiplayer") || normalizedSlug.includes("mp")) {
+      return headerMap["codm-multiplayer"];
+    }
+    return headerMap["call-of-duty-mobile-br"];
+  }
+  if (normalizedSlug.includes("efootball") || normalizedSlug.includes("eafc")) {
+    if (normalizedSlug.includes("women")) {
+      return headerMap["eafc-women"];
+    }
+    if (normalizedSlug.includes("1v1") || normalizedSlug.includes("1-v1")) {
+      return headerMap["eafc-1v1"];
+    }
+    if (normalizedSlug.includes("2v2")) {
+      return headerMap["eafc-2v2"];
+    }
+    return headerMap["efootball-mobile"];
+  }
+  if (normalizedSlug.includes("valorant")) {
+    return headerMap["valorant"];
+  }
+  if (normalizedSlug.includes("fight")) {
+    return headerMap["fights"];
+  }
+
+  // Default fallback
+  return {
     col1: "SCORE 1",
     col2: "SCORE 2",
     col3: "SCORE 3",
@@ -68,11 +159,10 @@ interface GameRankingPageProps {
 interface GameCategoryRanking {
   id: string;
   university: string;
+  playerName?: string;
   rank: number;
-  plnum: number;
-  ccumW: number;
-  ccumMW: number;
-  bonuses: number;
+  wins: number;
+  losses: number;
   total: number;
 }
 
@@ -126,21 +216,22 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
   };
 
   useEffect(() => {
-    // Load game categories and rankings from Appwrite via API
-    const loadGameData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch all rankings data from Appwrite API
-        const response = await fetch('/api/rankings/categories');
-        let appwriteData = null;
-        
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            appwriteData = result.data;
-          }
-        }
+  // Load game categories and rankings from Appwrite via API
+  const loadGameData = async () => {
+  try {
+  setLoading(true);
+  
+  // Fetch all rankings data from Appwrite API with cache busting
+  const timestamp = new Date().getTime();
+  const response = await fetch(`/api/rankings/categories?t=${timestamp}`);
+  let appwriteData = null;
+  
+  if (response.ok) {
+  const result = await response.json();
+  if (result.success && result.data) {
+  appwriteData = result.data;
+  }
+  }
 
         // Build game categories from API data only
         const gameCategories: Record<string, GameCategoryInfo> = {};
@@ -227,62 +318,46 @@ export default function GameRankingPage({ params }: GameRankingPageProps) {
   const renderRankingsTable = (universities: GameCategoryRanking[], isActive: boolean) => {
     if (isActive) {
       return (
-        <div className="w-full max-w-6xl mx-auto px-4">
-          <div className="bg-black bg-opacity-60 rounded-lg p-6 backdrop-blur-sm">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-600 hover:bg-transparent">
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2">
-                    UNIVERSITY
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    RANK
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(game).col1}
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(game).col2}
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(game).col3}
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    {getGameHeaders(game).col4}
-                  </TableHead>
-                  <TableHead className="text-white text-sm font-semibold py-3 px-2 text-center">
-                    TOTAL
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {universities.map((university) => (
-                  <TableRow key={university.id} className="border-b border-gray-600 hover:bg-gray-800 hover:bg-opacity-50">
-                    <TableCell className="text-white text-sm py-3 px-2 font-medium">
-                      {university.university}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center font-bold text-yellow-400">
-                      {university.rank}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center">
-                      {university.plnum}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center">
-                      {university.ccumW}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center">
-                      {university.ccumMW}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center">
-                      {university.bonuses}
-                    </TableCell>
-                    <TableCell className="text-white text-sm py-3 px-2 text-center font-bold text-green-400">
-                      {university.total}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <div className="w-full max-w-6xl mx-auto px-4 mb-16">
+          <div className="bg-black bg-opacity-60 rounded-lg backdrop-blur-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800 border-b border-gray-600">
+                  <tr>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-left">SQUAD NAME</th>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-left">UNIVERSITY</th>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-center">RANK</th>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-center">WINS</th>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-center">LOSSES</th>
+                    <th className="text-white text-sm font-semibold py-4 px-4 text-center">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {universities.map((university) => (
+                    <tr key={university.id} className="hover:bg-gray-800/50 transition-colors">
+                      <td className="text-white text-sm py-4 px-4 font-medium">
+                        {university.playerName || university.university}
+                      </td>
+                      <td className="text-white text-sm py-4 px-4 font-medium">
+                        {university.university}
+                      </td>
+                      <td className="text-yellow-400 text-sm py-4 px-4 text-center font-bold">
+                        {university.rank}
+                      </td>
+                      <td className="text-white text-sm py-4 px-4 text-center">
+                        {university.wins}
+                      </td>
+                      <td className="text-white text-sm py-4 px-4 text-center">
+                        {university.losses}
+                      </td>
+                      <td className="text-green-400 text-sm py-4 px-4 text-center font-bold">
+                        {university.total}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       );

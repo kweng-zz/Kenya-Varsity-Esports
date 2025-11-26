@@ -170,16 +170,19 @@ export async function GET(request: NextRequest) {
             // Try to get data from Appwrite
             if (category === 'all') {
                 // Get all rankings for September season with game categories
-                const allRankings = await appwrite.databases.listDocuments(
+                const allRankingsResponse = await appwrite.databases.listDocuments(
                     DATABASE_ID,
                     COLLECTIONS.RANKINGS,
                     [
                         Query.equal('season', 'september'),
-                        Query.isNotNull('gameCategory'),
                         Query.orderDesc('totalPoints'),
                         Query.limit(1000)
                     ]
                 );
+                // Filter to only include rankings with a gameCategory (exclude general rankings)
+                const allRankings = {
+                    documents: allRankingsResponse.documents.filter((doc: any) => doc.gameCategory && doc.gameCategory !== null)
+                };
 
                 // Get all tournaments to extract unique game categories
                 const tournamentsResponse = await appwrite.databases.listDocuments(

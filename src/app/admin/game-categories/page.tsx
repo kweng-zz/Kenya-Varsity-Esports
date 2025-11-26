@@ -3,15 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye, Search, Filter, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search, Filter, X, Upload } from 'lucide-react';
+import { BulkRankingsImporter } from '@/components/admin/BulkRankingsImporter';
 
 interface RankingEntry {
   rank: number;
   playerName: string;
   university: string;
-  points: number;
   wins: number;
   losses: number;
+  total: number;
+  points?: number;
+  image?: string;
 }
 
 interface GameCategory {
@@ -35,6 +38,7 @@ export default function AdminGameCategoriesPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingRankings, setEditingRankings] = useState<RankingEntry[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showBulkImporter, setShowBulkImporter] = useState(false);
 
   useEffect(() => {
     if (!loading && profile?.isAdmin) {
@@ -53,6 +57,26 @@ export default function AdminGameCategoriesPage() {
     try {
       setIsLoading(true);
       setError(null);
+
+      // First, try to fetch saved rankings from the API
+      let savedRankingsMap = new Map<string, RankingEntry[]>();
+      try {
+        const rankingsResponse = await fetch('/api/admin/game-categories');
+        if (rankingsResponse.ok) {
+          const rankingsResult = await rankingsResponse.json();
+          if (rankingsResult.success && rankingsResult.data) {
+            // Build a map of categoryId -> rankings
+            Object.entries(rankingsResult.data).forEach(([categoryId, rankings]: [string, any]) => {
+              if (Array.isArray(rankings)) {
+                savedRankingsMap.set(categoryId, rankings);
+              }
+            });
+            console.log('📊 Loaded saved rankings from API:', savedRankingsMap.size, 'categories');
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch saved rankings from API:', e);
+      }
 
       // Always try to fetch from Appwrite first (don't use localStorage cache)
       try {
@@ -78,8 +102,9 @@ export default function AdminGameCategoriesPage() {
           const uniqueGames = new Map<string, any>();
           tournaments.forEach((tournament, index) => {
             if (!uniqueGames.has(tournament.gameName)) {
+              const categoryId = tournament.slug || tournament.gameName.toLowerCase().replace(/\s+/g, '-');
               uniqueGames.set(tournament.gameName, {
-                id: tournament.slug || tournament.gameName.toLowerCase().replace(/\s+/g, '-'),
+                id: categoryId,
                 name: tournament.gameName,
                 title: `${tournament.gameName.toUpperCase()} RANKINGS`,
                 description: tournament.description || `Current standings for ${tournament.gameName} tournament`,
@@ -87,7 +112,8 @@ export default function AdminGameCategoriesPage() {
                 isActive: true,
                 type: "main",
                 order: index + 1,
-                rankings: []
+                // Use saved rankings if available, otherwise empty array
+                rankings: savedRankingsMap.get(categoryId) || []
               });
             }
           });
@@ -97,7 +123,7 @@ export default function AdminGameCategoriesPage() {
 
           if (categories.length > 0) {
             setCategories(categories);
-            // Clear old cache and save new data
+            // Save to localStorage for backup
             localStorage.removeItem('gameCategories');
             localStorage.setItem('gameCategories', JSON.stringify(categories));
             return;
@@ -127,7 +153,7 @@ export default function AdminGameCategoriesPage() {
           isActive: true,
           type: "main",
           order: 1,
-          rankings: []
+          rankings: savedRankingsMap.get('pubgm') || []
         },
         {
           id: "codm",
@@ -138,7 +164,7 @@ export default function AdminGameCategoriesPage() {
           isActive: true,
           type: "main",
           order: 2,
-          rankings: []
+          rankings: savedRankingsMap.get('codm') || []
         },
         {
           id: "efootball",
@@ -149,7 +175,7 @@ export default function AdminGameCategoriesPage() {
           isActive: true,
           type: "main",
           order: 3,
-          rankings: []
+          rankings: savedRankingsMap.get('efootball') || []
         }
       ];
       setCategories(fallbackCategories);
@@ -166,8 +192,22 @@ export default function AdminGameCategoriesPage() {
   const handleEditRankings = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (category) {
-      setEditingCategoryId(categoryId);
-      setEditingRankings(category.rankings || []);
+      // Use the tournament slug (from category.id) as the categoryId for saving
+      setEditingCategoryId(category.id);
+      
+      // Normalize rankings data to ensure all fields are defined
+      const normalizedRankings = (category.rankings || []).map((ranking: any) => ({
+        rank: ranking.rank ?? 0,
+        playerName: ranking.playerName ?? '',
+        university: ranking.university ?? '',
+        wins: ranking.wins ?? 0,
+        losses: ranking.losses ?? 0,
+        total: ranking.total ?? 0,
+        points: ranking.points ?? 0,
+        image: ranking.image ?? ''
+      }));
+      
+      setEditingRankings(normalizedRankings);
     }
   };
 
@@ -175,13 +215,13 @@ export default function AdminGameCategoriesPage() {
     const newRank = editingRankings.length + 1;
     setEditingRankings([
       ...editingRankings,
-      { rank: newRank, playerName: '', university: '', points: 0, wins: 0, losses: 0 }
+      { rank: newRank, playerName: '', university: '', points: 0, wins: 0, losses: 0, total: 0 }
     ]);
   };
 
   const handleUpdateRankingEntry = (index: number, field: keyof RankingEntry, value: string | number) => {
     const updated = [...editingRankings];
-    if (field === 'rank' || field === 'points' || field === 'wins' || field === 'losses') {
+    if (field === 'rank' || field === 'points' || field === 'wins' || field === 'losses' || field === 'total') {
       updated[index][field] = typeof value === 'string' ? parseInt(value) || 0 : value;
     } else {
       updated[index][field] = value as string;
@@ -193,20 +233,54 @@ export default function AdminGameCategoriesPage() {
     setEditingRankings(editingRankings.filter((_, i) => i !== index));
   };
 
-  const handleSaveRankings = () => {
+  const handleSaveRankings = async () => {
     if (!editingCategoryId) return;
 
-    const updatedCategories = categories.map(cat => 
-      cat.id === editingCategoryId 
-        ? { ...cat, rankings: editingRankings }
-        : cat
-    );
+    try {
+      setIsLoading(true);
+      
+      // Save to Appwrite via API
+      const response = await fetch('/api/admin/game-categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          categoryId: editingCategoryId,
+          rankings: editingRankings
+        })
+      });
 
-    setCategories(updatedCategories);
-    localStorage.setItem('gameCategories', JSON.stringify(updatedCategories));
-    setSuccessMessage('Rankings updated successfully!');
-    setEditingCategoryId(null);
-    setEditingRankings([]);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save rankings');
+      }
+
+      // Update local state
+      const updatedCategories = categories.map(cat => 
+        cat.id === editingCategoryId 
+          ? { ...cat, rankings: editingRankings }
+          : cat
+      );
+
+      setCategories(updatedCategories);
+      localStorage.setItem('gameCategories', JSON.stringify(updatedCategories));
+      
+      // Show appropriate success message based on storage source
+      const message = result.source === 'appwrite' 
+        ? 'Rankings updated successfully and synced to database!'
+        : 'Rankings saved successfully! (Note: Using temporary storage - run setup script to enable permanent storage)';
+      
+      setSuccessMessage(message);
+      setEditingCategoryId(null);
+      setEditingRankings([]);
+    } catch (error) {
+      console.error('Error saving rankings:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save rankings');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredCategories = categories.filter(category =>
@@ -415,7 +489,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="number"
-                            value={entry.rank}
+                            value={entry.rank || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'rank', e.target.value)}
                             className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
                             min="1"
@@ -424,7 +498,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="text"
-                            value={entry.playerName}
+                            value={entry.playerName || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'playerName', e.target.value)}
                             placeholder="Player name"
                             className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400"
@@ -433,7 +507,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="text"
-                            value={entry.university}
+                            value={entry.university || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'university', e.target.value)}
                             placeholder="University"
                             className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400"
@@ -442,7 +516,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="number"
-                            value={entry.points}
+                            value={entry.points || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'points', e.target.value)}
                             className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
                             min="0"
@@ -451,7 +525,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="number"
-                            value={entry.wins}
+                            value={entry.wins || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'wins', e.target.value)}
                             className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
                             min="0"
@@ -460,7 +534,7 @@ export default function AdminGameCategoriesPage() {
                         <td className="px-4 py-2">
                           <input
                             type="number"
-                            value={entry.losses}
+                            value={entry.losses || ''}
                             onChange={(e) => handleUpdateRankingEntry(index, 'losses', e.target.value)}
                             className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white"
                             min="0"
@@ -481,13 +555,22 @@ export default function AdminGameCategoriesPage() {
               </div>
 
               {/* Add New Entry Button */}
-              <button
-                onClick={handleAddRankingEntry}
-                className="mb-6 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Ranking Entry
-              </button>
+              <div className="mb-6 flex gap-4">
+                <button
+                  onClick={handleAddRankingEntry}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Ranking Entry
+                </button>
+                <button
+                  onClick={() => setShowBulkImporter(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Bulk Import
+                </button>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-4 justify-end">
@@ -510,6 +593,17 @@ export default function AdminGameCategoriesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Importer Modal */}
+      {showBulkImporter && (
+        <BulkRankingsImporter
+          onImport={(rankings) => {
+            setEditingRankings(rankings);
+            setShowBulkImporter(false);
+          }}
+          onClose={() => setShowBulkImporter(false)}
+        />
       )}
     </div>
   );

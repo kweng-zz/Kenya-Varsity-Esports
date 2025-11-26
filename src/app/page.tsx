@@ -123,7 +123,7 @@ export default function Home() {
               </h2>
 
               {/* Become A Sponsor button */}
-              <Link href="/community">
+              <Link href="#">
                 <Button className="w-[200px] sm:w-[220px] h-[50px] sm:h-[60px] bg-[#121315] rounded-none hover:bg-[#2a2d30] transition-colors duration-300 text-white">
                   <span className="font-['Hind',Helvetica] font-semibold text-sm sm:text-base">
                     Become A Sponsor

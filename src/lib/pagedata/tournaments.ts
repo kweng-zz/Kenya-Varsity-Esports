@@ -1,5 +1,6 @@
 // Cache version - increment this when you make breaking changes to the data structure
-const CACHE_VERSION = '1.2';
+// Format: YYYY.MM.DD.HH to force updates on every deployment
+const CACHE_VERSION = '2025.11.25.1';
 
 // Types for tournaments page data management
 export interface GameInfo {

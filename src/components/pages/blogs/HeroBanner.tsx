@@ -63,9 +63,9 @@ export const HeroBannerSection = () => {
   return (
     <section className="relative bg-black min-h-screen flex items-center justify-center py-16">
       {/* Left background image (Mask Group.png) */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <img
-          className="absolute bottom-0 left-0 w-1/3 h-auto object-cover transform -translate-x-1/4 translate-y-1/4 opacity-30"
+          className="absolute top-0 left-0 w-1/2 h-full object-cover opacity-40"
           alt="Background Left"
           src="/images/Mask Group.png"
           onError={(e) => {

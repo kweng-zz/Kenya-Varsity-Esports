@@ -39,6 +39,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Revalidation configuration for ISR
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000, // 1 minute
+    pagesBufferLength: 5,
+  },
   
   // Image optimization
   images: {

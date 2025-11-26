@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { FooterSection } from "@/components/Footer";
 import  { Navigation } from "@/components/Navigation";
 import { HeroBanner } from "@/components/pages/landing/Banner";
@@ -18,6 +19,59 @@ import Link from "next/link";
 
 
 export default function Home() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.message) {
+      setSubmitStatus('error');
+      setTimeout(() => setSubmitStatus('idle'), 3000);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        setFormData({ name: '', email: '', message: '' });
+        setTimeout(() => setSubmitStatus('idle'), 3000);
+      } else {
+        setSubmitStatus('error');
+        setTimeout(() => setSubmitStatus('idle'), 3000);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus('error');
+      setTimeout(() => setSubmitStatus('idle'), 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-black w-full min-h-screen" data-model-id="1:2">
@@ -99,30 +153,55 @@ export default function Home() {
           </div>
 
           <div className="md:w-1/2">
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <Textarea
+                name="message"
+                value={formData.message}
+                onChange={handleInputChange}
                 className="w-full h-24 sm:h-32 bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
                 placeholder="WRITE MESSAGE"
               />
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
                   className="w-full bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
                   placeholder="YOUR NAME"
                 />
 
                 <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="w-full bg-transparent border border-white/20 rounded-none text-white font-['Hind',Helvetica] font-semibold p-3 sm:p-5 placeholder:text-white text-sm sm:text-base"
                   placeholder="YOUR EMAIL"
                 />
               </div>
 
+              {submitStatus === 'success' && (
+                <div className="text-green-400 text-sm font-semibold">
+                  Message sent successfully!
+                </div>
+              )}
+
+              {submitStatus === 'error' && (
+                <div className="text-red-400 text-sm font-semibold">
+                  {!formData.name || !formData.email || !formData.message 
+                    ? 'Please fill in all fields'
+                    : 'Failed to send message. Please try again.'}
+                </div>
+              )}
+
               <div className="flex justify-center sm:justify-end">
                 <Button
-                  className="bg-[#961c18] hover:bg-[#7a1714] text-white font-['Hind',Helvetica] font-semibold px-8 sm:px-10 py-4 sm:py-6 rounded-none relative overflow-hidden skewed-button text-sm sm:text-base"
+                  className="bg-[#961c18] hover:bg-[#7a1714] text-white font-['Hind',Helvetica] font-semibold px-8 sm:px-10 py-4 sm:py-6 rounded-none relative overflow-hidden skewed-button text-sm sm:text-base disabled:opacity-50"
                   type="submit"
+                  disabled={isSubmitting}
                 >
-                  <span className="relative z-10">SUBMIT</span>
+                  <span className="relative z-10">{isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}</span>
                 </Button>
               </div>
             </form>

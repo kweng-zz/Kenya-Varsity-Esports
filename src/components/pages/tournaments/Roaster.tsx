@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getTournamentsPageData, SeasonInfo, GameInfo, getSeasonGames } from "@/lib/pagedata/tournaments";
+import { getTournamentsPageData, SeasonInfo, GameInfo, getSeasonGames, getActiveSeasonGames } from "@/lib/pagedata/tournaments";
 
 export const TeamRosterSection = () => {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
@@ -24,6 +24,7 @@ export const TeamRosterSection = () => {
     const data = getTournamentsPageData();
     setSeasons(data.seasons);
     
+    // Get all games (both active and inactive) for display
     setGamesData({
       septemberMain: getSeasonGames('september', 'main'),
       septemberAdded: getSeasonGames('september', 'added'),
@@ -52,11 +53,11 @@ export const TeamRosterSection = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 justify-items-center">
         {games.map((game, index) => {
-          // For September season, show active games as clickable links
-          // For January season, show all games but inactive ones have coming soon overlay
-          const shouldShowAsActive = seasonName === 'september' ? game.isActive : (game.isActive && getSeason('january')?.isActive);
+          // Show active games as clickable links
+          // Show inactive games with coming soon overlay
+          const isGameActive = game.isActive;
           
-          if (shouldShowAsActive) {
+          if (isGameActive) {
             return (
               <Link
                 key={`game-${game.id}-${index}`}
@@ -83,7 +84,7 @@ export const TeamRosterSection = () => {
                 <img
                   src={game.image}
                   alt={game.name}
-                  className="w-[360px] h-[430px] object-cover border border-white/70"
+                  className="w-[360px] h-[430px] object-cover border border-white/70 opacity-50"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/images/Mask Group.png';
                   }}
@@ -92,7 +93,7 @@ export const TeamRosterSection = () => {
                 {/* Coming Soon Overlay */}
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="text-center">
-                    <h3 className="text-white text-xl font-bold mb-2">COMING JANUARY 2026</h3>
+                    <h3 className="text-white text-xl font-bold mb-2">COMING SOON</h3>
                     <p className="text-white/90 text-sm">Click for details</p>
                   </div>
                 </div>

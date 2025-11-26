@@ -227,7 +227,7 @@ const LatestNews = () => {
     <section className="bg-black w-full py-16 sm:py-24 relative">
       {/* Left background image */}
       <img
-        className="absolute top-0 left-0 w-1/2 h-full object-cover opacity-40 pointer-events-none"
+        className="absolute top-0 left-0 w-1/4 h-full object-cover opacity-60 pointer-events-none"
         alt="Background Left"
         src="/images/Mask Group.png"
       />

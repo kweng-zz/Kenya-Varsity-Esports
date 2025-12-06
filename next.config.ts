@@ -48,13 +48,6 @@ const nextConfig: NextConfig = {
   
   // Image optimization
   images: {
-    domains: [
-      'localhost',
-      'c.animaapp.com', // Add animaapp.com domain
-      'images.ctfassets.net', // Contentful images
-      'fra.cloud.appwrite.io', // Appwrite images
-      'cloud.appwrite.io', // Appwrite images (general)
-    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -103,22 +96,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FALLBACK_MODE: process.env.NEXT_PUBLIC_FALLBACK_MODE,
   },
 
-  // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Ignore Strapi files during build
-    config.watchOptions = {
-      ...config.watchOptions,
-      ignored: [
-        '**/node_modules/**',
-        '**/kuer/**',
-        '**/kuer-backend/**',
-        '**/.strapi/**',
-        '**/strapi-render-deploy/**',
-      ],
-    };
-
-    return config;
-  },
+  // Turbopack configuration for Next.js 15+
+  turbopack: {},
 
   // Server external packages (moved from experimental)
   serverExternalPackages: ['@strapi/strapi'],
@@ -127,12 +106,6 @@ const nextConfig: NextConfig = {
   typescript: {
     // Skip type checking during build (Vercel will handle this)
     ignoreBuildErrors: false,
-  },
-
-  // ESLint configuration
-  eslint: {
-    // Skip ESLint during build if needed
-    ignoreDuringBuilds: false,
   },
 };
 

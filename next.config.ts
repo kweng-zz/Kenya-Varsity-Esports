@@ -102,6 +102,9 @@ const nextConfig: NextConfig = {
     return config;
   },
 
+  // Turbopack configuration (empty to use defaults)
+  turbopack: {},
+
   // Server external packages (moved from experimental)
   serverExternalPackages: ['@strapi/strapi'],
 

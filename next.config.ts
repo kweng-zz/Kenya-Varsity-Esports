@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Turbopack configuration (required for Next.js 15.6+)
+  turbopack: {},
+  
   // Optimize for Vercel deployment
   output: 'standalone',
   
@@ -96,8 +99,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FALLBACK_MODE: process.env.NEXT_PUBLIC_FALLBACK_MODE,
   },
 
-  // Turbopack configuration for Next.js 15+
-  turbopack: {},
+  // Webpack configuration for stability
+  webpack: (config, { isServer }) => {
+    // Disable Turbopack and use webpack
+    return config;
+  },
 
   // Server external packages (moved from experimental)
   serverExternalPackages: ['@strapi/strapi'],

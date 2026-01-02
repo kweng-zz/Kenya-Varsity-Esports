@@ -142,7 +142,7 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
 
   return (
     <Link href={`/blogs/${article.slug}`}>
-      <div className="bg-black rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+      <div className="bg-black rounded-none border border-white/50 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
         <div className="relative h-48 bg-gray-800">
           <ImageWithFallback
             src={imageUrl}
@@ -317,7 +317,7 @@ export const BlogsOverviewSection = () => {
       : articles.length > 2;
 
   return (
-    <section id="articles" className="bg-[#101013] py-16 min-h-screen">
+    <section id="articles" className="bg-black py-16 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12">

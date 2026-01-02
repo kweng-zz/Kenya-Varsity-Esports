@@ -358,19 +358,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resendVerificationEmail = async () => {
-  try {
-    const appwrite = initializeAppwrite();
-    if (!appwrite) {
-      return { error: new Error('Appwrite not configured') };
-    }
+    try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
 
-    await appwrite.account.createVerification(`${window.location.origin}/verify-email`); 
-    return {};
-  } catch (error) {
-    console.error('Verification email error:', error);
-    return { error };
-  }
-};
+      await appwrite.account.createVerification(`${window.location.origin}/verify-email`); 
+      return {};
+    } catch (error) {
+      console.error('Verification email error:', error);
+      return { error };
+    }
+  };
 
 
   return (

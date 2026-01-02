@@ -106,7 +106,7 @@ export const TeamRosterSection = () => {
   };
 
   return (
-    <section id="roaster-section" className="w-full py-20 bg-[#0c0e11]">
+    <section id="roaster-section" className="w-full py-20 bg-black">
       <div className="container mx-auto px-4">
         {/* September Season */}
         {getSeason('september') && (

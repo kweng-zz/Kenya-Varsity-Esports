@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack configuration (required for Next.js 15.6+)
-  turbopack: {},
-  
   // Optimize for Vercel deployment
   output: 'standalone',
   

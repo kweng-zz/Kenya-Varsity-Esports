@@ -4,23 +4,26 @@ import { createClient, Entry, Asset, ContentfulClientApi } from 'contentful';
 /* =============================
    Environment Variables
 ============================= */
-// Environment variables - hardcoded for client-side reliability
-const CONTENTFUL_SPACE_ID = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || 'gk83salrhozo';
-const CONTENTFUL_ACCESS_TOKEN = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN || 'tb8HyulKWftPO7KL7FeY5u1JauthKI_fyquKQ8NSImA';
-const CONTENTFUL_PREVIEW_ACCESS_TOKEN = process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN || 'hb7rwiSlTyveNS3UgOLHkRnybu4U33BqR6T6BSUfHjg';
+// Environment variables
+const CONTENTFUL_SPACE_ID = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
+const CONTENTFUL_ACCESS_TOKEN = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+const CONTENTFUL_PREVIEW_ACCESS_TOKEN = process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN;
 const CONTENTFUL_ENVIRONMENT = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 const NEXT_PUBLIC_FALLBACK_MODE = process.env.NEXT_PUBLIC_FALLBACK_MODE;
 
-console.log('🔍 Environment check:', {
-  isClient: typeof window !== 'undefined',
-  spaceId: CONTENTFUL_SPACE_ID ? '✅' : '❌',
-  accessToken: CONTENTFUL_ACCESS_TOKEN ? '✅' : '❌',
-  environment: CONTENTFUL_ENVIRONMENT,
-  fallbackMode: NEXT_PUBLIC_FALLBACK_MODE
-});
+// Only log in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔍 Environment check:', {
+    isClient: typeof window !== 'undefined',
+    spaceId: CONTENTFUL_SPACE_ID ? '✅' : '❌',
+    accessToken: CONTENTFUL_ACCESS_TOKEN ? '✅' : '❌',
+    environment: CONTENTFUL_ENVIRONMENT,
+    fallbackMode: NEXT_PUBLIC_FALLBACK_MODE
+  });
 
-if (!CONTENTFUL_SPACE_ID) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_SPACE_ID');
-if (!CONTENTFUL_ACCESS_TOKEN) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
+  if (!CONTENTFUL_SPACE_ID) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_SPACE_ID');
+  if (!CONTENTFUL_ACCESS_TOKEN) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
+}
 
 /* =============================
    Interfaces & Types
@@ -75,14 +78,18 @@ class ContentfulAPI {
   }
 
   private initClients() {
-    console.log('🔧 Initializing Contentful clients...');
-    console.log('Space ID:', CONTENTFUL_SPACE_ID ? '✅ Present' : '❌ Missing');
-    console.log('Access Token:', CONTENTFUL_ACCESS_TOKEN ? '✅ Present' : '❌ Missing');
-    console.log('Environment:', CONTENTFUL_ENVIRONMENT);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Initializing Contentful clients...');
+      console.log('Space ID:', CONTENTFUL_SPACE_ID ? '✅ Present' : '❌ Missing');
+      console.log('Access Token:', CONTENTFUL_ACCESS_TOKEN ? '✅ Present' : '❌ Missing');
+      console.log('Environment:', CONTENTFUL_ENVIRONMENT);
+    }
     
     if (!CONTENTFUL_SPACE_ID || !CONTENTFUL_ACCESS_TOKEN) {
-      console.warn('❌ Contentful not configured - missing space ID or access token');
-      console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('CONTENTFUL')));
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('❌ Contentful not configured - missing space ID or access token');
+        console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('CONTENTFUL')));
+      }
       return;
     }
 
@@ -93,7 +100,9 @@ class ContentfulAPI {
         environment: CONTENTFUL_ENVIRONMENT,
       });
 
-      console.log('✅ Contentful client initialized successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Contentful client initialized successfully');
+      }
 
       if (CONTENTFUL_PREVIEW_ACCESS_TOKEN) {
         this.previewClient = createClient({
@@ -102,7 +111,10 @@ class ContentfulAPI {
           environment: CONTENTFUL_ENVIRONMENT,
           host: 'preview.contentful.com',
         });
-        console.log('✅ Contentful preview client initialized successfully');
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Contentful preview client initialized successfully');
+        }
       }
     } catch (err) {
       console.error('❌ Failed to initialize Contentful:', err);
@@ -125,8 +137,10 @@ class ContentfulAPI {
   }): Promise<ContentfulResponse<ContentfulArticle>> {
     const client = this.getClient(params?.preview);
     if (!client) {
-      console.warn('Contentful client not initialized, returning empty results');
-      console.warn('Reinitializing clients...');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Contentful client not initialized, returning empty results');
+        console.warn('Reinitializing clients...');
+      }
       this.initClients();
       const retryClient = this.getClient(params?.preview);
       if (!retryClient) {
@@ -159,7 +173,9 @@ class ContentfulAPI {
   async getArticleBySlug(slug: string, preview = false) {
     const client = this.getClient(preview);
     if (!client) {
-      console.warn('Contentful client not initialized');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Contentful client not initialized');
+      }
       return null;
     }
 
@@ -179,7 +195,9 @@ class ContentfulAPI {
   async getFeaturedArticles(limit = 3, preview = false) {
     const client = this.getClient(preview);
     if (!client) {
-      console.warn('Contentful client not initialized');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Contentful client not initialized');
+      }
       return { data: [], total: 0, skip: 0, limit };
     }
 
@@ -250,13 +268,13 @@ export const getContentfulImageUrl = (asset?: Asset, width?: number, height?: nu
 
   // Validate that it's a proper Contentful URL
   if (!url.includes('ctfassets.net') && !url.includes('contentful.com')) {
-    console.warn('Invalid Contentful image URL:', url);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Invalid Contentful image URL:', url);
+    }
     return null;
   }
 
   try {
-    console.log('Processing image URL:', { original: url, processed: 'generating...' });
-    
     // For development, use simpler image URLs without heavy optimization
     if (process.env.NODE_ENV === 'development') {
       const params = new URLSearchParams();
@@ -266,7 +284,6 @@ export const getContentfulImageUrl = (asset?: Asset, width?: number, height?: nu
       params.append('q', '75'); // Slightly lower quality for faster loading
       
       const processedUrl = params.toString() ? `${url}?${params}` : url;
-      console.log('Processing image URL:', { original: url, processed: processedUrl });
       return processedUrl;
     }
 
@@ -276,15 +293,13 @@ export const getContentfulImageUrl = (asset?: Asset, width?: number, height?: nu
     if (height) params.append('h', height.toString());
     
     // Try WebP first, but have JPG fallback ready
-    params.append('fm', 'webp'); // Fixed: should be 'fm' not 'f'
+    params.append('fm', 'webp');
     params.append('q', '80');
     
     const processedUrl = `${url}?${params}`;
-    console.log('Processing image URL:', { original: url, processed: processedUrl });
     return processedUrl;
   } catch (error) {
     console.error('Error processing Contentful image URL:', error);
-    console.log('Falling back to original URL:', url);
     return url; // Return original URL as fallback
   }
 };

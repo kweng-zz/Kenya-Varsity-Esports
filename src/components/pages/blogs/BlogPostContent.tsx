@@ -81,10 +81,12 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
     }
     
     return paragraphs.map((paragraph: string, index: number) => (
-      <div key={index} className="max-w-4xl mx-auto px-6 mb-8">
-        <p className="text-lg leading-relaxed text-gray-300">
-          {paragraph.trim()}
-        </p>
+      <div key={index} className="w-full px-6 mb-12 py-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-lg leading-relaxed text-gray-300 text-center text-right">
+            {paragraph.trim()}
+          </p>
+        </div>
       </div>
     ));
   };
@@ -172,6 +174,18 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
 
         
       </div>
+
+      {/* Image Section - Standalone */}
+      <section className="w-full bg-black py-16">
+        <div className="flex justify-center">
+          <img
+            src={displayImageUrl}
+            alt={post.title}
+            onError={() => setImageError(true)}
+            className="w-full max-w-4xl h-auto object-cover"
+          />
+        </div>
+      </section>
 
       {/* Full-Width Content Sections */}
       <article className="w-full bg-black text-white">

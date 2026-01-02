@@ -11,19 +11,7 @@ const CONTENTFUL_PREVIEW_ACCESS_TOKEN = process.env.CONTENTFUL_PREVIEW_ACCESS_TO
 const CONTENTFUL_ENVIRONMENT = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 const NEXT_PUBLIC_FALLBACK_MODE = process.env.NEXT_PUBLIC_FALLBACK_MODE;
 
-// Only log in development
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 Environment check:', {
-    isClient: typeof window !== 'undefined',
-    spaceId: CONTENTFUL_SPACE_ID ? '✅' : '❌',
-    accessToken: CONTENTFUL_ACCESS_TOKEN ? '✅' : '❌',
-    environment: CONTENTFUL_ENVIRONMENT,
-    fallbackMode: NEXT_PUBLIC_FALLBACK_MODE
-  });
 
-  if (!CONTENTFUL_SPACE_ID) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_SPACE_ID');
-  if (!CONTENTFUL_ACCESS_TOKEN) console.warn('⚠️ Missing: NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
-}
 
 /* =============================
    Interfaces & Types
@@ -78,18 +66,7 @@ class ContentfulAPI {
   }
 
   private initClients() {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔧 Initializing Contentful clients...');
-      console.log('Space ID:', CONTENTFUL_SPACE_ID ? '✅ Present' : '❌ Missing');
-      console.log('Access Token:', CONTENTFUL_ACCESS_TOKEN ? '✅ Present' : '❌ Missing');
-      console.log('Environment:', CONTENTFUL_ENVIRONMENT);
-    }
-    
     if (!CONTENTFUL_SPACE_ID || !CONTENTFUL_ACCESS_TOKEN) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('❌ Contentful not configured - missing space ID or access token');
-        console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('CONTENTFUL')));
-      }
       return;
     }
 
@@ -100,10 +77,6 @@ class ContentfulAPI {
         environment: CONTENTFUL_ENVIRONMENT,
       });
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Contentful client initialized successfully');
-      }
-
       if (CONTENTFUL_PREVIEW_ACCESS_TOKEN) {
         this.previewClient = createClient({
           space: CONTENTFUL_SPACE_ID,
@@ -111,13 +84,9 @@ class ContentfulAPI {
           environment: CONTENTFUL_ENVIRONMENT,
           host: 'preview.contentful.com',
         });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Contentful preview client initialized successfully');
-        }
       }
     } catch (err) {
-      console.error('❌ Failed to initialize Contentful:', err);
+      // Silently fail in production
     }
   }
 
@@ -346,9 +315,11 @@ export const transformContentfulArticle = (article: ContentfulArticle): Transfor
 /* =============================
    Backward Compatibility API
 ============================= */
+const isFallbackMode = () => NEXT_PUBLIC_FALLBACK_MODE === 'true'; 
+
 export const contentfulAPI = {
   async getArticles(params?: any) {
-    if (NEXT_PUBLIC_FALLBACK_MODE === 'true' || !CONTENTFUL_SPACE_ID || !CONTENTFUL_ACCESS_TOKEN) {
+    if (isFallbackMode() || !CONTENTFUL_SPACE_ID || !CONTENTFUL_ACCESS_TOKEN) {
       return emptyPaginatedResponse();
     }
 
@@ -358,24 +329,24 @@ export const contentfulAPI = {
   },
 
   async getCategories() {
-    if (NEXT_PUBLIC_FALLBACK_MODE === 'true') return defaultCategories();
+    if (isFallbackMode()) return defaultCategories();
     return contentful.getCategories().catch(defaultCategories);
   },
 
   async getGames() {
-    if (NEXT_PUBLIC_FALLBACK_MODE === 'true') return defaultGames();
+    if (isFallbackMode()) return defaultGames();
     return contentful.getGames().catch(defaultGames);
   },
 
   async getArticleBySlug(slug: string) {
-    if (NEXT_PUBLIC_FALLBACK_MODE === 'true') return emptyPaginatedResponse();
+    if (isFallbackMode()) return emptyPaginatedResponse();
     const article = await contentful.getArticleBySlug(slug);
     const data = article ? [transformContentfulArticle(article)] : [];
     return paginatedResponse(data, data.length);
   },
 
   async getFeaturedArticles(limit = 1) {
-    if (NEXT_PUBLIC_FALLBACK_MODE === 'true') return emptyPaginatedResponse(limit);
+    if (isFallbackMode()) return emptyPaginatedResponse(limit);
     const res = await contentful.getFeaturedArticles(limit);
     const data = res.data.map(transformContentfulArticle);
     return paginatedResponse(data, res.total, 1, limit);

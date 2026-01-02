@@ -55,7 +55,6 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
   useEffect(() => {
     setImageError(false);
     const processedUrl = getImageUrl(post.imageUrl);
-    console.log('Processing blog post image URL:', { original: post.imageUrl, processed: processedUrl });
     setCurrentImageUrl(processedUrl);
   }, [post.imageUrl]);
 
@@ -70,120 +69,119 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
 
   // Simple function to render content with proper paragraph breaks
   const renderContent = (content: string) => {
-    // Split content into sentences
-    const sentences = content.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+    // Split by double newlines to preserve paragraph structure
+    const paragraphs = content.split('\n\n').filter(p => p.trim());
     
-    // Group sentences into paragraphs (2-3 sentences each for better readability)
-    const paragraphs = [];
-    for (let i = 0; i < sentences.length; i += 2) {
-      const paragraphSentences = sentences.slice(i, i + 2);
-      paragraphs.push(paragraphSentences.join(' '));
-    }
-    
-    return paragraphs.map((paragraph: string, index: number) => (
-      <div key={index} className="w-full px-6 mb-12 py-8">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-lg leading-relaxed text-gray-300 text-center text-right">
-            {paragraph.trim()}
-          </p>
+    return paragraphs.map((paragraph: string, index: number) => {
+      // Check if this paragraph is a heading (starts with **)
+      const isHeading = paragraph.startsWith('**') && paragraph.endsWith('**');
+      
+      if (isHeading) {
+        const headingText = paragraph.replace(/\*\*/g, '');
+        return (
+          <div key={index} className="w-full px-6 mb-8 py-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl md:text-3xl font-bold text-white text-left">
+                {headingText}
+              </h2>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div key={index} className="w-full px-6 mb-8 py-4">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-lg leading-relaxed text-gray-300 text-left">
+              {paragraph.trim()}
+            </p>
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
   };
 
   return (
     <>
-      {/* Hero Section with Blurred Image and Title Overlay */}
-      <div className="relative h-screen w-full overflow-hidden">
-        {/* Blurred Background Image */}
-        <div className="absolute inset-0">
-          
-          {/* Blur and Overlay */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-        </div>
-
-        {/* Back Button */}
-        <div className="absolute top-24 left-6 z-10">
-          <Link
-            href="/blogs"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-all duration-300 group bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Back to Articles</span>
-          </Link>
-        </div>
-
-        {/* Title Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center px-6 max-w-5xl">
-            {/* Featured Badge */}
-            {post.featured && (
-              <div className="mb-6">
-                <span className="inline-flex items-center gap-2 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                  Featured Article
-                </span>
-              </div>
-            )}
-
-            {/* Main Title */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-              {post.title}
-            </h1>
-
-            {/* Description */}
-            <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-3xl mx-auto leading-relaxed">
-              {post.description}
-            </p>
-
-            {/* Meta Information */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-300">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span>By {post.author}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(post.publishedAt)}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>{getReadingTime(post.content)} min read</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Tag className="w-4 h-4" />
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-semibold">
-                  {post.category}
-                </span>
-              </div>
-              
-              {post.game && (
-                <div className="flex items-center gap-2">
-                  <Gamepad2 className="w-4 h-4" />
-                  <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-xs font-medium">
-                    {post.game}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        
+      {/* Back Button */}
+      <div className="relative z-10 bg-black pt-6 px-6">
+        <Link
+          href="/blogs"
+          className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-all duration-300 group bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span className="font-medium">Back to Articles</span>
+        </Link>
       </div>
 
-      {/* Image Section - Standalone */}
-      <section className="w-full bg-black py-16">
-        <div className="flex justify-center">
+      {/* Image Section - Top */}
+      <section className="w-full bg-black py-8">
+        <div className="flex justify-center px-6">
           <img
             src={displayImageUrl}
             alt={post.title}
             onError={() => setImageError(true)}
             className="w-full max-w-4xl h-auto object-cover"
           />
+        </div>
+      </section>
+
+      {/* Title and Meta Section - Left Aligned */}
+      <section className="w-full bg-black py-12 px-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Featured Badge */}
+          {post.featured && (
+            <div className="mb-6">
+              <span className="inline-flex items-center gap-2 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                Featured Article
+              </span>
+            </div>
+          )}
+
+          {/* Main Title */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight text-left">
+            {post.title}
+          </h1>
+
+          {/* Description */}
+          <p className="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed text-left">
+            {post.description}
+          </p>
+
+          {/* Meta Information */}
+          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400 text-left">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              <span>By {post.author}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>{formatDate(post.publishedAt)}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{getReadingTime(post.content)} min read</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4" />
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full text-xs font-semibold">
+                {post.category}
+              </span>
+            </div>
+            
+            {post.game && (
+              <div className="flex items-center gap-2">
+                <Gamepad2 className="w-4 h-4" />
+                <span className="px-3 py-1 bg-white/10 backdrop-blur-sm text-white rounded-full text-xs font-medium">
+                  {post.game}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

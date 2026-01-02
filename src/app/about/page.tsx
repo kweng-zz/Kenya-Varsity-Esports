@@ -3,6 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { CompetitionSection } from "@/components/pages/about/CompetitionSection";
 import { HeroSection } from "@/components/pages/about/HeroSection";
 import { StatisticsSection } from "@/components/pages/about/StatisticsSection";
+import { UniversityJoinSection } from "@/components/pages/about/UniversityJoinSection";
 
 
 
@@ -21,12 +22,12 @@ export default function AboutPage() {
       {/* Hero section - full width */}
       <HeroSection />
 
-      {/* Competition section - full width */}
-      <CompetitionSection />
+      {/* University Join section - full width */}
+      <UniversityJoinSection />
 
-      {/* Statistics section - full width */}
-      <StatisticsSection />
+      
 
+      
       {/* Footer section - full width */}
       <FooterSection />
     </main>

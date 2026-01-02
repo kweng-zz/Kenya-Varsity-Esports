@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 interface NavItem {
     label: string;
@@ -25,36 +25,72 @@ interface SliceCoordinates {
 
 export function RadialNavigation() {
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-    const [activeItem, setActiveItem] = useState<string | null>(null); // Fixed typo: was 'aciveItem'
+    const [activeItem, setActiveItem] = useState<string | null>(null);
     const totalItems = NAV_ITEMS.length;
     const sliceAngle = 360 / totalItems;
 
-    // Memoize the slice calculations for better performance
-    const getSliceCoordinates = useCallback((index: number): SliceCoordinates => {
-        const startAngle = index * sliceAngle;
-        const endAngle = startAngle + sliceAngle;
-        const midAngle = startAngle + sliceAngle / 2;
-        
-        // Calculate label position (at 65% radius)
-        const labelRadius = 195;
-        const labelX = Math.cos((midAngle - 90) * Math.PI / 180) * labelRadius;
-        const labelY = Math.sin((midAngle - 90) * Math.PI / 180) * labelRadius;
+    // Memoize all slice coordinates to avoid recalculation
+    const sliceCoordinates = useMemo(() => {
+        return NAV_ITEMS.map((_, index) => {
+            const startAngle = index * sliceAngle;
+            const endAngle = startAngle + sliceAngle;
+            const midAngle = startAngle + sliceAngle / 2;
+            
+            // Calculate label position (at 65% radius)
+            const labelRadius = 195;
+            const labelX = Math.cos((midAngle - 90) * Math.PI / 180) * labelRadius;
+            const labelY = Math.sin((midAngle - 90) * Math.PI / 180) * labelRadius;
 
-        // Create SVG path for the slice
-        const startRad = (startAngle - 90) * Math.PI / 180;
-        const endRad = (endAngle - 90) * Math.PI / 180;
-        const radius = 300;
+            // Create SVG path for the slice
+            const startRad = (startAngle - 90) * Math.PI / 180;
+            const endRad = (endAngle - 90) * Math.PI / 180;
+            const radius = 300;
 
-        const x1 = Math.cos(startRad) * radius;
-        const y1 = Math.sin(startRad) * radius;
-        const x2 = Math.cos(endRad) * radius;
-        const y2 = Math.sin(endRad) * radius;
+            const x1 = Math.cos(startRad) * radius;
+            const y1 = Math.sin(startRad) * radius;
+            const x2 = Math.cos(endRad) * radius;
+            const y2 = Math.sin(endRad) * radius;
 
-        const largeArc = sliceAngle > 180 ? 1 : 0;
-        const pathData = `M 0 0 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+            const largeArc = sliceAngle > 180 ? 1 : 0;
+            const pathData = `M 0 0 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
-        return { pathData, labelX, labelY, midAngle };
+            return { pathData, labelX, labelY, midAngle };
+        });
     }, [sliceAngle]);
+
+    // Detect hovered item based on mouse position
+    const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        const rect = container.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const deltaX = mouseX - centerX;
+        const deltaY = mouseY - centerY;
+        
+        // Calculate angle from center
+        let angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI + 90;
+        if (angle < 0) angle += 360;
+        
+        // Calculate distance from center
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // Only detect hover if within the pie area (between 100px and 300px from center)
+        if (distance > 100 && distance < 300) {
+            const itemIndex = Math.floor(angle / sliceAngle);
+            const hoveredHref = NAV_ITEMS[itemIndex]?.href || null;
+            setHoveredItem(hoveredHref);
+        } else {
+            setHoveredItem(null);
+        }
+    }, [sliceAngle]);
+
+    const handleMouseLeave = useCallback(() => {
+        setHoveredItem(null);
+    }, []);
 
     const handleItemClick = useCallback((href: string) => {
         setActiveItem(href);
@@ -62,16 +98,12 @@ export function RadialNavigation() {
         setTimeout(() => setActiveItem(null), 1000);
     }, []);
 
-    const handleMouseEnter = useCallback((href: string) => {
-        setHoveredItem(href);
-    }, []);
-
-    const handleMouseLeave = useCallback(() => {
-        setHoveredItem(null);
-    }, []);
-
     return (
-        <div className="radial-navigation-container">
+        <div 
+            className="radial-navigation-container"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+        >
             <style jsx>{`
                 .radial-navigation-container {
                     position: relative;
@@ -121,11 +153,6 @@ export function RadialNavigation() {
                     }
                 }
 
-                @keyframes scan-line {
-                    0% { transform: translateY(-100%); }
-                    100% { transform: translateY(600px); }
-                }
-
                 @keyframes slice-activate {
                     0% { transform: scale(1); }
                     50% { transform: scale(1.1); }
@@ -137,20 +164,17 @@ export function RadialNavigation() {
                     width: 100%;
                     height: 100%;
                     cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                .radial-slice:hover {
-                    filter: brightness(1.5) drop-shadow(0 0 20px rgba(220, 38, 38, 0.9));
-                }
-
-                .radial-slice.active {
-                    animation: slice-activate 0.6s ease-out;
+                    pointer-events: none;
                 }
 
                 .radial-slice svg {
                     width: 100%;
                     height: 100%;
+                    pointer-events: auto;
+                }
+
+                .radial-slice.active {
+                    animation: slice-activate 0.6s ease-out;
                 }
 
                 .center-circle {
@@ -298,9 +322,6 @@ export function RadialNavigation() {
                     height: 100%;
                     border-radius: 50%;
                     border: 3px solid rgba(220, 38, 38, 0.4);
-                    animation: 
-                        pulse-glow 3s ease-in-out infinite,
-                        rotate-slow 60s linear infinite;
                     box-shadow: 
                         inset 0 0 30px rgba(220, 38, 38, 0.2),
                         0 0 30px rgba(220, 38, 38, 0.3);
@@ -312,10 +333,6 @@ export function RadialNavigation() {
                     height: 92%;
                     border-radius: 50%;
                     border: 2px solid rgba(239, 68, 68, 0.3);
-                    animation: 
-                        pulse-glow 4s ease-in-out infinite,
-                        rotate-slow 45s linear infinite reverse;
-                    animation-delay: 0.5s;
                 }
 
                 .outer-ring-3 {
@@ -324,32 +341,6 @@ export function RadialNavigation() {
                     height: 85%;
                     border-radius: 50%;
                     border: 1px solid rgba(239, 68, 68, 0.2);
-                    animation: 
-                        pulse-glow 5s ease-in-out infinite,
-                        rotate-slow 30s linear infinite;
-                    animation-delay: 1s;
-                }
-
-                .scan-line {
-                    position: absolute;
-                    width: 100%;
-                    height: 2px;
-                    background: linear-gradient(90deg, 
-                        transparent, 
-                        rgba(239, 68, 68, 0.8), 
-                        transparent);
-                    animation: scan-line 4s linear infinite;
-                    z-index: 10;
-                }
-
-                .particle {
-                    position: absolute;
-                    width: 4px;
-                    height: 4px;
-                    background: rgba(239, 68, 68, 0.8);
-                    border-radius: 50%;
-                    pointer-events: none;
-                    z-index: 5;
                 }
             `}</style>
 
@@ -358,12 +349,9 @@ export function RadialNavigation() {
             <div className="outer-ring-2"></div>
             <div className="outer-ring-3"></div>
 
-            {/* Scan line effect */}
-            <div className="scan-line"></div>
-
             {/* Navigation slices */}
             {NAV_ITEMS.map((item, index) => {
-                const { pathData, labelX, labelY, midAngle } = getSliceCoordinates(index);
+                const coords = sliceCoordinates[index];
                 const isExternal = item.href.startsWith('http');
                 const isHovered = hoveredItem === item.href;
                 const isActive = activeItem === item.href;
@@ -389,8 +377,6 @@ export function RadialNavigation() {
                     <div 
                         key={item.href}
                         className={`radial-slice ${isActive ? 'active' : ''}`}
-                        onMouseEnter={() => handleMouseEnter(item.href)}
-                        onMouseLeave={handleMouseLeave}
                     >
                         {/* SVG Slice */}
                         <svg
@@ -409,7 +395,7 @@ export function RadialNavigation() {
                             viewBox="-300 -300 600 600"
                         >
                             <path
-                                d={pathData}
+                                d={coords.pathData}
                                 fill={sliceColor}
                                 stroke="rgba(239, 68, 68, 0.9)"
                                 strokeWidth="3"
@@ -423,11 +409,11 @@ export function RadialNavigation() {
                         <div
                             className="slice-label"
                             style={{
-                                left: `calc(50% + ${labelX}px)`,
-                                top: `calc(50% + ${labelY}px)`,
+                                left: `calc(50% + ${coords.labelX}px)`,
+                                top: `calc(50% + ${coords.labelY}px)`,
                                 transform: isHovered 
-                                    ? `translate(-50%, -50%) scale(1.2) rotate(${midAngle - 90}deg)` 
-                                    : `translate(-50%, -50%) scale(1) rotate(${midAngle - 90}deg)`,
+                                    ? `translate(-50%, -50%) scale(1.2) rotate(${coords.midAngle - 90}deg)` 
+                                    : `translate(-50%, -50%) scale(1) rotate(${coords.midAngle - 90}deg)`,
                                 opacity: isHovered ? 1 : 0.9,
                                 filter: isHovered ? 'brightness(1.3)' : 'brightness(1)',
                             }}
@@ -451,7 +437,6 @@ export function RadialNavigation() {
                         src="/images/KUER transparent.png" 
                         alt="KUER Logo"
                         onError={(e) => {
-                            // Fallback if image fails to load
                             e.currentTarget.style.display = 'none';
                         }}
                     />

@@ -142,7 +142,7 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
 
   return (
     <Link href={`/blogs/${article.slug}`}>
-      <div className="bg-gray-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+      <div className="bg-black rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
         <div className="relative h-48 bg-gray-800">
           <ImageWithFallback
             src={imageUrl}

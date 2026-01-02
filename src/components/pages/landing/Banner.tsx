@@ -116,8 +116,9 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: '800px',
-                minHeight: '800px',
+                width: '600px',
+                height: '600px',
+                flexShrink: 0,
             }}>
                 <RadialNavigation />
             </div>

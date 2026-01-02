@@ -226,7 +226,7 @@ export const BlogsOverviewSection = () => {
     const canScrollRight = scrollContainerRef.current
         ? scrollPosition < scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth
         : articles.length > 2;
-    return (<section id="articles" className="bg-[#101013] py-16 min-h-screen">
+    return (<section id="articles" className="bg-black py-16 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12">

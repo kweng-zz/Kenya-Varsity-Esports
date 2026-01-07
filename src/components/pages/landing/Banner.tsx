@@ -30,130 +30,168 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
     const mainContent = displayBanners[0]; 
 
     return (
-        <section style={{
-            position: 'relative',
-            width: '100%',
-            minHeight: '100vh',
-            backgroundColor: '#000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '2rem',
-            gap: '2rem',
-            // Background is handled by children now
-            overflow: 'hidden', // Added to contain absolute backgrounds
-        }}>
-            
-            {/* Fallback Image Background - sits at bottom */}
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                backgroundImage: `url(${mainContent.src})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-                zIndex: 0, // Base layer
-            }} />
-
-            {/* Video Background - on top of image, but behind overlay */}
-            <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                poster={mainContent.src} // Native fallback
-                style={{
+        <>
+            <section className="hero-banner">
+                {/* Fallback Image Background - sits at bottom */}
+                <div style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
-                    zIndex: 1, // Above image
-                }}
-            >
-                <source src="/images/IMG_7172.MOV" />
-            </video>
+                    backgroundImage: `url(${mainContent.src})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundAttachment: 'fixed',
+                    zIndex: 0, // Base layer
+                }} />
 
-            {/* Dark Overlay - on top of everything */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                zIndex: 2, // Above video
-                pointerEvents: 'none',
-            }}></div>
-            
-            {/* Left Content */}
-            <div style={{
-                position: 'relative',
-                zIndex: 10,
-                maxWidth: '600px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-            }}>
-                <h1 style={{
-                    fontSize: 'clamp(1.875rem, 5vw, 3.75rem)',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    textTransform: 'uppercase',
-                    marginBottom: '1rem',
-                    lineHeight: '1.2',
-                }}>
-                    {mainContent.title}
-                </h1>
-                <p style={{
-                    fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-                    color: '#d1d5db',
-                    marginBottom: '2rem',
-                    maxWidth: '500px',
-                }}>
-                    {mainContent.subtitle}
-                </p>
-                <Link 
-                    href={mainContent.ctaLink || "/register"}
+                {/* Video Background - on top of image, but behind overlay */}
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    poster={mainContent.src} // Native fallback
                     style={{
-                        display: 'inline-block',
-                        backgroundColor: '#dc2626',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        padding: '0.75rem 2rem',
-                        fontSize: '1.125rem',
-                        textTransform: 'uppercase',
-                        textDecoration: 'none',
-                        borderRadius: '0.125rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        transition: 'background-color 0.3s ease',
-                        width: 'fit-content',
-                    }}
-                    onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#b91c1c';
-                    }}
-                    onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#dc2626';
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        zIndex: 1, // Above image
                     }}
                 >
-                    {mainContent.ctaText}
-                </Link>
-            </div>
+                    <source src="/images/IMG_7172.MOV" />
+                </video>
 
-            {/* Right Content - Radial Navigation */}
-            <div style={{
-                position: 'relative',
-                zIndex: 50,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '600px',
-                height: '600px',
-                flexShrink: 0,
-            }}>
-                <RadialNavigation />
-            </div>
-        </section>
+                {/* Dark Overlay - on top of everything */}
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    zIndex: 2, // Above video
+                    pointerEvents: 'none',
+                }}></div>
+                
+                <div className="content-container">
+                    {/* Left Content */}
+                    <div className="text-content">
+                        <h1 style={{
+                            fontSize: 'clamp(1.875rem, 5vw, 3.75rem)',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            textTransform: 'uppercase',
+                            marginBottom: '1rem',
+                            lineHeight: '1.2',
+                        }}>
+                            {mainContent.title}
+                        </h1>
+                        <p style={{
+                            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                            color: '#d1d5db',
+                            marginBottom: '2rem',
+                            maxWidth: '500px',
+                        }}>
+                            {mainContent.subtitle}
+                        </p>
+                        <Link 
+                            href={mainContent.ctaLink || "/register"}
+                            style={{
+                                display: 'inline-block',
+                                backgroundColor: '#dc2626',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                padding: '0.75rem 2rem',
+                                fontSize: '1.125rem',
+                                textTransform: 'uppercase',
+                                textDecoration: 'none',
+                                borderRadius: '0.125rem',
+                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                transition: 'background-color 0.3s ease',
+                                width: 'fit-content',
+                            }}
+                            onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#b91c1c';
+                            }}
+                            onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#dc2626';
+                            }}
+                        >
+                            {mainContent.ctaText}
+                        </Link>
+                    </div>
+
+                    {/* Right Content - Radial Navigation */}
+                    <div className="radial-wrapper">
+                        <RadialNavigation />
+                    </div>
+                </div>
+            </section>
+
+            <style jsx>{`
+                .hero-banner {
+                    position: relative;
+                    width: 100%;
+                    min-height: 100vh;
+                    background-color: #000;
+                    overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .content-container {
+                    position: relative;
+                    z-index: 10;
+                    width: 100%;
+                    max-width: 1400px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 2rem;
+                    gap: 2rem;
+                }
+
+                .text-content {
+                    max-width: 600px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                }
+
+                .radial-wrapper {
+                    position: relative;
+                    z-index: 50;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+
+                @media (max-width: 1024px) {
+                    .content-container {
+                        flex-direction: column;
+                        justify-content: center;
+                        text-align: center;
+                        padding-top: 6rem;
+                        padding-bottom: 4rem;
+                    }
+                    
+                    .text-content {
+                        align-items: center;
+                        margin-bottom: 2rem;
+                        max-width: 100%;
+                    }
+
+                    .radial-wrapper {
+                        width: 100%;
+                        justify-content: center;
+                        overflow: visible;
+                    }
+                }
+            `}</style>
+        </>
     );
 }

@@ -101,21 +101,53 @@ export function RadialNavigation() {
     }, [router]);
 
     return (
-        <div 
-            className="radial-navigation-container"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-        >
-            <style jsx>{`
-                .radial-navigation-container {
-                    position: relative;
-                    width: 600px;
-                    height: 600px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: transparent;
-                }
+        <div className="responsive-wrapper">
+            <div 
+                className="radial-navigation-container"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+            >
+                <style jsx>{`
+                    .responsive-wrapper {
+                        width: 600px;
+                        height: 600px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .radial-navigation-container {
+                        position: relative;
+                        width: 600px;
+                        height: 600px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: transparent;
+                        flex-shrink: 0;
+                        transition: transform 0.3s ease;
+                    }
+
+                    @media (max-width: 640px) {
+                        .responsive-wrapper {
+                            width: 320px;
+                            height: 320px;
+                        }
+                        .radial-navigation-container {
+                            transform: scale(0.53);
+                        }
+                    }
+
+                    @media (max-width: 400px) {
+                        .responsive-wrapper {
+                            width: 280px;
+                            height: 280px;
+                        }
+                        .radial-navigation-container {
+                            transform: scale(0.46);
+                        }
+                    }
+    
 
                 @keyframes pulse-glow {
                     0%, 100% { 
@@ -548,5 +580,6 @@ export function RadialNavigation() {
                 </div>
             </div>
         </div>
+      </div>
     );
 }

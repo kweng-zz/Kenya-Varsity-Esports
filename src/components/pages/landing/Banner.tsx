@@ -40,18 +40,50 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
             justifyContent: 'space-between',
             padding: '2rem',
             gap: '2rem',
-            backgroundImage: `url(${mainContent.src})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
+            // Background is handled by children now
+            overflow: 'hidden', // Added to contain absolute backgrounds
         }}>
             
-            {/* Dark Overlay */}
+            {/* Fallback Image Background - sits at bottom */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundImage: `url(${mainContent.src})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                zIndex: 0, // Base layer
+            }} />
+
+            {/* Video Background - on top of image, but behind overlay */}
+            <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={mainContent.src} // Native fallback
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 1, // Above image
+                }}
+            >
+                <source src="/images/IMG_7172.MOV" />
+            </video>
+
+            {/* Dark Overlay - on top of everything */}
             <div style={{
                 position: 'absolute',
                 inset: 0,
                 backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                zIndex: 1,
+                zIndex: 2, // Above video
                 pointerEvents: 'none',
             }}></div>
             

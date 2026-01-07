@@ -366,17 +366,31 @@ export function RadialNavigation() {
                         href: item.href, 
                         target: '_blank', 
                         rel: 'noopener noreferrer',
-                        className: 'slice-link'
+                        className: 'slice-link-container'
                     }
                     : { 
                         href: item.href,
-                        className: 'slice-link'
+                        className: 'slice-link-container'
                     };
 
                 return (
-                    <div 
+                    <LinkComponent 
                         key={item.href}
+                        {...linkProps}
+                        onClick={(e) => {
+                             if (!isExternal) {
+                                handleItemClick(item.href);
+                             }
+                        }}
                         className={`radial-slice ${isActive ? 'active' : ''}`}
+                        style={{
+                            display: 'block',
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            pointerEvents: 'all', // Ensure the link captures clicks
+                            textDecoration: 'none',
+                        }}
                     >
                         {/* SVG Slice */}
                         <svg
@@ -386,11 +400,11 @@ export function RadialNavigation() {
                                 height: '100%',
                                 top: 0,
                                 left: 0,
-                                cursor: 'pointer',
                                 filter: isHovered 
                                     ? 'drop-shadow(0 0 25px rgba(220, 38, 38, 1)) brightness(1.2)' 
                                     : 'drop-shadow(0 0 8px rgba(220, 38, 38, 0.5))',
                                 transition: 'all 0.3s ease',
+                                pointerEvents: 'none', // Let click pass to parent Link
                             }}
                             viewBox="-300 -300 600 600"
                         >
@@ -418,15 +432,18 @@ export function RadialNavigation() {
                                 filter: isHovered ? 'brightness(1.3)' : 'brightness(1)',
                             }}
                         >
-                            <LinkComponent
-                                {...linkProps}
-                                onClick={() => handleItemClick(item.href)}
-                            >
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '100%',
+                            }}>
                                 <div className="icon">{item.icon}</div>
                                 <div className="text">{item.label}</div>
-                            </LinkComponent>
+                            </div>
                         </div>
-                    </div>
+                    </LinkComponent>
                 );
             })}
 

@@ -1,7 +1,7 @@
 // ========================================
-// UNIVERSITIES DATA - EASY TO EDIT
+// UNIVERSITIES & COLLEGES DATA - EASY TO EDIT
 // ========================================
-// To add a new university: Add a new object with name and whatsappLink
+// To add a new institution: Add a new object with name and whatsappLink
 // To edit a WhatsApp link: Change the whatsappLink value
 // To remove a university: Delete the entire object
 
@@ -220,6 +220,93 @@ export const universities: University[] = [
     shortName: "KCAU",
     whatsappLink: "https://chat.whatsapp.com/kca-university" 
   },
+
+  // Colleges & TVET Institutions
+  {
+    name: "Kenya Medical Training College",
+    shortName: "KMTC",
+    whatsappLink: "https://chat.whatsapp.com/kmtc"
+  },
+  {
+    name: "Kenya Coast National Polytechnic",
+    shortName: "KCNP",
+    whatsappLink: "https://chat.whatsapp.com/kenya-coast-poly"
+  },
+  {
+    name: "The Kabete National Polytechnic",
+    shortName: "Kabete Poly",
+    whatsappLink: "https://chat.whatsapp.com/kabete-poly"
+  },
+  {
+    name: "The Kisumu National Polytechnic",
+    shortName: "Kisumu Poly",
+    whatsappLink: "https://chat.whatsapp.com/kisumu-poly"
+  },
+  {
+    name: "Meru National Polytechnic",
+    shortName: "Meru Poly",
+    whatsappLink: "https://chat.whatsapp.com/meru-poly"
+  },
+  {
+    name: "Nyeri National Polytechnic",
+    shortName: "Nyeri Poly",
+    whatsappLink: "https://chat.whatsapp.com/nyeri-poly"
+  },
+  {
+    name: "Eldoret National Polytechnic",
+    shortName: "Eldoret Poly",
+    whatsappLink: "https://chat.whatsapp.com/eldoret-poly"
+  },
+  {
+    name: "Sigalagala National Polytechnic",
+    shortName: "Sigalagala",
+    whatsappLink: "https://chat.whatsapp.com/sigalagala-poly"
+  },
+  {
+    name: "Kitale National Polytechnic",
+    shortName: "Kitale Poly",
+    whatsappLink: "https://chat.whatsapp.com/kitale-poly"
+  },
+  {
+    name: "Kenya Technical Trainers College",
+    shortName: "KTTC",
+    whatsappLink: "https://chat.whatsapp.com/kttc"
+  },
+  {
+    name: "Rift Valley Institute of Science & Technology",
+    shortName: "RVIST",
+    whatsappLink: "https://chat.whatsapp.com/rvist"
+  },
+  {
+    name: "Nairobi Institute of Technology",
+    shortName: "NIT",
+    whatsappLink: "https://chat.whatsapp.com/nit"
+  },
+  {
+    name: "Zetech University",
+    shortName: "Zetech",
+    whatsappLink: "https://chat.whatsapp.com/zetech-university"
+  },
+  {
+    name: "Pioneer International University",
+    shortName: "PIU",
+    whatsappLink: "https://chat.whatsapp.com/pioneer-university"
+  },
+  {
+    name: "Kenya Institute of Management",
+    shortName: "KIM",
+    whatsappLink: "https://chat.whatsapp.com/kim"
+  },
+  {
+    name: "Kenya Institute of Mass Communication",
+    shortName: "KIMC",
+    whatsappLink: "https://chat.whatsapp.com/kimc"
+  },
+  {
+    name: "Utalii College",
+    shortName: "Utalii",
+    whatsappLink: "https://chat.whatsapp.com/utalii-college"
+  }
 ];
 
 // Support contact information

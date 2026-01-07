@@ -146,11 +146,11 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
                     position: relative;
                     z-index: 10;
                     width: 100%;
-                    max-width: 1400px;
+                    max-width: 1800px;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 2rem;
+                    padding: 1rem;
                     gap: 2rem;
                 }
 

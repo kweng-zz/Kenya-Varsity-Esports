@@ -21,7 +21,7 @@ const hind = Hind({
 });
 
 export const metadata: Metadata = {
-  title: "KUER - Kenya University Esports Rankings",
+  title: "KVE - Kenya Varsity Esports",
   description: "The premier esports platform for university students in Kenya, offering tournaments, rankings, and a vibrant gaming community.",
 };
 

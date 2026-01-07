@@ -34,13 +34,13 @@ export function RadialNavigation() {
             const endAngle = startAngle + sliceAngle;
             const midAngle = startAngle + sliceAngle / 2;
             
-            const labelRadius = 195;
+            const labelRadius = 155;
             const labelX = Math.cos((midAngle - 90) * Math.PI / 180) * labelRadius;
             const labelY = Math.sin((midAngle - 90) * Math.PI / 180) * labelRadius;
 
             const startRad = (startAngle - 90) * Math.PI / 180;
             const endRad = (endAngle - 90) * Math.PI / 180;
-            const radius = 300;
+            const radius = 240;
 
             const x1 = Math.cos(startRad) * radius;
             const y1 = Math.sin(startRad) * radius;
@@ -109,8 +109,8 @@ export function RadialNavigation() {
             >
                 <style jsx>{`
                     .responsive-wrapper {
-                        width: 600px;
-                        height: 600px;
+                        width: 480px;
+                        height: 480px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -118,8 +118,8 @@ export function RadialNavigation() {
 
                     .radial-navigation-container {
                         position: relative;
-                        width: 600px;
-                        height: 600px;
+                        width: 700px;
+                        height: 700px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -249,24 +249,24 @@ export function RadialNavigation() {
 
                 .center-circle {
                     position: absolute;
-                    width: 220px;
-                    height: 220px;
+                    width: 176px;
+                    height: 176px;
                     border-radius: 50%;
                     background: 
-                        radial-gradient(circle at 30% 30%, rgba(239, 68, 68, 1) 0%, rgba(220, 38, 38, 0.95) 40%, rgba(153, 27, 27, 0.9) 100%);
-                    border: 4px solid rgba(239, 68, 68, 0.9);
+                        radial-gradient(circle at 30% 30%, rgba(40, 40, 40, 1) 0%, rgba(20, 20, 20, 0.95) 40%, rgba(0, 0, 0, 0.9) 100%);
+                    border: 4px solid rgba(40, 40, 40, 0.9);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     z-index: 20;
                     box-shadow: 
-                        0 0 50px rgba(220, 38, 38, 0.9),
-                        0 0 100px rgba(220, 38, 38, 0.6),
+                        0 0 50px rgba(0, 0, 0, 0.9),
+                        0 0 100px rgba(0, 0, 0, 0.6),
                         inset 0 0 40px rgba(0, 0, 0, 0.5),
                         inset -10px -10px 30px rgba(0, 0, 0, 0.3),
-                        inset 10px 10px 30px rgba(255, 100, 100, 0.3),
-                        0 0 0 10px rgba(220, 38, 38, 0.3),
-                        0 0 0 15px rgba(220, 38, 38, 0.15);
+                        inset 10px 10px 30px rgba(100, 100, 100, 0.3),
+                        0 0 0 10px rgba(0, 0, 0, 0.3),
+                        0 0 0 15px rgba(0, 0, 0, 0.15);
                     animation: 
                         pulse-glow 2.5s ease-in-out infinite,
                         energy-pulse 4s ease-in-out infinite;
@@ -286,13 +286,13 @@ export function RadialNavigation() {
                     background: conic-gradient(
                         from 0deg,
                         transparent 0deg,
-                        rgba(239, 68, 68, 0.6) 30deg,
+                        rgba(60, 60, 60, 0.6) 30deg,
                         transparent 60deg,
-                        rgba(239, 68, 68, 0.4) 120deg,
+                        rgba(60, 60, 60, 0.4) 120deg,
                         transparent 150deg,
-                        rgba(239, 68, 68, 0.5) 210deg,
+                        rgba(60, 60, 60, 0.5) 210deg,
                         transparent 240deg,
-                        rgba(239, 68, 68, 0.6) 300deg,
+                        rgba(60, 60, 60, 0.6) 300deg,
                         transparent 360deg
                     );
                     animation: rotate-slow 6s linear infinite;
@@ -306,9 +306,9 @@ export function RadialNavigation() {
                     height: 108%;
                     border-radius: 50%;
                     border: 3px solid transparent;
-                    border-top: 3px solid rgba(239, 68, 68, 0.8);
-                    border-right: 3px solid rgba(239, 68, 68, 0.5);
-                    border-bottom: 3px solid rgba(239, 68, 68, 0.3);
+                    border-top: 3px solid rgba(60, 60, 60, 0.8);
+                    border-right: 3px solid rgba(60, 60, 60, 0.5);
+                    border-bottom: 3px solid rgba(60, 60, 60, 0.3);
                     animation: rotate-reverse 4s linear infinite;
                 }
 
@@ -393,11 +393,11 @@ export function RadialNavigation() {
                     width: 100%;
                     height: 100%;
                     border-radius: 50%;
-                    border: 4px solid rgba(220, 38, 38, 0.5);
+                    border: 4px solid rgba(40, 40, 40, 0.5);
                     box-shadow: 
-                        inset 0 0 40px rgba(220, 38, 38, 0.3),
-                        0 0 40px rgba(220, 38, 38, 0.4),
-                        0 0 60px rgba(220, 38, 38, 0.2);
+                        inset 0 0 40px rgba(0, 0, 0, 0.3),
+                        0 0 40px rgba(40, 40, 40, 0.4),
+                        0 0 60px rgba(40, 40, 40, 0.2);
                     animation: ring-pulse 3s ease-in-out infinite;
                     pointer-events: none;
                 }
@@ -407,10 +407,10 @@ export function RadialNavigation() {
                     width: 92%;
                     height: 92%;
                     border-radius: 50%;
-                    border: 3px solid rgba(239, 68, 68, 0.4);
+                    border: 3px solid rgba(60, 60, 60, 0.4);
                     box-shadow: 
-                        inset 0 0 30px rgba(239, 68, 68, 0.2),
-                        0 0 30px rgba(239, 68, 68, 0.3);
+                        inset 0 0 30px rgba(60, 60, 60, 0.2),
+                        0 0 30px rgba(60, 60, 60, 0.3);
                     animation: ring-pulse 3s ease-in-out infinite 0.5s;
                     pointer-events: none;
                 }
@@ -420,10 +420,10 @@ export function RadialNavigation() {
                     width: 85%;
                     height: 85%;
                     border-radius: 50%;
-                    border: 2px solid rgba(239, 68, 68, 0.3);
+                    border: 2px solid rgba(80, 80, 80, 0.3);
                     box-shadow: 
-                        inset 0 0 20px rgba(239, 68, 68, 0.15),
-                        0 0 20px rgba(239, 68, 68, 0.2);
+                        inset 0 0 20px rgba(80, 80, 80, 0.15),
+                        0 0 20px rgba(80, 80, 80, 0.2);
                     animation: ring-pulse 3s ease-in-out infinite 1s;
                     pointer-events: none;
                 }
@@ -524,15 +524,15 @@ export function RadialNavigation() {
                         >
                             <defs>
                                 <linearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor={isHovered ? "rgba(239, 68, 68, 0.95)" : "rgba(220, 38, 38, 0.65)"} />
-                                    <stop offset="50%" stopColor={isHovered ? "rgba(220, 38, 38, 0.9)" : "rgba(220, 38, 38, 0.6)"} />
-                                    <stop offset="100%" stopColor={isHovered ? "rgba(185, 28, 28, 0.85)" : "rgba(185, 28, 28, 0.55)"} />
+                                    <stop offset="0%" stopColor={isHovered ? "rgba(239, 68, 68, 0.85)" : "rgba(20, 20, 20, 0.9)"} />
+                                    <stop offset="50%" stopColor={isHovered ? "rgba(220, 38, 38, 0.8)" : "rgba(10, 10, 10, 0.85)"} />
+                                    <stop offset="100%" stopColor={isHovered ? "rgba(185, 28, 28, 0.75)" : "rgba(0, 0, 0, 0.8)"} />
                                 </linearGradient>
                             </defs>
                             <path
                                 d={coords.pathData}
                                 fill={`url(#gradient-${index})`}
-                                stroke={isHovered ? "rgba(239, 68, 68, 1)" : "rgba(239, 68, 68, 0.9)"}
+                                stroke={isHovered ? "rgba(239, 68, 68, 1)" : "rgba(40, 40, 40, 0.9)"}
                                 strokeWidth={isHovered ? "4" : "3"}
                                 style={{
                                     transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -571,7 +571,7 @@ export function RadialNavigation() {
             <div className="center-circle">
                 <div className="logo-container">
                     <img 
-                        src="/images/KUER transparent.png" 
+                        src="/images/KVE white no words.png" 
                         alt="KUER Logo"
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';

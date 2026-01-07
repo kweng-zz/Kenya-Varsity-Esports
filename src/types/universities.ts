@@ -358,6 +358,70 @@ export const kenyanUniversities: University[] = [
     id: "zetech-university",
     name: "Zetech University",
     branches: ["Mang'u (Main Campus)", "Ruiru Campus", "Nairobi CBD"]
+  },
+  
+  // Colleges & TVET Institutions
+  {
+    id: "kenya-medical-training-college",
+    name: "Kenya Medical Training College (KMTC)",
+    branches: ["Nairobi (Main)", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Nyeri", "Thika", "Machakos", "Kisii", "Meru"] // Adding major campuses as placeholders
+  },
+  {
+    id: "kenya-coast-national-polytechnic",
+    name: "Kenya Coast National Polytechnic"
+  },
+  {
+    id: "kabete-national-polytechnic",
+    name: "The Kabete National Polytechnic"
+  },
+  {
+    id: "kisumu-national-polytechnic",
+    name: "The Kisumu National Polytechnic"
+  },
+  {
+    id: "meru-national-polytechnic",
+    name: "Meru National Polytechnic"
+  },
+  {
+    id: "nyeri-national-polytechnic",
+    name: "Nyeri National Polytechnic"
+  },
+  {
+    id: "eldoret-national-polytechnic",
+    name: "Eldoret National Polytechnic"
+  },
+  {
+    id: "sigalagala-national-polytechnic",
+    name: "Sigalagala National Polytechnic"
+  },
+  {
+    id: "kitale-national-polytechnic",
+    name: "Kitale National Polytechnic"
+  },
+  {
+    id: "kenya-technical-trainers-college",
+    name: "Kenya Technical Trainers College"
+  },
+  {
+    id: "rift-valley-institute-science-technology",
+    name: "Rift Valley Institute of Science & Technology"
+  },
+  {
+    id: "nairobi-institute-technology",
+    name: "Nairobi Institute of Technology"
+  },
+
+  {
+    id: "kenya-institute-management",
+    name: "Kenya Institute of Management"
+  },
+  {
+    id: "kenya-institute-mass-communication",
+    name: "Kenya Institute of Mass Communication"
+  },
+  {
+    id: "utalii-college",
+    name: "Utalii College"
   }
 ];
 

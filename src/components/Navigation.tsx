@@ -251,9 +251,9 @@ export function Navigation() {
             src="https://c.animaapp.com/md7xc8iywLDvVn/img/group-151.png"
           />
           <img
-            className="absolute w-[175px] h-[187px] top-6 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover z-30"
+            className="absolute w-[250px] h-[250px] top-9 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover z-30"
             alt="Kuer transparent"
-            src="https://c.animaapp.com/md7xc8iywLDvVn/img/kuer-transparent-1.png"
+            src="/images/KVE white no words.png"
           />
 
           {/* Right nav items + search */}

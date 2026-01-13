@@ -1,8 +1,8 @@
 import { FooterSection } from "@/components/Footer";
 import { Navigation } from "@/components/Navigation";
-import { CompetitionSection } from "@/components/pages/about/CompetitionSection";
+
 import { HeroSection } from "@/components/pages/about/HeroSection";
-import { StatisticsSection } from "@/components/pages/about/StatisticsSection";
+
 import { UniversityJoinSection } from "@/components/pages/about/UniversityJoinSection";
 
 

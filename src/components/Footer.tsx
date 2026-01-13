@@ -272,7 +272,7 @@ export const FooterSection = () => {
       <div className="w-full min-h-[59px] bg-[#961C18] flex items-center justify-center px-4 sm:px-6 py-3 relative z-20">
         <div className="text-center sm:text-left max-w-[1200px] w-full">
           <span className="font-medium text-white text-xs sm:text-sm leading-relaxed">
-            KENYA UNIVERSITY ESPORTS RANKINGS (KUER) COPYRIGHTS ALL RESERVED{" "}
+            KENYA VARSITY ESPORTS (KVE) COPYRIGHTS ALL RESERVED{" "}
             {currentYear}
           </span>
         </div>

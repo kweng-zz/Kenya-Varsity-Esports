@@ -65,7 +65,7 @@ export const UniversityJoinSection = () => {
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               How Universities Join{' '}
-              <span className="text-red-800">KUER</span>
+              <span className="text-red-800">KVE</span>
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
               Your university can officially participate in Kenya University Esports Rankings by 
@@ -185,7 +185,7 @@ export const UniversityJoinSection = () => {
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               Universities Already in{' '}
-              <span className="text-red-800">KUER</span>
+              <span className="text-red-800">KVE</span>
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
               These institutions have completed the onboarding process and are active members 

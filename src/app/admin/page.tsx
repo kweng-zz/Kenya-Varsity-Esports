@@ -82,6 +82,14 @@ export default function AdminPage() {
                 </Link>
 
                 <Link 
+                    href="/admin/events" 
+                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                    <h2 className="text-2xl font-semibold">Events</h2>
+                    <p>Create and manage upcoming esports events and tournaments.</p>
+                </Link>
+
+                <Link 
                     href="/admin/participants" 
                     className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
                 >

@@ -49,7 +49,7 @@ export function Navigation() {
     { name: "ABOUT US", href: "/about" },
     { name: "BLOGS", href: "/blogs" },
     { name: "TOURNAMENTS", href: "/tournaments", protected: true },
-    { name: "RANKINGS", href: "/rankings" },
+    { name: "EVENTS", href: "/events" },
     { name: "SHOP", href: "/shop" },
   ];
 

@@ -9,6 +9,21 @@ const nextConfig: NextConfig = {
 
   // Cache control headers for better control over stale data
   headers: async () => {
+    // In development, we want no caching to avoid stuck stale content
+    if (process.env.NODE_ENV === 'development') {
+        return [
+          {
+            source: '/:path*',
+            headers: [
+              {
+                key: 'Cache-Control',
+                value: 'no-cache, no-store, must-revalidate',
+              },
+            ],
+          },
+        ];
+    }
+
     return [
       {
         source: '/:path*',

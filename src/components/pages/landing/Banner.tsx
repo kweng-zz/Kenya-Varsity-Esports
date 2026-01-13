@@ -19,9 +19,9 @@ const defaultFallbackBanners = [
         src: "/images/Join-Your-Uni.png",
         alt: "Join Your University",
         title: "JOIN YOUR INSTITUTION'S ESPORTS LEGACY",
-        subtitle: "Connect with the largest University Esports community in Kenya.",
-        ctaText: "REGISTER NOW",
-        ctaLink: "/register"
+        subtitle: "To get information for upcoming events.",
+        ctaText: "UPCOMING EVENTS",
+        ctaLink: "/rankings"
     },
 ];
 

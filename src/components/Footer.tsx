@@ -91,9 +91,9 @@ export const FooterSection = () => {
           {/* Logo section */}
           <div className="flex flex-col items-center sm:items-start pt-2 col-span-1 sm:col-span-2 lg:col-span-1">
             <Image
-              className="w-[120px] sm:w-[140px] h-[130px] sm:h-[150px] object-cover mb-4 sm:mb-0 sm:ml-6"
+              className="w-30 sm:w-35 h-32.5 sm:h-37.5 object-cover mb-4 sm:mb-0 sm:ml-6"
               alt="Kuer transparent"
-              src="https://c.animaapp.com/md6ebassseX7AK/img/kuer-transparent-1.png"
+              src="/images/KVE white no words.png"
               width={140}
               height={150}
             />

@@ -11,27 +11,27 @@ interface Step {
 const steps: Step[] = [
   {
     number: 1,
-    title: 'Appoint a University Esports Coordinator',
+    title: 'Get your officials for your esports team/club',
     description:
-      'A staff member, club leader, official representative who will handle all KUER communications.',
+      'Captain, Vice Captain, Treasurer and Lecturer/Teacher in charge',
   },
   {
     number: 2,
-    title: 'Verify Your Esports Club / Team',
+    title: 'Have atleast 20 members',
     description:
-      'Provide a short confirmation letter from the Dean of Students, Games Office, or an equivalent authority.',
+      "Members should be at least 3 or more gaming titles team i.e efootball squad, CODM team, PUBG team, eafc team. This helps in understanding which titles to put based on the popularity among our member institutions."
   },
   {
     number: 3,
-    title: 'Complete the KUER Participation Agreement',
+    title: 'Complete the KVE Participation Agreement',
     description:
       'Covers student eligibility, fair play rules, branding use, and tournament protocols.',
   },
   {
     number: 4,
-    title: 'Create a KUER University Profile',
+    title: 'Do your own internal tournaments',
     description:
-      'Add team names, primary game titles, club socials, and semester player rosters.',
+      'In order to grow ensure longevity in esports in your university you need to be active by hosting your own tournaments atleast once a year.',
   },
 ];
 

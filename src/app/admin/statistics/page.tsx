@@ -80,7 +80,6 @@ export default function AdminStatisticsPage() {
   // Form states
   const [editingStatId, setEditingStatId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', label: '' });
-  const [newSeasonEndDate, setNewSeasonEndDate] = useState('');
   const [newRegistrationStartDate, setNewRegistrationStartDate] = useState('');
   const [newEventImageUrl, setNewEventImageUrl] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -145,7 +144,6 @@ export default function AdminStatisticsPage() {
         });
         setPreviewUrl(settings.eventImage || '');
         setNewEventImageUrl(settings.eventImage || '');
-        setNewSeasonEndDate(settings.seasonEndDate ? settings.seasonEndDate.split('T')[0] : '');
         setNewRegistrationStartDate(settings.registrationStartDate ? settings.registrationStartDate.split('T')[0] : '');
       }
       
@@ -276,7 +274,6 @@ export default function AdminStatisticsPage() {
 
       const updateData: Record<string, unknown> = {
         eventImage: eventImageUrl,
-        seasonEndDate: new Date(newSeasonEndDate + 'T23:59:59.000Z').toISOString(),
         registrationStartDate: newRegistrationStartDate ? new Date(newRegistrationStartDate + 'T00:00:00.000Z').toISOString() : null
       };
 
@@ -313,66 +310,6 @@ export default function AdminStatisticsPage() {
     }
   };
 
-  const handleTransitionSeason = async () => {
-    if (!seasonSettings) return;
-    
-    const confirmTransition = window.confirm(
-      `Are you sure you want to transition to Season ${seasonSettings.seasonNumber + 1}? This will mark the current season as completed and create a new active season.`
-    );
-    
-    if (!confirmTransition) return;
-
-    try {
-      setIsSaving(true);
-      
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        setError('Appwrite not configured. Please try again.');
-        return;
-      }
-
-      // Mark current season as completed
-      await appwrite.databases.updateDocument(
-        DB_ID,
-        COLLECTION_ID,
-        seasonSettings.$id,
-        {
-          seasonStatus: 'completed'
-        }
-      );
-
-      // Create new season settings
-      const newSeasonNumber = seasonSettings.seasonNumber + 1;
-      const newSeasonEndDate = new Date();
-      newSeasonEndDate.setFullYear(newSeasonEndDate.getFullYear() + 1); // Next year
-      
-      await appwrite.databases.createDocument(
-        DB_ID,
-        COLLECTION_ID,
-        ID.unique(),
-        {
-          label: 'Current Season Info',
-          number: newSeasonNumber.toString(),
-          seasonNumber: newSeasonNumber,
-          seasonStatus: 'active',
-          seasonEndDate: newSeasonEndDate.toISOString(),
-          eventImage: `https://placehold.co/600x400/961c18/FFFFFF?text=Season+${newSeasonNumber}+Ongoing`
-        },
-        [
-          Permission.read(Role.any()),
-          Permission.write(Role.users())
-        ]
-      );
-      
-      setMessage(`Successfully transitioned to Season ${newSeasonNumber}!`);
-      fetchData();
-    } catch (err) {
-      console.error('Error transitioning season:', err);
-      setError('Failed to transition season');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -421,7 +358,7 @@ export default function AdminStatisticsPage() {
         {seasonSettings && (
           <div className="bg-gray-900 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-2xl font-bold text-[#961c18] mb-4">
-              Season {seasonSettings.seasonNumber} Settings
+              Season Settings
             </h2>
             
             <div className="space-y-6">
@@ -496,16 +433,6 @@ export default function AdminStatisticsPage() {
                 )}
               </div>
               
-              {/* Season End Date */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Season End Date</label>
-                <input
-                  type="date"
-                  value={newSeasonEndDate}
-                  onChange={(e) => setNewSeasonEndDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
-                />
-              </div>
 
               {/* Registration Start Date */}
               <div>
@@ -537,7 +464,6 @@ export default function AdminStatisticsPage() {
                 </div>
               )}
               
-              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button
                   onClick={handleUpdateSeasonSettings}
@@ -545,14 +471,6 @@ export default function AdminStatisticsPage() {
                   className="w-full sm:w-auto px-6 py-3 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
                 >
                   {isSaving ? 'Updating...' : 'Update Season Settings'}
-                </button>
-                
-                <button
-                  onClick={handleTransitionSeason}
-                  disabled={isSaving}
-                  className="w-full sm:w-auto px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
-                >
-                  Transition to Season {seasonSettings.seasonNumber + 1}
                 </button>
               </div>
             </div>

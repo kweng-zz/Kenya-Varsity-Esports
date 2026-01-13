@@ -17,10 +17,7 @@ interface SeasonStatsDoc {
 }
 
 interface SeasonInfo {
-  currentSeason: number;
-  previousSeason: number;
-  isTransitioning: boolean;
-  nextSeasonStartDate?: Date;
+  seasonNumber: number;
 }
 
 // --- Appwrite Setup with lazy initialization ---
@@ -99,42 +96,16 @@ const SeasonStatistics = () => {
     'https://placehold.co/600x400/111111/FFFFFF?text=Event+Image'
   );
   const [seasonInfo, setSeasonInfo] = useState<SeasonInfo>({
-    currentSeason: 3,
-    previousSeason: 2,
-    isTransitioning: false
+    seasonNumber: 3
   });
-  const [titleText, setTitleText] = useState('STATISTICS OF PREVIOUS SEASON');
+  const [titleText, setTitleText] = useState('SEASON STATISTICS');
 
   // Helper function to determine season info
-  const determineSeasonInfo = (documents: Record<string, unknown>[]): SeasonInfo => {
-    const currentDate = new Date();
-    
-    // Find current season settings
+  const getSeasonNumber = (documents: Record<string, unknown>[]): number => {
     const currentSeasonDoc = documents.find(doc => 
       doc.$id === 'current_season_settings' || doc.seasonStatus === 'active'
     );
-    
-    if (currentSeasonDoc) {
-      const currentSeason = (currentSeasonDoc.seasonNumber as number) || 3;
-      const seasonEndDate = currentSeasonDoc.seasonEndDate ? new Date(currentSeasonDoc.seasonEndDate as string) : null;
-      
-      // Check if we're past the season end date
-      const isTransitioning = seasonEndDate && currentDate > seasonEndDate;
-      
-      return {
-        currentSeason: isTransitioning ? currentSeason + 1 : currentSeason,
-        previousSeason: isTransitioning ? currentSeason : currentSeason - 1,
-        isTransitioning: isTransitioning || false,
-        nextSeasonStartDate: seasonEndDate || undefined
-      };
-    }
-    
-    // Fallback to default
-    return {
-      currentSeason: 3,
-      previousSeason: 2,
-      isTransitioning: false
-    };
+    return (currentSeasonDoc?.seasonNumber as number) || 2;
   };
 
   useEffect(() => {
@@ -157,9 +128,9 @@ const SeasonStatistics = () => {
 
         const response = await db.listDocuments(DB_ID, COLLECTION_ID);
 
-        // Determine current season info
-        const seasonInfo = determineSeasonInfo(response.documents);
-        setSeasonInfo(seasonInfo);
+        // Get season number
+        const seasonNumber = getSeasonNumber(response.documents);
+        setSeasonInfo({ seasonNumber });
 
         // Filter statistics for the previous season (exclude settings document)
         const statisticsOnly = response.documents.filter(doc => 
@@ -187,8 +158,8 @@ const SeasonStatistics = () => {
           setImageUrl(eventImage);
         }
 
-        // Set dynamic title with season number
-        setTitleText(`STATISTICS OF SEASON ${seasonInfo.previousSeason} `);
+        // Set dynamic title with season number (previous season stats usually)
+        setTitleText(`STATISTICS OF SEASON ${seasonNumber - 1}`);
 
       } catch (err) {
         console.error('Error fetching stats:', err);

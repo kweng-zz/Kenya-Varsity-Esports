@@ -68,7 +68,7 @@ export const UniversityJoinSection = () => {
               <span className="text-red-800">KVE</span>
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
-              Your university can officially participate in Kenya University Esports Rankings by 
+              Your university can officially participate in Kenya Varsity Esports by 
               completing a simple 4-step verification process. This ensures fairness, accurate 
               rankings, and proper representation of your institution.
             </p>
@@ -189,7 +189,7 @@ export const UniversityJoinSection = () => {
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
               These institutions have completed the onboarding process and are active members 
-              of the KUER ecosystem, participating in tournaments and rankings.
+              of the KVE ecosystem, participating in tournaments and rankings.
             </p>
           </div>
 
@@ -197,7 +197,7 @@ export const UniversityJoinSection = () => {
             <div>
               <h3 className="text-2xl font-bold text-white mb-8">
                 Featured Members{' '}
-                <span className="text-green-500 font-normal text-lg">
+                <span className="text-red-500 font-normal text-lg">
                   ({featuredUniversitiesData.length} Universities)
                 </span>
               </h3>
@@ -205,12 +205,12 @@ export const UniversityJoinSection = () => {
                 {featuredUniversitiesData.map((uni, index) => (
                   <div
                     key={index}
-                    className="group relative bg-gradient-to-br from-gray-900/60 to-gray-900/30 rounded-lg p-5 border border-gray-700 hover:border-green-500/70 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10"
+                    className="group relative bg-gradient-to-br from-gray-900/60 to-gray-900/30 rounded-lg p-5 border border-gray-700 hover:border-red-500/70 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/10"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500 mt-1 flex-shrink-0"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 mt-1 flex-shrink-0"></div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-gray-100 font-semibold group-hover:text-green-400 transition-colors break-words">
+                        <span className="text-gray-100 font-semibold group-hover:text-red-400 transition-colors break-words">
                           {uni.shortName}
                         </span>
                         <p className="text-gray-500 text-xs mt-1 line-clamp-1">

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { storageService } from '@/lib/services/storageService';
 
 interface Event {
   $id: string;
@@ -19,6 +20,7 @@ interface Event {
   registrationLink?: string;
   detailsLink?: string;
   isActive: boolean;
+  isFeatured: boolean;
 }
 
 export default function AdminEventsPage() {
@@ -26,6 +28,8 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -39,7 +43,8 @@ export default function AdminEventsPage() {
     tags: '',
     registrationLink: '',
     detailsLink: '',
-    isActive: true
+    isActive: true,
+    isFeatured: false
   });
 
   useEffect(() => {
@@ -70,6 +75,11 @@ export default function AdminEventsPage() {
     };
 
     try {
+      let finalImage = formData.image;
+
+      // If we have a file selected but not yet uploaded (though we do direct upload now)
+      // Wait, let's implement the direct upload in handleFileChange for simplicity.
+      
       const url = editingEvent ? `/api/admin/events/${editingEvent.$id}` : '/api/admin/events';
       const method = editingEvent ? 'PUT' : 'POST';
 
@@ -103,7 +113,8 @@ export default function AdminEventsPage() {
       tags: event.tags.join(', '),
       registrationLink: event.registrationLink || '',
       detailsLink: event.detailsLink || '',
-      isActive: event.isActive
+      isActive: event.isActive,
+      isFeatured: event.isFeatured || false
     });
     setShowForm(true);
   };
@@ -125,7 +136,30 @@ export default function AdminEventsPage() {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (e.g., 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Max 5MB.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const imageUrl = await storageService.uploadFile(file);
+      setFormData({ ...formData, image: imageUrl });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const resetForm = () => {
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setFormData({
       title: '',
       gameSlug: '',
@@ -138,7 +172,8 @@ export default function AdminEventsPage() {
       tags: '',
       registrationLink: '',
       detailsLink: '',
-      isActive: true
+      isActive: true,
+      isFeatured: false
     });
     setEditingEvent(null);
     setShowForm(false);
@@ -175,13 +210,50 @@ export default function AdminEventsPage() {
                 required
                 className="bg-[#0F0F0F] border-gray-700 text-white"
               />
-              <Input
-                placeholder="Image URL"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                required
-                className="bg-[#0F0F0F] border-gray-700 text-white"
-              />
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-400">Event Image</label>
+                <div className="flex items-center gap-4">
+                  {formData.image && (
+                    <div className="relative w-24 h-24 rounded overflow-hidden border border-gray-700">
+                      <img 
+                        src={formData.image} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, image: '' })}
+                        className="absolute top-0 right-0 bg-red-600 text-white p-1 rounded-bl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                      id="event-image-upload"
+                    />
+                    <label
+                      htmlFor="event-image-upload"
+                      className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-[#E73138] transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {isUploading ? (
+                        <span className="text-gray-400">Uploading...</span>
+                      ) : (
+                        <>
+                          <span className="text-gray-400">Select Image</span>
+                          <span className="text-xs text-gray-500">PNG, JPG up to 5MB</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
               <Input
                 placeholder="Date (e.g., JANUARY 20, 2026)"
                 value={formData.date}
@@ -240,6 +312,15 @@ export default function AdminEventsPage() {
                 />
                 Active
               </label>
+              <label className="flex items-center text-white">
+                <input
+                  type="checkbox"
+                  checked={formData.isFeatured}
+                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                  className="mr-2"
+                />
+                Featured (Show in Hero)
+              </label>
             </div>
             <div className="flex gap-2">
               <Button type="submit" className="bg-[#E73138] hover:bg-[#c42127]">
@@ -261,19 +342,20 @@ export default function AdminEventsPage() {
               <th className="text-left p-4 text-white">Date</th>
               <th className="text-left p-4 text-white">Status</th>
               <th className="text-left p-4 text-white">Active</th>
+              <th className="text-left p-4 text-white">Featured</th>
               <th className="text-right p-4 text-white">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="text-center p-8 text-gray-400">
+                <td colSpan={6} className="text-center p-8 text-gray-400">
                   Loading events...
                 </td>
               </tr>
             ) : events.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center p-8 text-gray-400">
+                <td colSpan={6} className="text-center p-8 text-gray-400">
                   No events found. Create your first event!
                 </td>
               </tr>
@@ -289,6 +371,9 @@ export default function AdminEventsPage() {
                   </td>
                   <td className="p-4 text-white">
                     {event.isActive ? '✓' : '✗'}
+                  </td>
+                  <td className="p-4 text-white">
+                    {event.isFeatured ? '★' : '☆'}
                   </td>
                   <td className="p-4 text-right">
                     <Button

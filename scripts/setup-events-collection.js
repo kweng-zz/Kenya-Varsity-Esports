@@ -36,7 +36,7 @@ async function setupEventsCollection() {
 
     await databases.createStringAttribute(databaseId, collectionId, 'title', 255, true);
     await databases.createStringAttribute(databaseId, collectionId, 'gameSlug', 100, true);
-    await databases.createStringAttribute(databaseId, collectionId, 'image', 500, true);
+    await databases.createStringAttribute(databaseId, collectionId, 'image', 2000, true);
     await databases.createStringAttribute(databaseId, collectionId, 'date', 50, true);
     await databases.createStringAttribute(databaseId, collectionId, 'time', 20, true);
     await databases.createStringAttribute(databaseId, collectionId, 'prizePool', 100, true);
@@ -46,6 +46,7 @@ async function setupEventsCollection() {
     await databases.createStringAttribute(databaseId, collectionId, 'registrationLink', 500, false);
     await databases.createStringAttribute(databaseId, collectionId, 'detailsLink', 500, false);
     await databases.createBooleanAttribute(databaseId, collectionId, 'isActive', true);
+    await databases.createBooleanAttribute(databaseId, collectionId, 'isFeatured', false); // New attribute for hero section
 
     console.log('✅ All attributes created successfully');
 
@@ -80,7 +81,8 @@ async function setupEventsCollection() {
         status: 'OPEN',
         tags: ['ALL TITLES', 'VALORANT'],
         registrationLink: '/tournament-registration',
-        isActive: true
+        isActive: true,
+        isFeatured: true
       }
     );
 

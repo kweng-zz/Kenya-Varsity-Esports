@@ -13,6 +13,7 @@ interface SeasonStatsDoc {
   seasonNumber?: number;
   seasonStatus?: 'active' | 'completed';
   seasonEndDate?: string;
+  registrationStartDate?: string;
   eventImage?: string;
 }
 
@@ -20,6 +21,7 @@ interface SeasonSettings {
   $id: string;
   seasonNumber: number;
   seasonEndDate: string;
+  registrationStartDate?: string;
   eventImage: string;
   seasonStatus: 'active' | 'completed';
 }
@@ -79,6 +81,7 @@ export default function AdminStatisticsPage() {
   const [editingStatId, setEditingStatId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', label: '' });
   const [newSeasonEndDate, setNewSeasonEndDate] = useState('');
+  const [newRegistrationStartDate, setNewRegistrationStartDate] = useState('');
   const [newEventImageUrl, setNewEventImageUrl] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -127,6 +130,7 @@ export default function AdminStatisticsPage() {
         seasonNumber: doc.seasonNumber,
         seasonStatus: doc.seasonStatus,
         seasonEndDate: doc.seasonEndDate,
+        registrationStartDate: doc.registrationStartDate,
         eventImage: doc.eventImage
       })));
       
@@ -135,12 +139,14 @@ export default function AdminStatisticsPage() {
           $id: settings.$id,
           seasonNumber: settings.seasonNumber || 4,
           seasonEndDate: settings.seasonEndDate || '',
+          registrationStartDate: settings.registrationStartDate || '',
           eventImage: settings.eventImage || '',
           seasonStatus: settings.seasonStatus || 'active'
         });
         setPreviewUrl(settings.eventImage || '');
         setNewEventImageUrl(settings.eventImage || '');
         setNewSeasonEndDate(settings.seasonEndDate ? settings.seasonEndDate.split('T')[0] : '');
+        setNewRegistrationStartDate(settings.registrationStartDate ? settings.registrationStartDate.split('T')[0] : '');
       }
       
     } catch (err) {
@@ -270,7 +276,8 @@ export default function AdminStatisticsPage() {
 
       const updateData: Record<string, unknown> = {
         eventImage: eventImageUrl,
-        seasonEndDate: new Date(newSeasonEndDate + 'T23:59:59.000Z').toISOString()
+        seasonEndDate: new Date(newSeasonEndDate + 'T23:59:59.000Z').toISOString(),
+        registrationStartDate: newRegistrationStartDate ? new Date(newRegistrationStartDate + 'T00:00:00.000Z').toISOString() : null
       };
 
       await appwrite.databases.updateDocument(
@@ -498,6 +505,18 @@ export default function AdminStatisticsPage() {
                   onChange={(e) => setNewSeasonEndDate(e.target.value)}
                   className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
                 />
+              </div>
+
+              {/* Registration Start Date */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Registration Start Date (for Countdown)</label>
+                <input
+                  type="date"
+                  value={newRegistrationStartDate}
+                  onChange={(e) => setNewRegistrationStartDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
+                />
+                <p className="text-xs text-gray-400 mt-1">This date is used for the countdown timer on the tournaments page.</p>
               </div>
               
               {/* Image Preview */}

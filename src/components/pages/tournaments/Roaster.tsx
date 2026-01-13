@@ -7,30 +7,28 @@ import { getTournamentsPageData, SeasonInfo, GameInfo, getSeasonGames, getActive
 export const TeamRosterSection = () => {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<string>('');
+  const [allGames, setAllGames] = useState<GameInfo[]>([]);
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
-  const [gamesData, setGamesData] = useState<{
-    septemberMain: GameInfo[];
-    septemberAdded: GameInfo[];
-    januaryMain: GameInfo[];
-    januaryAdded: GameInfo[];
-  }>({
-    septemberMain: [],
-    septemberAdded: [],
-    januaryMain: [],
-    januaryAdded: []
-  });
 
   useEffect(() => {
     const data = getTournamentsPageData();
     setSeasons(data.seasons);
     
-    // Get all games (both active and inactive) for display
-    setGamesData({
-      septemberMain: getSeasonGames('september', 'main'),
-      septemberAdded: getSeasonGames('september', 'added'),
-      januaryMain: getSeasonGames('january', 'main'),
-      januaryAdded: getSeasonGames('january', 'added')
+    // Get all games from both seasons
+    const games = [
+      ...getSeasonGames('january', 'main'),
+      ...getSeasonGames('january', 'added'),
+      ...getSeasonGames('september', 'main'),
+      ...getSeasonGames('september', 'added')
+    ];
+    
+    // Sort games to ensure a consistent display (active first, then maybe alphabetical)
+    const sortedGames = [...games].sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      return a.name.localeCompare(b.name);
     });
+
+    setAllGames(sortedGames);
   }, []);
 
   const handleGameClick = (game: GameInfo) => {
@@ -45,16 +43,10 @@ export const TeamRosterSection = () => {
     setSelectedGame('');
   };
 
-  const getSeason = (seasonName: 'september' | 'january') => {
-    return seasons.find(s => s.name === seasonName);
-  };
-
-  const renderGameGrid = (games: GameInfo[], seasonName: 'september' | 'january') => {
+  const renderGameGrid = (games: GameInfo[]) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 justify-items-center">
         {games.map((game, index) => {
-          // Show active games as clickable links
-          // Show inactive games with coming soon overlay
           const isGameActive = game.isActive;
           
           if (isGameActive) {
@@ -90,7 +82,6 @@ export const TeamRosterSection = () => {
                   }}
                 />
                 
-                {/* Coming Soon Overlay */}
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="text-center">
                     <h3 className="text-white text-xl font-bold mb-2">COMING SOON</h3>
@@ -108,77 +99,20 @@ export const TeamRosterSection = () => {
   return (
     <section id="roaster-section" className="w-full py-20 bg-black">
       <div className="container mx-auto px-4">
-        {/* September Season */}
-        {getSeason('september') && (
-          <>
-            <div id="september-season" className="mb-16 text-center">
-              <h2 className="font-bold text-[46px] tracking-[1.84px] mb-6">
-                <span className="text-white tracking-[0.85px]">{getSeason('september')?.title.split(' ').slice(0, 2).join(' ')} </span>
-                <span className="text-[#961c18] tracking-[0.85px]">{getSeason('september')?.title.split(' ').slice(2, 4).join(' ')}</span>
-                <span className="text-white tracking-[0.85px]">
-                  {" "}
-                  {getSeason('september')?.title.split(' ').slice(4).join(' ')}
-                </span>
-              </h2>
-              <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">
-                {getSeason('september')?.description}
-              </p>
-            </div>
+        {/* Unified Header */}
+        <div id="roaster-header" className="mb-16 text-center">
+          <h2 className="font-bold text-[46px] tracking-[1.84px] mb-6">
+            <span className="text-white tracking-[0.85px]">KVE </span>
+            <span className="text-[#961c18] tracking-[0.85px]">GAME </span>
+            <span className="text-white tracking-[0.85px]">TITLES</span>
+          </h2>
+          <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">
+            The gaming titles being featured in the current semester period
+          </p>
+        </div>
 
-            {/* September Season - Main games */}
-            {gamesData.septemberMain.length > 0 && renderGameGrid(gamesData.septemberMain, 'september')}
-
-            {/* "Added for September Season" text */}
-            {gamesData.septemberAdded.length > 0 && (
-              <div className="text-center mb-16">
-                <h3 className="text-[#aaaaaa] text-[32px]">
-                  Added for the September Season
-                </h3>
-              </div>
-            )}
-
-            {/* September Season - Added games */}
-            {gamesData.septemberAdded.length > 0 && (
-              <div className="mb-32">
-                {renderGameGrid(gamesData.septemberAdded, 'september')}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* January Season */}
-        {getSeason('january') && (
-          <>
-            <div id="january-season" className="mb-16 text-center">
-              <h2 className="font-bold text-[46px] tracking-[1.84px] mb-6">
-                <span className="text-white tracking-[0.85px]">{getSeason('january')?.title.split(' ').slice(0, 2).join(' ')} </span>
-                <span className="text-[#961c18] tracking-[0.85px]">{getSeason('january')?.title.split(' ').slice(2, 4).join(' ')}</span>
-                <span className="text-white tracking-[0.85px]">
-                  {" "}
-                  {getSeason('january')?.title.split(' ').slice(4).join(' ')}
-                </span>
-              </h2>
-              <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">
-                {getSeason('january')?.description}
-              </p>
-            </div>
-
-            {/* January Season - Main games */}
-            {gamesData.januaryMain.length > 0 && renderGameGrid(gamesData.januaryMain, 'january')}
-
-            {/* "Added for January Season" text */}
-            {gamesData.januaryAdded.length > 0 && (
-              <div className="text-center mb-16">
-                <h3 className="text-[#aaaaaa] text-[32px]">
-                  Added for the January Season
-                </h3>
-              </div>
-            )}
-
-            {/* January Season - Added games */}
-            {gamesData.januaryAdded.length > 0 && renderGameGrid(gamesData.januaryAdded, 'january')}
-          </>
-        )}
+        {/* All games grid */}
+        {allGames.length > 0 && renderGameGrid(allGames)}
       </div>
 
       {/* Coming Soon Modal */}
@@ -210,7 +144,7 @@ export const TeamRosterSection = () => {
               Details Available Soon
             </h3>
             <p className="text-[#aaaaaa] mb-8 leading-relaxed">
-              This tournament is scheduled for the January 2026 semester. 
+              This tournament is scheduled for the upcoming semester. 
               Tournament details, registration information, and prize pools will be announced closer to the start date.
             </p>
 

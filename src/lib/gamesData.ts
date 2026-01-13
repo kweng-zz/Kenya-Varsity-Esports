@@ -45,7 +45,8 @@ export const gamesData: Record<string, Game> = {
     description: "PlayerUnknown's Battlegrounds Mobile is a battle royale game where 100 players fight to be the last one standing on a shrinking map. Experience intense combat, strategic gameplay, and team coordination in this mobile adaptation of the popular PC game.",
     category: "Battle Royale",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     featured: true,
     rules: {
       tournamentType: 'team',
@@ -88,7 +89,8 @@ export const gamesData: Record<string, Game> = {
     description: "Call of Duty Mobile Battle Royale brings the iconic franchise to mobile devices with intense multiplayer action. Fight across familiar maps with classic weapons and vehicles in this fast-paced battle royale experience.",
     category: "Battle Royale",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     featured: true,
     rules: {
       tournamentType: 'team',
@@ -131,7 +133,8 @@ export const gamesData: Record<string, Game> = {
     description: "eFootball Mobile is the mobile version of the popular football simulation game. Experience realistic football gameplay with authentic teams, players, and stadiums in competitive matches.",
     category: "Sports",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     featured: true,
     rules: {
       tournamentType: 'individual',
@@ -187,7 +190,8 @@ export const gamesData: Record<string, Game> = {
     description: "Free Fire is a battle royale game designed for mobile devices with fast-paced 10-minute matches. Each game features 50 players landing on a remote island where they must fight to be the last one standing.",
     category: "Battle Royale",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'team',
       minTeamSize: 4,
@@ -215,7 +219,8 @@ export const gamesData: Record<string, Game> = {
     description: "Fortnite is a battle royale game with unique building mechanics and creative gameplay. Build structures, gather resources, and outlast opponents in this colorful and dynamic gaming experience.",
     category: "Battle Royale",
     platform: "Cross-platform",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'team',
       minTeamSize: 4,
@@ -243,7 +248,8 @@ export const gamesData: Record<string, Game> = {
     description: "Bloodstrike is a competitive first-person shooter with tactical gameplay. Experience intense team-based combat with strategic elements and skill-based gunplay.",
     category: "FPS",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'team',
       minTeamSize: 5,
@@ -271,7 +277,8 @@ export const gamesData: Record<string, Game> = {
     description: "The classic strategy game of Chess, bringing intellectual competition to esports. Test your strategic thinking and tactical skills in this timeless game of minds.",
     category: "Strategy",
     platform: "Cross-platform",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'individual',
       minTeamSize: 1,
@@ -299,7 +306,8 @@ export const gamesData: Record<string, Game> = {
     description: "EA FC 2V2 brings competitive football gaming in a 2-versus-2 format. Experience fast-paced football action with smaller teams and intense gameplay.",
     category: "Sports",
     platform: "Console/PC",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'duo',
       minTeamSize: 2,
@@ -348,7 +356,8 @@ export const gamesData: Record<string, Game> = {
     description: "Call of Duty tournament featuring various game modes and competitive play. Experience intense tactical combat in this premier FPS competition.",
     category: "FPS",
     platform: "Mobile",
-    season: "September 2025",
+    season: "January 2026",
+    comingSoon: false,
     featured: true,
     rules: {
       tournamentType: 'team',
@@ -623,8 +632,8 @@ export const gamesData: Record<string, Game> = {
     description: "EA WRC brings rally racing to the esports scene. Experience authentic rally racing with realistic physics and challenging courses.",
     category: "Racing",
     platform: "Console/PC",
-    season: "Future",
-    comingSoon: true,
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'individual',
       minTeamSize: 1,
@@ -652,8 +661,8 @@ export const gamesData: Record<string, Game> = {
     description: "Mobile Legends: Bang Bang is a mobile MOBA game with fast-paced 5v5 battles. Choose from diverse heroes and engage in strategic team-based combat.",
     category: "MOBA",
     platform: "Mobile",
-    season: "Future",
-    comingSoon: true,
+    season: "January 2026",
+    comingSoon: false,
     rules: {
       tournamentType: 'team',
       minTeamSize: 5,

@@ -1,22 +1,13 @@
 import { NextResponse } from 'next/server';
-import { eventsService } from '@/lib/services/eventsService';
-import { getUserFromRequest } from '@/lib/auth-utils';
+import { eventsServiceSSR } from '@/lib/services/eventsServiceSSR';
 
 export const dynamic = 'force-dynamic';
 
 // GET all events (admin only)
 export async function GET(request: Request) {
   try {
-    const user = await getUserFromRequest(request);
-    
-    if (!user?.labels?.includes('admin')) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
-    const events = await eventsService.getAllEvents();
+    const events = await eventsServiceSSR.getAllEvents();
 
     return NextResponse.json({
       success: true,
@@ -34,14 +25,6 @@ export async function GET(request: Request) {
 // POST create new event (admin only)
 export async function POST(request: Request) {
   try {
-    const user = await getUserFromRequest(request);
-    
-    if (!user?.labels?.includes('admin')) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const eventData = await request.json();
 
@@ -66,7 +49,17 @@ export async function POST(request: Request) {
       eventData.isActive = true;
     }
 
-    const newEvent = await eventsService.createEvent(eventData);
+    // If making this event featured, unset others
+    if (eventData.isFeatured) {
+      const allEvents = await eventsServiceSSR.getAllEvents();
+      await Promise.all(
+        allEvents
+          .filter(e => e.isFeatured)
+          .map(e => eventsServiceSSR.updateEvent(e.$id, { isFeatured: false }))
+      );
+    }
+
+    const newEvent = await eventsServiceSSR.createEvent(eventData);
 
     return NextResponse.json({
       success: true,

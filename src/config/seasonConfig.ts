@@ -7,8 +7,8 @@
 export const CURRENT_SEASON = {
   number: 3,
   name: 'SEASON 3',
-  currentSemester: 'september',
-  upcomingSemester: 'january',
+  currentSemester: 'january',
+  upcomingSemester: 'september',
 } as const;
 
 export const SEASON_SEMESTERS = {

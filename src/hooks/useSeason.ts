@@ -8,6 +8,7 @@ interface SeasonInfo {
   previousSeason: number;
   isTransitioning: boolean;
   seasonEndDate?: Date;
+  registrationStartDate?: Date;
   eventImage?: string;
   loading: boolean;
   error?: string;
@@ -81,6 +82,7 @@ export const useSeason = () => {
         if (currentSeasonDoc) {
           const currentDate = new Date();
           const seasonEndDate = currentSeasonDoc.seasonEndDate ? new Date(currentSeasonDoc.seasonEndDate) : null;
+          const registrationStartDate = currentSeasonDoc.registrationStartDate ? new Date(currentSeasonDoc.registrationStartDate) : null;
           const isTransitioning = Boolean(seasonEndDate && currentDate > seasonEndDate);
           
           const currentSeason = currentSeasonDoc.seasonNumber || 3;
@@ -90,6 +92,7 @@ export const useSeason = () => {
             previousSeason: isTransitioning ? currentSeason : currentSeason - 1,
             isTransitioning,
             seasonEndDate: seasonEndDate || undefined,
+            registrationStartDate: registrationStartDate || undefined,
             eventImage: currentSeasonDoc.eventImage,
             loading: false
           });
@@ -140,6 +143,7 @@ export const useSeason = () => {
       if (currentSeasonDoc) {
         const currentDate = new Date();
         const seasonEndDate = currentSeasonDoc.seasonEndDate ? new Date(currentSeasonDoc.seasonEndDate) : null;
+        const registrationStartDate = currentSeasonDoc.registrationStartDate ? new Date(currentSeasonDoc.registrationStartDate) : null;
         const isTransitioning = Boolean(seasonEndDate && currentDate > seasonEndDate);
         
         const currentSeason = currentSeasonDoc.seasonNumber || 3;
@@ -149,6 +153,7 @@ export const useSeason = () => {
           previousSeason: isTransitioning ? currentSeason : currentSeason - 1,
           isTransitioning,
           seasonEndDate: seasonEndDate || undefined,
+          registrationStartDate: registrationStartDate || undefined,
           eventImage: currentSeasonDoc.eventImage,
           loading: false
         });

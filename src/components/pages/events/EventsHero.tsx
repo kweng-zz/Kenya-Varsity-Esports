@@ -4,35 +4,95 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Zap } from "lucide-react";
+import { eventsService, Event } from "@/lib/services/eventsService";
 
 export default function EventsHero() {
+  const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null);
   const [timeLeft, setTimeLeft] = useState({
-    days: 2,
-    hours: 14,
-    mins: 45,
+    days: 0,
+    hours: 0,
+    mins: 0,
   });
 
   useEffect(() => {
-    // Simple countdown simulation or real calculation
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.mins > 0) return { ...prev, mins: prev.mins - 1 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, mins: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, mins: 59 };
-        return prev;
-      });
-    }, 60000); // Update every minute to avoid too many renders for seconds
-    return () => clearInterval(timer);
+    const fetchFeatured = async () => {
+      try {
+        const response = await fetch('/api/events/featured');
+        const data = await response.json();
+        if (data.success) {
+          setFeaturedEvent(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching featured event:', error);
+      }
+    };
+    fetchFeatured();
   }, []);
+
+  useEffect(() => {
+    if (!featuredEvent) return;
+
+    const calculateTimeLeft = () => {
+      // Parse date like "JANUARY 20, 2026" and time like "18:00"
+      const eventDate = new Date(`${featuredEvent.date} ${featuredEvent.time}`);
+      const now = new Date();
+      const difference = eventDate.getTime() - now.getTime();
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          mins: Math.floor((difference / 1000 / 60) % 60),
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, mins: 0 });
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 60000);
+    return () => clearInterval(timer);
+  }, [featuredEvent]);
+
+  // Use featured event data or fall back to static if none found
+  const displayTitle = featuredEvent ? featuredEvent.title : "Join Your Institution's Esports Legacy";
+  const displayImage = featuredEvent ? featuredEvent.image : "/images/hero-bg.jpg";
+  const displayPrize = featuredEvent ? featuredEvent.prizePool : "KSH 500,000+";
+  const displaySubtitle = featuredEvent 
+    ? `Compete in the premier university esports league. Earn your spot among the legends and win from a pool of `
+    : `Compete in the premier university esports league. Earn your spot among the legends and win from a pool of `;
+
+  // Format title if it's the custom one (splitting into spans)
+  const renderTitle = () => {
+    if (featuredEvent) {
+      const parts = displayTitle.split(':');
+      if (parts.length > 1) {
+        return (
+          <>
+            <span className="block">{parts[0]}</span>
+            <span className="block text-[#E73138]">{parts[1]}</span>
+          </>
+        );
+      }
+      return <span className="block">{displayTitle}</span>;
+    }
+    return (
+      <>
+        <span className="block">Join Your</span>
+        <span className="block text-[#E73138]">Institution's</span>
+        <span className="block">Esports</span>
+        <span className="block">Legacy</span>
+      </>
+    );
+  };
 
   return (
     <section className="relative w-full min-h-[85vh] flex items-center bg-black overflow-hidden">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/hero-bg.jpg')", filter: "brightness(0.4)" }} 
+        style={{ backgroundImage: `url('${displayImage}')`, filter: "brightness(0.4)" }} 
       >
-        {/* Placeholder for actual background if not available, falling back to dark color */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
       </div>
@@ -41,22 +101,19 @@ export default function EventsHero() {
         
         {/* Featured Tag */}
         <div className="mb-6">
-          <span className="bg-[#E73138] text-white text-xs font-bold px-3 py-1 uppercase tracking-wider italic transform -skew-x-12 inline-block">
+          <span className="bg-[#E73138] text-white text-xs font-bold px-3 py-1 uppercase tracking-wider transform -skew-x-12 inline-block">
             Featured Tournament
           </span>
         </div>
 
         {/* Main Heading */}
-        <h1 className="font-['Hind',Helvetica] text-white text-5xl md:text-7xl lg:text-8xl font-black italic uppercase leading-none tracking-tighter mb-6 max-w-4xl">
-          <span className="block">Join Your</span>
-          <span className="block text-[#E73138]">Institution's</span>
-          <span className="block">Esports</span>
-          <span className="block">Legacy</span>
+        <h1 className="text-white text-5xl md:text-7xl lg:text-8xl font-bold uppercase leading-none tracking-tight mb-6 max-w-4xl">
+          {renderTitle()}
         </h1>
 
         {/* Subtitle */}
         <p className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10 font-light">
-          Compete in the premier university esports league. Earn your spot among the legends and win from a pool of <span className="font-bold text-white">KSH 500,000+</span>.
+          {displaySubtitle} <span className="font-bold text-white">{displayPrize}</span>.
         </p>
 
         {/* Countdown Timer */}
@@ -68,14 +125,18 @@ export default function EventsHero() {
 
         {/* Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button className="h-12 px-8 bg-[#E73138] hover:bg-[#c42127] text-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none group transition-all">
-            <div className="skew-x-[10deg] flex items-center gap-2">
-              Register Now <Zap size={18} fill="currentColor" />
-            </div>
-          </Button>
-          <Button variant="outline" className="h-12 px-8 border-gray-500 text-white hover:bg-white/10 hover:text-white hover:border-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none bg-transparent">
-             <div className="skew-x-[10deg]">View Bracket</div>
-          </Button>
+          <Link href={featuredEvent?.registrationLink || "/tournament-registration"}>
+            <Button className="h-12 px-8 bg-[#E73138] hover:bg-[#c42127] text-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none group transition-all">
+              <div className="skew-x-[10deg] flex items-center gap-2">
+                Register Now <Zap size={18} fill="currentColor" />
+              </div>
+            </Button>
+          </Link>
+          <Link href={featuredEvent?.detailsLink || "#"}>
+            <Button variant="outline" className="h-12 px-8 border-gray-500 text-white hover:bg-white/10 hover:text-white hover:border-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none bg-transparent">
+               <div className="skew-x-[10deg]">View Bracket</div>
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

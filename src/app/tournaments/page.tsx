@@ -72,9 +72,6 @@ export default function TournamentsPage() {
         </div>
 
         <HeroSection />
-
-        <CategoriesSection />
-
         {/* Team Roster section - full width */}
         <TeamRosterSection />
 

@@ -57,7 +57,7 @@ export default function EventsList() {
       <div className="container mx-auto">
         {/* Header and Filter */}
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-12 gap-6 border-b border-gray-800 pb-4">
-            <h2 className="text-3xl md:text-5xl font-black italic uppercase text-white tracking-tighter">
+            <h2 className="text-3xl md:text-5xl font-bold uppercase text-white tracking-tight">
                 Upcoming <span className="text-[#E73138]">Events</span>
             </h2>
             
@@ -134,7 +134,7 @@ const EventCard = ({ event }: { event: Event }) => {
 
             {/* Content */}
             <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-black italic uppercase text-white mb-4 leading-tight">
+                <h3 className="text-xl font-bold uppercase text-white mb-4 leading-tight">
                     {event.title}
                 </h3>
 

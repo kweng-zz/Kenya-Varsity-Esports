@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eventsService } from '@/lib/services/eventsService';
-import { getUserFromRequest } from '@/lib/auth-utils';
+import { eventsServiceSSR } from '@/lib/services/eventsServiceSSR';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,19 +9,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getUserFromRequest(request);
-    
-    if (!user?.labels?.includes('admin')) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+    const { id } = await params;
+    const body = await request.json();
+
+    // If making this event featured, unset others
+    if (body.isFeatured) {
+      const allEvents = await eventsServiceSSR.getAllEvents();
+      await Promise.all(
+        allEvents
+          .filter(e => e.isFeatured && e.$id !== id)
+          .map(e => eventsServiceSSR.updateEvent(e.$id, { isFeatured: false }))
       );
     }
 
-    const { id } = await params;
-    const eventData = await request.json();
-
-    const updatedEvent = await eventsService.updateEvent(id, eventData);
+    const updatedEvent = await eventsServiceSSR.updateEvent(id, body);
 
     return NextResponse.json({
       success: true,
@@ -43,17 +43,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getUserFromRequest(request);
-    
-    if (!user?.labels?.includes('admin')) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
-    await eventsService.deleteEvent(id);
+    await eventsServiceSSR.deleteEvent(id);
 
     return NextResponse.json({
       success: true,

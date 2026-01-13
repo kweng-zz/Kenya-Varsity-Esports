@@ -56,15 +56,19 @@ export const HeroSection = () => {
           {/* Left Content */}
           <div className="space-y-6">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-              We are building the future of University Esports in Kenya
+              We are building the future of Higher Institutions Esports in Kenya
             </h1>
 
             <div className="space-y-4 text-gray-300 text-base sm:text-lg">
               <p>
-                We are committed to developing a thriving university esports ecosystem across Kenya. Our mission is to provide students with consistent tournaments, national rankings, content creation opportunities, and esports education while supporting their academic growth.
+                We are committed to developing a thriving esports ecosystem for 
+                universities colleges and TVETs across Kenya. Our mission is to 
+                provide students with consistent tournaments, opportunities and 
+                esports education while supporting their academic growth.
               </p>
               <p>
-                Our team works closely with universities, esports clubs, and student leaders to strengthen competitive gaming, empower talent, and expand esports culture across all Kenyan campuses.
+                Our team works closely with higher institutions esports teams/clubs to strengthen competitive gaming, 
+                empower talent, and expand esports culture across all Kenya's higher institutions.
               </p>
             </div>
           </div>
@@ -73,7 +77,7 @@ export const HeroSection = () => {
           <div className="relative h-80 sm:h-96 lg:h-full lg:min-h-[500px]">
             <div className="relative w-full h-full rounded-lg overflow-hidden border border-red-900/30">
               <Image
-                src="/images/hero-community.jpg"
+                src="/images/Winners.jpg"
                 alt="Esports team competing"
                 fill
                 className="object-cover"

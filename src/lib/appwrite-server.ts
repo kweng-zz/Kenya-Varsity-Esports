@@ -50,6 +50,7 @@ export const COLLECTIONS = {
   UNIVERSITIES: process.env.NEXT_PUBLIC_APPWRITE_UNIVERSITIES_COLLECTION_ID || 'universities',
   SPONSORS: process.env.NEXT_PUBLIC_APPWRITE_SPONSORS_COLLECTION_ID || 'sponsors',
   CONTACT_MESSAGES: process.env.NEXT_PUBLIC_APPWRITE_CONTACT_MESSAGES_COLLECTION_ID || 'contact-messages',
+  EVENTS: process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID || 'events',
 };
 
 // Helper function to handle Appwrite errors

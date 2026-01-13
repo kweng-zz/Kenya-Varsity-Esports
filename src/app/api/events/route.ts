@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eventsService } from '@/lib/services/eventsService';
+import { eventsServiceSSR } from '@/lib/services/eventsServiceSSR';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -8,12 +8,19 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as 'OPEN' | 'LEAGUE' | 'PRO' | null;
+    const featured = searchParams.get('featured') === 'true';
 
     let events;
-    if (status) {
-      events = await eventsService.getEventsByStatus(status);
+    if (featured) {
+      const event = await eventsServiceSSR.getFeaturedEvent();
+      events = event ? [event] : [];
+    } else if (status) {
+      // Note: We might need to update eventsServiceSSR to support status filters
+      // For now, let's fetch active and filter
+      const active = await eventsServiceSSR.getActiveEvents();
+      events = active.filter(e => e.status === status);
     } else {
-      events = await eventsService.getActiveEvents();
+      events = await eventsServiceSSR.getActiveEvents();
     }
 
     return NextResponse.json({

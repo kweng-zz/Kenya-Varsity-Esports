@@ -47,17 +47,7 @@ export const FooterSection = () => {
       alt: "TikTok",
       url: "https://www.tiktok.com/@kenyauniesportsrankings",
     },
-    {
-      icon: "https://c.animaapp.com/md6ebassseX7AK/img/x-1-1.png",
-      alt: "X",
-      url: "https://x.com/keunierankings?s=21",
-    },
-    {
-      // FIX: Swapped icon URL with YouTube's for the correct Discord icon.
-      icon: "https://c.animaapp.com/md6ebassseX7AK/img/vector-13.svg",
-      alt: "Twitch",
-      url: "https://www.twitch.tv/kenyauniesportsrankings",
-    },
+    
   ];
 
   const handleNavLinkClick = (linkName: string) => {

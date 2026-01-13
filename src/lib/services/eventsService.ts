@@ -1,8 +1,8 @@
-import { databases } from '@/lib/appwrite';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/lib/appwrite';
 import { Query } from 'appwrite';
 
-const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-const eventsCollectionId = process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID!;
+const databaseId = DATABASE_ID;
+const eventsCollectionId = COLLECTIONS.EVENTS;
 
 export interface Event {
   $id: string;
@@ -18,6 +18,7 @@ export interface Event {
   registrationLink?: string;
   detailsLink?: string;
   isActive: boolean;
+  isFeatured: boolean;
   $createdAt: string;
   $updatedAt: string;
 }
@@ -58,6 +59,26 @@ export const eventsService = {
     } catch (error) {
       console.error('Error fetching events by status:', error);
       throw error;
+    }
+  },
+
+  // Get current featured event for Hero section
+  async getFeaturedEvent(): Promise<Event | null> {
+    try {
+      const response = await databases.listDocuments(
+        databaseId,
+        eventsCollectionId,
+        [
+          Query.equal('isActive', true),
+          Query.equal('isFeatured', true),
+          Query.orderDesc('$updatedAt'),
+          Query.limit(1)
+        ]
+      );
+      return response.documents.length > 0 ? (response.documents[0] as unknown as Event) : null;
+    } catch (error) {
+      console.error('Error fetching featured event:', error);
+      return null;
     }
   },
 

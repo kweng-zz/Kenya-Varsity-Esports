@@ -35,22 +35,22 @@ const defaultData: TournamentsPageData = {
     {
       id: 'september-2025',
       name: 'september',
-      title: 'KUER SEASON 3 SEPTEMBER SEMESTER 2025',
+      title: 'KVE GAME TITLES',
       subtitle: 'September Season',
-      description: 'The gaming titles being featured in the September Semester Period for 2025',
+      description: 'The gaming titles being featured in the September Semester Period',
       image: '/images/September-Season.png',
-      isActive: true,
+      isActive: false,
       startDate: '2025-09-01',
       endDate: '2025-12-31'
     },
     {
       id: 'january-2026',
       name: 'january',
-      title: 'KUER SEASON 3 JANUARY SEMESTER 2026',
+      title: 'KVE GAME TITLES',
       subtitle: 'January Season',
-      description: 'The gaming titles being featured in the January Semester Period for 2026',
+      description: 'The gaming titles being featured in the January Semester Period',
       image: '/images/January-Season.png',
-      isActive: false,
+      isActive: true,
       startDate: '2026-01-01',
       endDate: '2026-05-31'
     }
@@ -98,7 +98,7 @@ const defaultData: TournamentsPageData = {
       slug: 'codm-multiplayer',
       image: '/images/CODM-MP.png',
       route: '/games/codm-multiplayer',
-      isActive: false,
+      isActive: true,
       season: 'january',
       category: 'main',
       order: 1
@@ -106,10 +106,10 @@ const defaultData: TournamentsPageData = {
     {
       id: 'eafc-1v1-jan',
       name: 'EAFC-1V1',
-      slug: 'EAFC-1-v1-Open',
+      slug: 'eafc-1v1-open',
       image: '/images/EAFC-1-v1-Open.png',
-      route: '/games/EAFC-1-v1-Open',
-      isActive: false,
+      route: '/games/eafc-1v1-open',
+      isActive: true,
       season: 'january',
       category: 'main',
       order: 2
@@ -117,10 +117,10 @@ const defaultData: TournamentsPageData = {
     {
       id: 'eafc-women-jan',
       name: 'EAFC-WOMEN',
-      slug: 'EAFC-Women',
+      slug: 'eafc-women',
       image: '/images/EAFC-Women.png',
-      route: '/games/EAFC-Women',
-      isActive: false,
+      route: '/games/eafc-women',
+      isActive: true,
       season: 'january',
       category: 'main',
       order: 3
@@ -129,10 +129,10 @@ const defaultData: TournamentsPageData = {
     {
       id: 'fights-jan',
       name: 'Fights',
-      slug: 'fights',
+      slug: 'fighting-games',
       image: '/images/Fighting-Games-Open.png',
-      route: '/games/fights',
-      isActive: false,
+      route: '/games/fighting-games',
+      isActive: true,
       season: 'january',
       category: 'added',
       order: 1
@@ -144,7 +144,7 @@ const defaultData: TournamentsPageData = {
       slug: 'valorant',
       image: '/images/Valorant.png',
       route: '/games/valorant',
-      isActive: false,
+      isActive: true,
       season: 'january',
       category: 'added',
       order: 3

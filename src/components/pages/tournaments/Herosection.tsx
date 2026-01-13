@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image'; // Import Next.js Image component
-import { ChevronLeft, ChevronRight, StarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSeason } from '@/hooks/useSeason';
 
-// ... (StarIcon, ChevronLeft, ChevronRight remain the same) ...
+
 
 // Define an interface for the TimeLeft object to give it a clear structure
 interface TimeLeft {
@@ -80,8 +81,8 @@ export const HeroSection: React.FC = () => {
   }, [bannerImages.length, isTransitioning]);
 
   // Countdown timer logic (for "SEASON 3 IN" section)
-  const calculateTimeLeft = (): TimeLeft => { // Explicitly define return type
-    const difference = +new Date("2025-09-08T00:00:00") - +new Date(); // Assuming Sept 1, 2025 as the target
+  const calculateTimeLeft = (targetDate: string | Date): TimeLeft => { // Explicitly define return type
+    const difference = +new Date(targetDate) - +new Date(); // Target for January Season Registration
     let timeLeft: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 }; // Initialize with default values
 
     if (difference > 0) {
@@ -97,18 +98,21 @@ export const HeroSection: React.FC = () => {
 
   // Initialize useState with default values to prevent hydration mismatch
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const { registrationStartDate, currentSeason, loading: seasonLoading } = useSeason();
 
   useEffect(() => {
     // Set client flag and initial time
     setIsClient(true);
-    setTimeLeft(calculateTimeLeft());
+    
+    const targetDate = registrationStartDate || "2026-02-01T00:00:00";
+    setTimeLeft(calculateTimeLeft(targetDate));
 
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
+      setTimeLeft(calculateTimeLeft(targetDate));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []); // Empty dependency array to run only once
+  }, [registrationStartDate]); // Depend on registrationStartDate
 
   return (
     <section className="w-full bg-black py-16 md:py-24 relative">
@@ -198,9 +202,9 @@ export const HeroSection: React.FC = () => {
         <div className="w-full max-w-4xl flex flex-col md:flex-row items-center justify-between mt-8 ">
           {/* Left: KUER Logo and Text */}
           <div className="flex items-center mb-8 md:mb-0">
-            <div className="w-20 h-20 mr-4">
+            <div className="w-32 h-32 mr-4">
               <Image
-                src="/images/KUER transparent.png"
+                src="/images/KVE white no words.png"
                 alt="KUER Logo"
                 width={80}
                 height={80}
@@ -208,8 +212,8 @@ export const HeroSection: React.FC = () => {
               />
             </div>
             <div>
-              <p className="text-red-600/50 text-2xl font-bold tracking-wide">KENYA UNIVERSITY</p>
-              <p className="text-red-600/50 text-2xl font-bold tracking-wide">ESPORTS RANKINGS</p>
+              <p className="text-red-600/50 text-2xl font-bold tracking-wide">KENYA VARSITY ESPORTS</p>
+             
               <p className="text-[#AAAAAA] text-sm">Founded August 2024</p>
             </div>
           </div>
@@ -219,7 +223,9 @@ export const HeroSection: React.FC = () => {
 
           {/* Right: SEASON 3 IN Countdown */}
           <div className="text-center md:text-right">
-            <h2 className="text-white text-[32px] font-bold tracking-wider mb-2 mr-8">SEASON 3 IN</h2>
+            <h2 className="text-white text-[32px] font-bold tracking-wider mb-2 mr-8">
+              S{currentSeason || 3} REGISTERING
+            </h2>
             <div className="flex justify-center md:justify-end">
               {/* Only render timer after client hydration */}
               {!isClient ? (

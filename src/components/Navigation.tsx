@@ -57,10 +57,8 @@ export function Navigation() {
     { url: "https://www.facebook.com/people/Kenya-University-Esports-Rankings/61564114237402/?mibextid=LQQJ4d", alt: "Facebook" },
     { url: "https://www.instagram.com/keuniesportsrankings/?igsh=MXRmNHZtOTVqZDh5dQ%3D%3D&utm_source=qr", alt: "Instagram" },
     { url: "https://www.linkedin.com/company/kenya-university-esports-rankings", alt: "LinkedIn" },
-    { url: "https://www.twitch.tv/kenyauniesportsrankings", alt: "Twitch" },
     { url: "https://www.whatsapp.com/channel/0029VafLdwE96H4XI1gb3X3Z", alt: "WhatsApp" },
     { url: "https://www.tiktok.com/@kenyauniesportsrankings", alt: "TikTok" },
-    { url: "https://x.com/keunierankings?s=21", alt: "Twitter" },
     { url: "https://www.youtube.com/@kenyauniversityesportsrankings", alt: "YouTube" },
   ];
 

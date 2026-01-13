@@ -11,7 +11,7 @@ export const HeroSection = () => {
           </span>
         </h1>
         <p className="font-['Hind',Helvetica] font-normal text-white text-xl max-w-2xl leading-relaxed">
-          Find answers to common questions about KUER tournaments, registration, rankings, and more
+          Find answers to common questions about KVE tournaments, registration, rankings, and more
         </p>
       </div>
     </section>

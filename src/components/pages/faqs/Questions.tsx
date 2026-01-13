@@ -19,16 +19,16 @@ export const FAQSection = () => {
       category: "General",
       questions: [
         {
-          question: "What is KUER?",
-          answer: "KUER (Kenya University Esports Rankings) is the premier esports platform for university students in Kenya. We organize tournaments, maintain rankings, and build a community for competitive gaming across Kenyan universities."
+          question: "What is KVE?",
+          answer: "KVE (Kenya Varsity Esports) is the premier esports platform for university students in Kenya. We organize tournaments, maintain rankings, and build a community for competitive gaming across Kenyan universities."
         },
         {
-          question: "Who can participate in KUER tournaments?",
-          answer: "KUER tournaments are open to all university and college students in Kenya. You must be currently enrolled and provide valid student identification during the verification process."
+          question: "Who can participate in KVE tournaments?",
+          answer: "KVE tournaments are open to all university and college students in Kenya. You must be currently enrolled and provide valid student identification during the verification process."
         },
         {
-          question: "Is KUER free to use?",
-          answer: "Yes, creating an account and participating in most KUER tournaments is completely free. Some premium tournaments may have entry fees, which will be clearly stated in the tournament details."
+          question: "Is KVE free to use?",
+          answer: "Yes, creating an account and participating in most KVE tournaments is completely free. Some premium tournaments may have entry fees, which will be clearly stated in the tournament details."
         }
       ]
     },
@@ -116,7 +116,7 @@ export const FAQSection = () => {
       category: "Contact & Support",
       questions: [
         {
-          question: "How can I contact KUER support?",
+          question: "How can I contact KVE support?",
           answer: "You can reach us through our support ticket system, email us at info@kuer.co.ke, or join our Discord community for quick questions and community support."
         },
         {

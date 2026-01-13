@@ -13,7 +13,7 @@ export const FooterSection = () => {
     icon: string;
   }
   
-  const currentYear = 2025;
+  const currentYear = new Date().getFullYear();
 
   const socialLinks: SocialLinkData[] = [
     {
@@ -89,7 +89,7 @@ export const FooterSection = () => {
             />
 
             {/* Social media icons */}
-            <div className="flex flex-wrap gap-1 justify-center sm:justify-start sm:ml-6">
+            <div className="flex flex-wrap gap-3 justify-center sm:justify-start sm:ml-6">
               {socialLinks.map((link: SocialLinkData, index: number) => (
                 <a
                   key={`social-${index}`}

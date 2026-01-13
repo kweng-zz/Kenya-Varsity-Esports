@@ -19,7 +19,7 @@ export const HeroSection = () => {
         <div className="max-w-4xl mx-auto font-['Hind',Helvetica] text-white text-center">
           <div className="mt-10">
             <p className="font-bold text-[26px] leading-relaxed">
-              If you would like to make a general enquiry, get involved in UNIVERSITY Esports or are interested in working with us, please get in touch via Discord, support email or our social media accounts below
+              If you would like to make a general enquiry, get involved in KVE or are interested in working with us, please get in touch via Discord, support email or our social media accounts below
             </p>
           </div>
         </div>

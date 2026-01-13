@@ -1,5 +1,6 @@
 import { FooterSection, Navigation } from "@/components";
 import React from "react";
+import { LogoLoop } from "@/components/LogoLoop";
 
 
 const privacyData = {
@@ -109,10 +110,7 @@ export default function PrivacyPage() {
               Last Updated: {privacyData.lastUpdated}
             </p>
             <p className="font-bold text-[26px] mt-4">
-              Kenya University Esports Rankings (KUER) is committed to
-              protecting your privacy. This Privacy Policy explains how we
-              collect, use, disclose, and safeguard your information when you
-              use our website and services.
+              Kenya Varsity Esports (KVE) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
             </p>
           </div>
 
@@ -133,12 +131,8 @@ export default function PrivacyPage() {
           ))}
         </div>
 
-        <div className="relative mt-16">
-          <img
-            className="w-full h-auto"
-            alt="Mask Group"
-            src="https://c.animaapp.com/mdsmmxxn0MTxE3/img/mask-group.png"
-          />
+        <div className="mt-16">
+          <LogoLoop />
         </div>
       </div>
 

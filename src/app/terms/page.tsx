@@ -1,5 +1,6 @@
 import { FooterSection, Navigation } from "@/components";
 import React from "react";
+import { LogoLoop } from "@/components/LogoLoop";
 
 const termsData = {
   effectiveDate: "02/02/2025",
@@ -25,16 +26,16 @@ const termsData = {
       title: "3. Use of Platform",
       points: [
         "You agree not to:",
-        "Use KUER for unlawful or fraudulent activities.",
+        "Use KVE for unlawful or fraudulent activities.",
         "Submit false or misleading information.",
         "Harass, threaten, or harm other users.",
-        "Attempt to hack or disrupt the KUER website or services.",
+        "Attempt to hack or disrupt the KVE website or services.",
       ],
     },
     {
       title: "4. Participation in Tournaments",
       points: [
-        "All matches must follow the official KUER rules for each game title.",
+        "All matches must follow the official KVE rules for each game title.",
         "Cheating, smurfing, or use of unauthorized software will result in disqualification and possible banning.",
         "Teams must register players who are already verified on the platform.",
         "Team captains are responsible for managing communication and registration for their teams.",
@@ -46,21 +47,21 @@ const termsData = {
       points: [
         "Rewards (e.g., in-game gems, merchandise, or trophies) will be distributed based on performance and compliance.",
         "For cash payment participants will be paid by 30 days after the completion of the tournament.",
-        "KUER reserves the right to withhold or retract rewards in cases of rule violations.",
+        "KVE reserves the right to withhold or retract rewards in cases of rule violations.",
         "MVPs or top-ranked players may receive additional rewards or recognition.",
       ],
     },
     {
       title: "6. Intellectual Property",
       points: [
-        "All KUER branding, logos, and content are the property of Kenya University Esports Rankings.",
-        "You retain ownership of content you submit but grant KUER a license to use it for promotion, streaming, or reporting purposes.",
+        "All KVE branding, logos, and content are the property of Kenya Varsity Esports.",
+        "You retain ownership of content you submit but grant KVE a license to use it for promotion, streaming, or reporting purposes.",
       ],
     },
     {
       title: "7. Privacy and Data Use",
       points: [
-        "By using KUER, you consent to the collection and use of your data as outlined in our Privacy Policy.",
+        "By using KVE, you consent to the collection and use of your data as outlined in our Privacy Policy.",
         "We do not sell user data to third parties.",
         "Data may be shared with service providers or legal authorities if required.",
       ],
@@ -68,14 +69,14 @@ const termsData = {
     {
       title: "8. Termination",
       points: [
-        "KUER may suspend or terminate accounts that violate these Terms.",
+        "KVE may suspend or terminate accounts that violate these Terms.",
         "Users may deactivate their accounts by contacting info@kuer.co.ke.",
       ],
     },
     {
       title: "9. Limitation of Liability",
       points: [
-        "KUER is not liable for:",
+        "KVE is not liable for:",
         "Loss of data,",
         "Service interruptions,",
         "Issues caused by third-party platforms (e.g., Discord, game servers),",
@@ -126,10 +127,10 @@ export default function TermsPage() {
               Last Updated: {termsData.lastUpdated}
             </p>
             <p className="font-bold text-[26px] mt-4">
-              Welcome to Kenya University Esports Rankings (KUER)! These
+              Welcome to Kenya Varsity Esports (KVE)! These
               Terms and Conditions (&quot;Terms&quot;) govern your use of our website,
               services, and participation in esports tournaments hosted by
-              KUER. By accessing or using any part of our platform, you
+              KVE. By accessing or using any part of our platform, you
               agree to be bound by these Terms.
             </p>
           </div>
@@ -151,12 +152,8 @@ export default function TermsPage() {
           ))}
         </div>
 
-        <div className="relative mt-16">
-          <img
-            className="w-full h-auto"
-            alt="Mask Group"
-            src="https://c.animaapp.com/mdsmmxxn0MTxE3/img/mask-group.png"
-          />
+        <div className="mt-16">
+          <LogoLoop />
         </div>
       </div>
 

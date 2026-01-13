@@ -27,12 +27,12 @@ export const HeroSection = () => {
     mission: {
       title: 'MISSION',
       description:
-        'To build and maintain Kenya\'s most reliable, inclusive, and competitive university esports structure through tournaments, rankings, partnerships, and educational programs.',
+        'To build and maintain Kenya\'s most reliable, inclusive, and competitive esports structures in higher institutions through tournaments, rankings, partnerships, and educational programs.',
     },
     vision: {
       title: 'VISION',
       description:
-        'A Kenya where every university has a thriving esports community that creates opportunities for competition, careers, and personal development.',
+        'A Kenya where every higher institution has a thriving esports community that creates opportunities for competition, careers, and personal development.',
     },
     values: {
       title: 'OUR VALUES',

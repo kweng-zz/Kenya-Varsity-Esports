@@ -396,7 +396,7 @@ export default function AdminStatisticsPage() {
                   <div className="space-y-2">
                     <input
                       type="url"
-                      value={newEventImageUrl}
+                      value={newEventImageUrl || ''}
                       onChange={(e) => {
                         setNewEventImageUrl(e.target.value);
                         setPreviewUrl(e.target.value);
@@ -439,7 +439,7 @@ export default function AdminStatisticsPage() {
                 <label className="block text-sm font-medium mb-2">Registration Start Date (for Countdown)</label>
                 <input
                   type="date"
-                  value={newRegistrationStartDate}
+                  value={newRegistrationStartDate || ''}
                   onChange={(e) => setNewRegistrationStartDate(e.target.value)}
                   className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
                 />

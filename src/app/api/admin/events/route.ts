@@ -1,11 +1,51 @@
 import { NextResponse } from 'next/server';
 import { eventsServiceSSR } from '@/lib/services/eventsServiceSSR';
+import { getUserFromRequest } from '@/lib/auth-utils';
+import { databases, DATABASE_ID } from '@/lib/appwrite';
 
 export const dynamic = 'force-dynamic';
 
 // GET all events (admin only)
 export async function GET(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify admin status
+    const profileCollectionId = process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID;
+    if (!profileCollectionId) {
+      console.error('Profile collection ID not configured');
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const profile = await databases.getDocument(
+        DATABASE_ID,
+        profileCollectionId,
+        user.$id
+      );
+
+      if (!profile.isAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: Admin access required' },
+          { status: 403 }
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching admin profile:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to verify admin status' },
+        { status: 500 }
+      );
+    }
 
     const events = await eventsServiceSSR.getAllEvents();
 
@@ -25,6 +65,44 @@ export async function GET(request: Request) {
 // POST create new event (admin only)
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify admin status
+    const profileCollectionId = process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID;
+    if (!profileCollectionId) {
+      console.error('Profile collection ID not configured');
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const profile = await databases.getDocument(
+        DATABASE_ID,
+        profileCollectionId,
+        user.$id
+      );
+
+      if (!profile.isAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: Admin access required' },
+          { status: 403 }
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching admin profile:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to verify admin status' },
+        { status: 500 }
+      );
+    }
 
     const eventData = await request.json();
 

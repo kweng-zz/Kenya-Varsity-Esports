@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, message } = body;
 
-    console.log('📧 Contact form submission received:', { name, email });
+    console.log('📧 Contact form submission received');
 
     // Validate input
     if (!name || !email || !message) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.error('❌ Invalid email format:', email);
+      console.error('❌ Invalid email format');
       return NextResponse.json(
         { success: false, error: 'Invalid email format' },
         { status: 400 }

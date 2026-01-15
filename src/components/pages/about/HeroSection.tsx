@@ -74,7 +74,7 @@ export const HeroSection = () => {
           </div>
 
           {/* Right Image */}
-          <div className="relative h-80 sm:h-96 lg:h-full lg:min-h-[500px]">
+          <div className="relative h-80 sm:h-96 lg:h-full lg:min-h-125">
             <div className="relative w-full h-full rounded-lg overflow-hidden border border-red-900/30">
               <Image
                 src="/images/Winners.jpg"
@@ -84,7 +84,7 @@ export const HeroSection = () => {
                 priority
               />
               {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const HeroSection = () => {
                     </h3>
                     <div className="flex items-start gap-3">
                       <svg
-                        className="w-6 h-6 text-red-600 flex-shrink-0 mt-1"
+                        className="w-6 h-6 text-red-600 shrink-0 mt-1"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >

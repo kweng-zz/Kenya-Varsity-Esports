@@ -105,21 +105,7 @@ export default function AdminPage() {
                     <p>Review and approve tournament registration requests.</p>
                 </Link>
 
-                <Link 
-                    href="/admin/team-captains-manager" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Team Captains Manager</h2>
-                    <p>Add, edit, and manage authorized team captains who can register for tournaments.</p>
-                </Link>
-
-                <Link 
-                    href="/admin/blogs" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Blog Management</h2>
-                    <p>Create, edit, and manage blog posts and articles.</p>
-                </Link>
+                
 
                 <Link 
                     href="/admin/calendar" 
@@ -137,14 +123,7 @@ export default function AdminPage() {
                     <p>Manage platform users, roles, and permissions.</p>
                 </Link>
 
-                <Link 
-                    href="/admin/universities" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Universities</h2>
-                    <p>Manage university WhatsApp groups and community links.</p>
-                </Link>
-
+                
                 <Link 
                     href="/admin/tickets" 
                     className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
@@ -160,32 +139,6 @@ export default function AdminPage() {
                 >
                     <h2 className="text-2xl font-semibold">Rankings Management</h2>
                     <p>Manage university rankings and scores for different games.</p>
-                </Link>
-
-                
-
-                <Link 
-                    href="/admin/regional-rankings" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Regional Rankings</h2>
-                    <p>Add rankings data and images for each region.</p>
-                </Link>
-
-                <Link 
-                    href="/admin/game-categories" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Game Categories</h2>
-                    <p>Manage tournament game categories and seasons.</p>
-                </Link>
-
-                <Link 
-                    href="/admin/contact" 
-                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
-                >
-                    <h2 className="text-2xl font-semibold">Contact Messages</h2>
-                    <p>View and respond to contact form submissions.</p>
                 </Link>
 
                 <Link 

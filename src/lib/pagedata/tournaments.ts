@@ -68,17 +68,7 @@ const defaultData: TournamentsPageData = {
       category: 'main',
       order: 1
     },
-    {
-      id: 'codm-br-sep',
-      name: 'Call of Duty Mobile BR',
-      slug: 'call-of-duty-mobile-br',
-      image: '/images/CODM-BR.png',
-      route: '/games/call-of-duty-mobile-br',
-      isActive: true,
-      season: 'september',
-      category: 'main',
-      order: 2
-    },
+    
     {
       id: 'efootball-sep',
       name: 'eFootball Mobile',
@@ -114,17 +104,7 @@ const defaultData: TournamentsPageData = {
       category: 'main',
       order: 2
     },
-    {
-      id: 'eafc-women-jan',
-      name: 'EAFC-WOMEN',
-      slug: 'eafc-women',
-      image: '/images/EAFC-Women.png',
-      route: '/games/eafc-women',
-      isActive: true,
-      season: 'january',
-      category: 'main',
-      order: 3
-    },
+    
     // January Season - Added Games
     {
       id: 'fights-jan',
@@ -138,17 +118,7 @@ const defaultData: TournamentsPageData = {
       order: 1
     },
     
-    {
-      id: 'valorant-jan',
-      name: 'Valorant',
-      slug: 'valorant',
-      image: '/images/Valorant.png',
-      route: '/games/valorant',
-      isActive: true,
-      season: 'january',
-      category: 'added',
-      order: 3
-    },
+    
     
   ],
   lastUpdated: new Date().toISOString()

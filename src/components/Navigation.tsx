@@ -204,7 +204,7 @@ export function Navigation() {
         <div className="md:hidden relative z-20 flex justify-between items-center px-4 h-full">
           <Link href="/">
             <img
-              src="https://c.animaapp.com/md7xc8iywLDvVn/img/kuer-transparent-1.png"
+              src="/images/KVE white no words.png"
               alt="Kuer Logo"
               className="w-12 h-12 object-cover"
             />

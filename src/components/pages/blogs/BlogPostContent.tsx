@@ -69,8 +69,8 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
 
   // Simple function to render content with proper paragraph breaks
   const renderContent = (content: string) => {
-    // Split by double newlines to preserve paragraph structure
-    const paragraphs = content.split('\n\n').filter(p => p.trim());
+    // Split by newlines (single or double) to ensure proper formatting
+    const paragraphs = content.split(/(?:\r\n|\r|\n)+/).filter(p => p.trim());
     
     return paragraphs.map((paragraph: string, index: number) => {
       // Check if this paragraph is a heading (starts with **)
@@ -206,10 +206,12 @@ export const BlogPostContent = ({ post }: BlogPostContentProps) => {
                     <span>🏆</span>
                     <span>More Tournament News</span>
                   </Link>
+                  <Link href="https://discord.com/invite/yGHCzZax5S">
                   <button className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-300 border border-white/20 hover:border-[#961c18]/50 font-semibold text-lg">
                     <span>💬</span>
                     <span>Join Discord</span>
                   </button>
+                  </Link>
                 </div>
               </div>
             </div>

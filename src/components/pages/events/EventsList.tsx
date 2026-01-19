@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Calendar, Trophy, Ticket, ChevronDown } from "lucide-react";
 
@@ -160,9 +161,11 @@ const EventCard = ({ event }: { event: Event }) => {
                            View Details
                         </div>
                     ) : (
-                         <Button className="w-full bg-[#E73138] hover:bg-[#c42127] text-white font-bold uppercase tracking-wider rounded-none h-12 skew-x-[-12deg] group-hover:shadow-[0_0_15px_rgba(231,49,56,0.5)] transition-all">
-                             <span className="skew-x-[12deg]">Register Now</span>
-                         </Button>
+                         <Link href="/tournament-registration" className="w-full block">
+                             <Button className="w-full bg-[#E73138] hover:bg-[#c42127] text-white font-bold uppercase tracking-wider rounded-none h-12 skew-x-[-12deg] group-hover:shadow-[0_0_15px_rgba(231,49,56,0.5)] transition-all">
+                                 <span className="skew-x-[12deg]">Register Now</span>
+                             </Button>
+                         </Link>
                     )}
                    
                 </div>

@@ -14,9 +14,10 @@ import {
 } from '@/types/universities';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { mailchimpClientService } from "@/lib/mailchimp-client";
 
 export const RegistrationFormSection = () => {
-  const { signUp, user } = useAuth();
+  const { signUp, user, resendVerificationEmail } = useAuth();
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false);
@@ -34,7 +35,8 @@ export const RegistrationFormSection = () => {
     studentId: '',
     phoneNumber: '',
     acceptTerms: false,
-    acceptMarketing: false
+    acceptMarketing: false,
+    user_type: 'visitor' as 'participant' | 'visitor'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -93,21 +95,25 @@ export const RegistrationFormSection = () => {
       newErrors.password = 'Password must be at least 6 characters';
     }
     if (formData.password !== formData.repeatPassword) newErrors.repeatPassword = 'Passwords do not match';
-    if (!formData.university) newErrors.university = 'University or institution is required';
     
-    // Validate branch selection if university has branches
-    if (availableBranches.length > 0 && !formData.branch) {
-      newErrors.branch = 'Please select a university branch';
-    }
-    
-    // Validate custom institution if "Other" is selected
-    if (formData.university === 'Other / Not Listed' && !formData.institution.trim()) {
-      newErrors.institution = 'Please enter your institution name';
-    }
-    
-    // Validate student ID for university students
-    if (formData.university && formData.university !== 'Other / Not Listed' && !formData.studentId.trim()) {
-      newErrors.studentId = 'Student ID is required';
+    // Conditional validation based on user type
+    if (formData.user_type === 'participant') {
+      if (!formData.university) newErrors.university = 'University or institution is required for participants';
+      
+      // Validate branch selection if university has branches
+      if (availableBranches.length > 0 && !formData.branch) {
+        newErrors.branch = 'Please select a university branch';
+      }
+      
+      // Validate custom institution if "Other" is selected
+      if (formData.university === 'Other / Not Listed' && !formData.institution.trim()) {
+        newErrors.institution = 'Please enter your institution name';
+      }
+      
+      // Validate student ID for university students
+      if (formData.university && formData.university !== 'Other / Not Listed' && !formData.studentId.trim()) {
+        newErrors.studentId = 'Student ID is required for verification';
+      }
     }
     
     if (!formData.username.trim()) newErrors.username = 'Username/Gamertag is required';
@@ -142,6 +148,7 @@ export const RegistrationFormSection = () => {
           university: universityData,
           student_id: formData.studentId,
           phone_number: formData.phoneNumber,
+          user_type: formData.user_type
         }
       );
 
@@ -153,8 +160,88 @@ export const RegistrationFormSection = () => {
           setErrors({ general: errorMessage });
         }
       } else if (user) {
-        alert('Registration successful! Please check your email to confirm your account.');
-        router.push('/verify-email');
+        console.log('📝 User registration successful:', user);
+
+        // If registered as participant, send notification to admin
+        if (formData.user_type === 'participant') {
+          try {
+            console.log('📧 Sending admin notification for participant...');
+            await fetch('/api/notifications/register', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: formData.username,
+                email: formData.email,
+                university: formData.university === 'Other / Not Listed' ? formData.institution : formData.university,
+                studentId: formData.studentId,
+                phone: formData.phoneNumber
+              }),
+            });
+            console.log('✅ Admin notification sent');
+          } catch (notifyError) {
+            console.error('⚠️ Failed to send admin notification:', notifyError);
+          }
+        }
+
+        // Auto-sync to Mailchimp for all new users
+        try {
+          console.log('🐒 Syncing new user to Mailchimp...');
+          const university = formData.university === 'Other / Not Listed' ? formData.institution : formData.university;
+          
+          await mailchimpClientService.addContact({
+            email: formData.email,
+            fullname: formData.fullName, // Use full name for Mailchimp
+            university: university || 'Not specified',
+            student_id: formData.studentId,
+            phone_number: formData.phoneNumber
+          });
+          console.log('✅ User synced to Mailchimp');
+        } catch (mailchimpError) {
+          console.error('⚠️ Failed to sync to Mailchimp:', mailchimpError);
+          // Don't result in error for user, just log it
+        }
+
+        // Send verification email
+        try {
+          console.log('📧 Sending verification email...');
+          // Create verification using the account service directly or via context if exposed
+          // using the client-side account from context would be ideal but signUp returns the user object
+          // We can try to use the context's resendVerificationEmail (which calls createVerification on current session)
+          
+          // Since we are logged in by createEmailPasswordSession inside signUp, we should be able to trigger this.
+          // However, we need to access the function from the context.
+          // Since we can't easily destructure it inside the function, we might need to rely on the user manually clicking 'resend' 
+          // on the verify page, OR we can try to assume Appwrite might send it automatically if configured.
+          // BUT, to be sure, we can try to use the SDK directly here if we had the client initialized, 
+          // or properly, updating AuthContext to expose a helper or just letting the /verify-email page handle the initial send?
+          // Typically Appwrite doesn't send automatically unless using a function.
+          // Let's rely on the Verify Email page to have a "Resend" button, OR better, 
+          // let's grab the function from useAuth().
+          
+          // Actually, let's just let the user know they need to verify.
+          // The /verify-email page usually handles the "please verify" state.
+          // If we want to force send it now:
+          
+          // We can't access `resendVerificationEmail` here easily because it's from the hook, 
+          // which is available in the component scope.
+          // Let's use the one from the hook!
+        } catch (emailError) {
+          console.error('⚠️ Failed to send verification email:', emailError);
+        }
+
+        // Send verification email
+        try {
+          console.log('📧 Sending verification email...');
+          await resendVerificationEmail();
+          console.log('✅ Verification email sent');
+        } catch (emailError) {
+          console.error('⚠️ Failed to send verification email:', emailError);
+        }
+
+        setIsLoading(false);
+        router.push('/verify-email?new=true');
       }
     } catch (error) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
@@ -258,95 +345,84 @@ export const RegistrationFormSection = () => {
             {errors.repeatPassword && (<p className="text-red-400 text-sm">{errors.repeatPassword}</p>)}
           </div>
 
-          {/* University/Institution */}
-          <div className="space-y-2">
-            <Label htmlFor="university" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">University*</Label>
-            <select id="university" value={formData.university} onChange={(e) => handleInputChange('university', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.university ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: formData.university ? 'white' : '#9ca3af', padding: '0 12px', outline: 'none' }} disabled={isLoading}>
-              <option value="" disabled>Select your university or institution</option>
-              {kenyanUniversities.map((uni) => (<option key={uni.id} value={uni.name}>{uni.name}</option>))}
-            </select>
-            {errors.university && (<p className="text-red-400 text-sm">{errors.university}</p>)}
+          {/* User Type Selection */}
+          <div className="space-y-4 pt-2">
+            <Label className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">I am registering as a:</Label>
+            <div className="flex gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="type-participant" 
+                  className="border-[#961c18]" 
+                  checked={formData.user_type === 'participant'} 
+                  onCheckedChange={(checked) => {
+                    if (checked) handleInputChange('user_type', 'participant');
+                  }} 
+                />
+                <Label htmlFor="type-participant" className="text-white cursor-pointer">Participant</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="type-visitor" 
+                  className="border-[#961c18]" 
+                  checked={formData.user_type === 'visitor'} 
+                  onCheckedChange={(checked) => {
+                    if (checked) handleInputChange('user_type', 'visitor');
+                  }} 
+                />
+                <Label htmlFor="type-visitor" className="text-white cursor-pointer">Visitor</Label>
+              </div>
+            </div>
+            {formData.user_type === 'participant' && (
+              <p className="text-sm text-yellow-500/80 italic">
+                * Participant registration requires admin approval. You will need to provide your institution details.
+              </p>
+            )}
           </div>
 
-          {/* Conditional Branch Selection */}
-          {availableBranches.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="branch" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">University Branch*</Label>
-              <select 
-                id="branch" 
-                value={formData.branch} 
-                onChange={(e) => handleInputChange('branch', e.target.value)} 
-                style={{ 
-                  width: '100%', 
-                  height: '36px', 
-                  borderRadius: '8px', 
-                  border: `2px solid ${errors.branch ? '#ef4444' : '#961c18'}`, 
-                  backgroundColor: 'black', 
-                  color: formData.branch ? 'white' : '#9ca3af', 
-                  padding: '0 12px', 
-                  outline: 'none' 
-                }}
-                disabled={isLoading}
-              >
-                <option value="" disabled>Select branch</option>
-                {availableBranches.map((branch) => (
-                  <option key={branch} value={branch}>{branch}</option>
-                ))}
-              </select>
-              {errors.branch && (<p className="text-red-400 text-sm">{errors.branch}</p>)}
-            </div>
-          )}
+          {/* Conditional University/Institution Section */}
+          {formData.user_type === 'participant' && (
+            <div className="space-y-4 border-l-2 border-[#961c18] pl-4 my-4">
+              {/* Institution Input for Participant */}
+               <div className="space-y-2">
+                <Label htmlFor="university" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Institution Name*</Label>
+                <input 
+                  id="university" // reusing university field ID for state mapping
+                  type="text" 
+                  value={formData.university} 
+                  onChange={(e) => handleInputChange('university', e.target.value)} 
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.university ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} 
+                  placeholder="Enter your university or college name" 
+                  disabled={isLoading} 
+                />
+                {errors.university && (<p className="text-red-400 text-sm">{errors.university}</p>)}
+              </div>
 
-          {/* Student ID - Show after university selection */}
-          {formData.university && formData.university !== 'Other / Not Listed' && (
-            <div className="space-y-2">
-              <Label htmlFor="studentId" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Student ID*</Label>
-              <input 
-                id="studentId" 
-                type="text" 
-                value={formData.studentId} 
-                onChange={(e) => handleInputChange('studentId', e.target.value)} 
-                style={{ 
-                  width: '100%', 
-                  height: '36px', 
-                  borderRadius: '8px', 
-                  border: `2px solid ${errors.studentId ? '#ef4444' : '#961c18'}`, 
-                  backgroundColor: 'black', 
-                  color: 'white', 
-                  padding: '0 12px', 
-                  outline: 'none' 
-                }} 
-                placeholder="Enter your student ID"
-                disabled={isLoading}
-              />
-              <p className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xs">
-                Enter your unique student ID as provided by your university
-              </p>
-              {errors.studentId && (<p className="text-red-400 text-sm">{errors.studentId}</p>)}
-            </div>
-          )}
-          {formData.university === 'Other / Not Listed' && (
-            <div className="space-y-1">
-              <Label htmlFor="institution" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Institution*</Label>
-              <input 
-                id="institution" 
-                type="text" 
-                value={formData.institution} 
-                onChange={(e) => handleInputChange('institution', e.target.value)} 
-                style={{ 
-                  width: '100%', 
-                  height: '36px', 
-                  borderRadius: '8px', 
-                  border: `2px solid ${errors.institution ? '#ef4444' : '#961c18'}`, 
-                  backgroundColor: 'black', 
-                  color: 'white', 
-                  padding: '0 12px', 
-                  outline: 'none' 
-                }} 
-                placeholder="Enter institution name"
-                disabled={isLoading}
-              />
-              {errors.institution && (<p className="text-red-400 text-sm">{errors.institution}</p>)}
+              {/* Student ID */}
+              <div className="space-y-2">
+                <Label htmlFor="studentId" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Student ID*</Label>
+                <input 
+                  id="studentId" 
+                  type="text" 
+                  value={formData.studentId} 
+                  onChange={(e) => handleInputChange('studentId', e.target.value)} 
+                  style={{ 
+                    width: '100%', 
+                    height: '36px', 
+                    borderRadius: '8px', 
+                    border: `2px solid ${errors.studentId ? '#ef4444' : '#961c18'}`, 
+                    backgroundColor: 'black', 
+                    color: 'white', 
+                    padding: '0 12px', 
+                    outline: 'none' 
+                  }} 
+                  placeholder="Enter your student ID"
+                  disabled={isLoading}
+                />
+                <p className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xs">
+                  Your ID will be verified by admins before tournament participation is granted.
+                </p>
+                {errors.studentId && (<p className="text-red-400 text-sm">{errors.studentId}</p>)}
+              </div>
             </div>
           )}
 

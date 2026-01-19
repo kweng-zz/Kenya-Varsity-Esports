@@ -8,27 +8,27 @@ import { BlogsOverviewSection } from '@/components/pages/blogs/BlogsOverview';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Gaming Blog | Latest Esports News & Updates | KUER',
+  title: 'Gaming Blog | Latest Esports News & Updates | KVE',
   description: 'Stay updated with the latest gaming and esports news, tournament coverage, game reviews, and community insights from Kenya\'s premier esports platform.',
   keywords: 'gaming blog, esports news, tournament coverage, game reviews, Kenya esports, gaming community, PUBG Mobile, Call of Duty, Free Fire, Fortnite',
-  authors: [{ name: 'KUER Team' }],
+  authors: [{ name: 'KVE Team' }],
   openGraph: {
-    title: 'Gaming Blog | Latest Esports News & Updates | KUER',
+    title: 'Gaming Blog | Latest Esports News & Updates | KVE',
     description: 'Stay updated with the latest gaming and esports news, tournament coverage, game reviews, and community insights from Kenya\'s premier esports platform.',
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com'}/blogs`,
-    siteName: 'KUER',
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kve.com'}/blogs`,
+    siteName: 'KVE',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Gaming Blog | Latest Esports News & Updates | KUER',
+    title: 'Gaming Blog | Latest Esports News & Updates | KVE',
     description: 'Stay updated with the latest gaming and esports news, tournament coverage, game reviews, and community insights.',
-    creator: '@kuer',
-    site: '@kuer',
+    creator: '@kve',
+    site: '@kve',
   },
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com'}/blogs`,
+    canonical: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kve.com'}/blogs`,
   },
   robots: {
     index: true,

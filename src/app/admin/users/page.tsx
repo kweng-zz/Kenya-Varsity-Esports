@@ -49,6 +49,8 @@ interface UserProfile {
   phone_number?: string;
   isAdmin?: boolean;
   isTeamCaptain?: boolean;
+  user_type?: 'participant' | 'visitor';
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export default function AdminUsersPage() {
@@ -57,7 +59,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState<'all' | 'admins' | 'captains' | 'regular'>('all');
+  const [filter, setFilter] = useState<'all' | 'admins' | 'captains' | 'regular' | 'pending'>('all');
   const [updatingUsers, setUpdatingUsers] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   
@@ -274,6 +276,45 @@ export default function AdminUsersPage() {
     }
   };
 
+  const approveUser = async (userId: string, userName: string) => {
+    setUpdatingUsers(prev => new Set(prev).add(userId));
+    setError(null);
+
+    try {
+      const db = initializeAppwrite();
+      if (!db) {
+        setError('Appwrite not configured. Please try again.');
+        return;
+      }
+
+      await db.updateDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+        userId,
+        { status: 'approved' }
+      );
+
+      setUsers(prev => 
+        prev.map(user => 
+          user.$id === userId 
+            ? { ...user, status: 'approved' }
+            : user
+        )
+      );
+
+      setError(`✅ ${userName} has been approved successfully!`);
+    } catch (error: any) {
+      console.error('Error approving user:', error);
+      setError(`Failed to approve user: ${error.message}`);
+    } finally {
+      setUpdatingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+    }
+  };
+
   const updateUserRole = async (userId: string, field: 'isAdmin' | 'isTeamCaptain', value: boolean) => {
     setUpdatingUsers(prev => new Set(prev).add(userId));
     setError(null);
@@ -372,7 +413,8 @@ export default function AdminUsersPage() {
       filter === 'all' ||
       (filter === 'admins' && user.isAdmin) ||
       (filter === 'captains' && user.isTeamCaptain) ||
-      (filter === 'regular' && !user.isAdmin && !user.isTeamCaptain);
+      (filter === 'regular' && !user.isAdmin && !user.isTeamCaptain) ||
+      (filter === 'pending' && user.status === 'pending');
 
     return matchesSearch && matchesFilter;
   });
@@ -405,82 +447,7 @@ export default function AdminUsersPage() {
           </button>
         </div>
 
-        {/* Mailchimp Integration Section */}
-        <div className="mb-8 bg-gray-800 rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">Mailchimp Newsletter</h2>
-          
-          {/* Connection Test */}
-          {connectionTest.message && (
-            <div className={`mb-4 p-3 rounded ${
-              connectionTest.success ? 'bg-green-900/20 border border-green-600/30' : 'bg-red-900/20 border border-red-600/30'
-            }`}>
-              <p className={connectionTest.success ? 'text-green-200' : 'text-red-200'}>
-                {connectionTest.message}
-              </p>
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-gray-700 rounded-lg p-4">
-              <div className="text-sm text-gray-400">Local Users</div>
-              <div className="text-2xl font-bold text-white">{users.length}</div>
-            </div>
-            
-            <div className="bg-gray-700 rounded-lg p-4">
-              <div className="text-sm text-gray-400">Mailchimp Subscribers</div>
-              <div className="text-2xl font-bold text-blue-400">
-                {mailchimpStats ? mailchimpStats.totalSubscribers : 'Loading...'}
-              </div>
-            </div>
-            
-            <div className="bg-gray-700 rounded-lg p-4">
-              <div className="text-sm text-gray-400">Sync Status</div>
-              <div className="text-lg font-bold text-green-400">
-                {users.length - (mailchimpStats?.totalSubscribers || 0)} to sync
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={syncAllUsersToMailchimp}
-              disabled={syncingToMailchimp || users.length === 0}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {syncingToMailchimp ? 'Syncing...' : `Sync All ${users.length} Users to Mailchimp`}
-            </button>
-            
-            <button
-              onClick={fetchMailchimpStats}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors"
-            >
-              Refresh Stats
-            </button>
-
-            <button
-              onClick={testMailchimpConnection}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-            >
-              Test Connection
-            </button>
-          </div>
-
-          {/* Progress Bar */}
-          {syncingToMailchimp && (
-            <div className="mt-4">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
-                <span>Syncing to Mailchimp...</span>
-                <span>{syncProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${syncProgress}%` }}
-                ></div>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Mailchimp Section Removed as per user request */}
 
         {/* Status Message */}
         {error && (
@@ -517,7 +484,7 @@ export default function AdminUsersPage() {
             />
           </div>
           <div className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
-            {(['all', 'admins', 'captains', 'regular'] as const).map((filterOption) => (
+            {(['all', 'pending', 'admins', 'captains', 'regular'] as const).map((filterOption) => (
               <button
                 key={filterOption}
                 onClick={() => setFilter(filterOption)}
@@ -532,6 +499,7 @@ export default function AdminUsersPage() {
                   ({filterOption === 'all' ? users.length : 
                     filterOption === 'admins' ? users.filter(u => u.isAdmin).length :
                     filterOption === 'captains' ? users.filter(u => u.isTeamCaptain).length :
+                    filterOption === 'pending' ? users.filter(u => u.status === 'pending').length :
                     users.filter(u => !u.isAdmin && !u.isTeamCaptain).length})
                 </span>
               </button>
@@ -546,10 +514,10 @@ export default function AdminUsersPage() {
               <thead className="bg-gray-700">
                 <tr>
                   <th className="px-6 py-4 text-left text-white font-bold">User</th>
+                  <th className="px-6 py-4 text-left text-white font-bold">Type/Status</th>
                   <th className="px-6 py-4 text-left text-white font-bold">University</th>
+                  <th className="px-6 py-4 text-center text-white font-bold">Action</th>
                   <th className="px-6 py-4 text-center text-white font-bold">Admin</th>
-                  <th className="px-6 py-4 text-center text-white font-bold">Team Captain</th>
-                  <th className="px-6 py-4 text-center text-white font-bold">Mailchimp</th>
                   <th className="px-6 py-4 text-center text-white font-bold">Joined</th>
                 </tr>
               </thead>
@@ -566,7 +534,34 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                       <div className="flex flex-col gap-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full w-fit ${
+                            userProfile.user_type === 'participant' ? 'bg-blue-900 text-blue-200' : 'bg-gray-700 text-gray-300'
+                          }`}>
+                            {userProfile.user_type || 'visitor'}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full w-fit ${
+                            userProfile.status === 'approved' ? 'bg-green-900 text-green-200' :
+                            userProfile.status === 'pending' ? 'bg-yellow-900 text-yellow-200' :
+                            'bg-gray-700 text-gray-300'
+                          }`}>
+                            {userProfile.status || 'approved'}
+                          </span>
+                       </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="text-white">{userProfile.university || 'Not specified'}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                       {userProfile.status === 'pending' && (
+                         <button
+                           onClick={() => approveUser(userProfile.$id, userProfile.fullname)}
+                           disabled={updatingUsers.has(userProfile.$id)}
+                           className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-50"
+                         >
+                           {updatingUsers.has(userProfile.$id) ? 'Approving...' : 'Approve'}
+                         </button>
+                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button
@@ -585,29 +580,8 @@ export default function AdminUsersPage() {
                         <div className="text-xs text-gray-500 mt-1">You</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => updateUserRole(userProfile.$id, 'isTeamCaptain', !userProfile.isTeamCaptain)}
-                        disabled={updatingUsers.has(userProfile.$id)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                          userProfile.isTeamCaptain
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {updatingUsers.has(userProfile.$id) ? 'Updating...' : 
-                         userProfile.isTeamCaptain ? 'Captain' : 'Make Captain'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => syncUserToMailchimp(userProfile)}
-                        disabled={updatingUsers.has(userProfile.$id)}
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {updatingUsers.has(userProfile.$id) ? 'Syncing...' : 'Sync'}
-                      </button>
-                    </td>
+
+
                     <td className="px-6 py-4 text-center">
                       <div className="text-sm text-gray-400">
                         {new Date(userProfile.$createdAt).toLocaleDateString()}
@@ -643,6 +617,10 @@ export default function AdminUsersPage() {
           <div className="bg-gray-800 rounded-lg p-4">
             <div className="text-2xl font-bold text-gray-400">{users.filter(u => !u.isAdmin && !u.isTeamCaptain).length}</div>
             <div className="text-sm text-gray-400">Regular Users</div>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-yellow-500">{users.filter(u => u.status === 'pending').length}</div>
+            <div className="text-sm text-gray-400">Pending Approvals</div>
           </div>
         </div>
       </div>

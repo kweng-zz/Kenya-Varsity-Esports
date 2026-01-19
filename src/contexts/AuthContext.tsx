@@ -66,6 +66,8 @@ export type AppwriteProfile = {
   phone_number?: string;
   isAdmin?: boolean; // optional admin flag
   isTeamCaptain?: boolean; // team captain flag
+  user_type?: 'participant' | 'visitor';
+  status?: 'pending' | 'approved' | 'rejected';
 };
 
 export interface AuthContextType {
@@ -82,6 +84,7 @@ export interface AuthContextType {
   updateProfile: (updates: Partial<AppwriteProfile>) => Promise<{ error?: unknown }>;
   sendPasswordResetEmail: (email: string) => Promise<{ error?: unknown }>;
   resendVerificationEmail: () => Promise<{ error?: unknown }>;
+  verifyEmail: (userId: string, secret: string) => Promise<{ error?: unknown }>;
 }
 
 // --- Context ---
@@ -136,7 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: 'demo@kuer.com',
           university: 'Demo University',
           isAdmin: true, // Grant admin access for demo
-          isTeamCaptain: false
+          isTeamCaptain: false,
+          user_type: 'visitor',
+          status: 'approved'
         };
       }
       
@@ -192,7 +197,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: 'demo@kuer.com',
               university: 'Demo University',
               isAdmin: true, // Grant admin access for demo
-              isTeamCaptain: false
+              isTeamCaptain: false,
+              user_type: 'visitor',
+              status: 'approved'
             };
             
             setUser(demoUser);
@@ -296,7 +303,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         newUser.$id,
         {
           ...userData,
-          isAdmin: false // Default to non-admin
+          isAdmin: false, // Default to non-admin
+          user_type: userData.user_type || 'visitor',
+          status: userData.user_type === 'participant' ? 'pending' : 'approved'
         }
       );
 
@@ -390,8 +399,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
 
+  const verifyEmail = async (userId: string, secret: string) => {
+    try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite) {
+        return { error: new Error('Appwrite not configured') };
+      }
+
+      await appwrite.account.updateVerification(userId, secret);
+      return {};
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Verify email error:', error);
+      }
+      return { error };
+    }
+  };
+
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile, sendPasswordResetEmail, resendVerificationEmail }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile, sendPasswordResetEmail, resendVerificationEmail, verifyEmail }}>
       {children}
     </AuthContext.Provider>
   );

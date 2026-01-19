@@ -240,13 +240,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile = await getProfile(currentUser.$id);
       setProfile(userProfile);
       return { user: currentUser };
-    } catch (error) {
+      return { user: currentUser };
+    } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Sign in error:', error);
       }
+
+      // Check for Third-Party Cookie blocking (successfull session create but failed get())
+      if (error?.message?.includes('missing scopes') && error?.message?.includes('guest')) {
+        return { 
+          error: new Error('Login failed due to browser cookie blocking. Please try:\n1. Disabling "Block Third-Party Cookies"\n2. Using a Custom Domain in Appwrite Console\n3. Using a different browser') 
+        };
+      }
       
       // Handle archived project error with demo login
-      if ((error as any)?.message?.includes('Project is archived')) {
+      if (error?.message?.includes('Project is archived')) {
         if (process.env.NODE_ENV === 'development') {
           console.warn('Appwrite project is archived, using demo login');
         }

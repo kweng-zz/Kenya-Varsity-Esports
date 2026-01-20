@@ -10,7 +10,10 @@ export async function POST(request: Request) {
   try {
     const user = await getUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Unauthorized: Session not found. If you are logged in, this is likely a Third-Party Cookie blocking issue. Please verify your Custom Domain settings in Appwrite.' 
+      }, { status: 401 });
     }
 
     const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;

@@ -30,16 +30,21 @@ class StorageService {
         body: formData,
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`Upload failed with status ${response.status}: ${response.statusText}`);
+      }
 
       if (!data.success) {
         throw new Error(data.error || 'Upload failed');
       }
 
       return data.data.url;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file via API:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to upload file');
     }
   }
 

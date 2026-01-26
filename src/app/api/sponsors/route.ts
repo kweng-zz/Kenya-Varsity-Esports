@@ -1,29 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { sponsorsServiceSSR } from '@/lib/services/sponsorsServiceSSR';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    try {
-        console.log('Admin sponsors API called');
-        
-        return NextResponse.json({
-            success: true,
-            data: [
-                {
-                    id: "1",
-                    name: "Sample Sponsor",
-                    logo: "/images/sponsor-placeholder.png",
-                    website: "https://example.com",
-                    isActive: true
-                }
-            ],
-            message: 'Using fallback sponsors data'
-        });
-
-    } catch (error) {
-        console.error('Admin sponsors API error:', error);
-        return NextResponse.json({
-            success: true,
-            data: [],
-            message: 'Using fallback data due to error'
-        });
-    }
+  try {
+    const sponsors = await sponsorsServiceSSR.getActiveSponsors();
+    return NextResponse.json({ success: true, data: sponsors });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

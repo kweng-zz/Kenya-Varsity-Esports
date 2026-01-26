@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: TournamentRulesPageProps): Pr
 
   if (!tournamentData) {
     return {
-      title: 'Tournament Rules Not Found | Kuer',
+      title: 'Tournament Rules Not Found | KVE',
       description: 'The requested tournament rules could not be found.',
     };
   }
@@ -35,14 +35,14 @@ export async function generateMetadata({ params }: TournamentRulesPageProps): Pr
   const title = tournamentData.gameName || 'Tournament';
 
   return {
-    title: `${title} Tournament Rules & Regulations | Kuer`,
+    title: `${title} Tournament Rules & Regulations | KVE`,
     description: `Complete rules and regulations for the ${title} tournament. Learn about game rules, conduct requirements, and tournament format.`,
     keywords: `${title}, tournament rules, regulations, esports, gaming, Kenya, university, competition`,
     openGraph: {
       title: `${title} Tournament Rules & Regulations`,
       description: `Complete rules and regulations for the ${title} tournament.`,
       type: 'website',
-      url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kuer.com'}/games/${slug}/rules`,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kenyaesportsrankings.org'}/games/${slug}/rules`,
       images: tournamentData.featuredImageUrl ? [{ url: tournamentData.featuredImageUrl, width: 1200, height: 630, alt: title }] : undefined,
     },
     twitter: {
@@ -99,7 +99,7 @@ export default async function TournamentRulesPage({ params }: TournamentRulesPag
       <Navigation />
       
       {/* Hero Section */}
-      <section className="relative w-full h-[560px] bg-black mt-0">
+      <section className="relative w-full h-140 bg-black mt-0">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${getHeroImage()})` }}
@@ -137,7 +137,7 @@ export default async function TournamentRulesPage({ params }: TournamentRulesPag
       </section>
 
       {/* Tournament Navigation Section */}
-      <section className="relative bg-black h-[100px]">
+      <section className="relative bg-black h-25">
         <img
           className="absolute w-full h-full object-cover opacity-20"
           alt="Background"
@@ -165,7 +165,7 @@ export default async function TournamentRulesPage({ params }: TournamentRulesPag
                     {item.name}
                   </Link>
                   {isActive && (
-                    <div className="absolute -bottom-2 left-0 w-full h-[3px] bg-[#8e130e]" />
+                    <div className="absolute -bottom-2 left-0 w-full h-0.75 bg-[#8e130e]" />
                   )}
                 </div>
               );

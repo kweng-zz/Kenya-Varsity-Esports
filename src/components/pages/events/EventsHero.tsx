@@ -132,9 +132,9 @@ export default function EventsHero() {
               </div>
             </Button>
           </Link>
-          <Link href={featuredEvent?.detailsLink || "#"}>
-            <Button variant="outline" className="h-12 px-8 border-gray-500 text-white hover:bg-white/10 hover:text-white hover:border-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none bg-transparent">
-               <div className="skew-x-[10deg]">View Bracket</div>
+          <Link href={featuredEvent ? `/games/${featuredEvent.gameSlug}/information` : "#"}>
+            <Button variant="outline" className="h-12 px-8 border-gray-500 text-white hover:bg-white/10 hover:text-white hover:border-white font-bold uppercase tracking-wider skew-x-[-10deg] rounded-none bg-transparent whitespace-nowrap">
+               <div className="skew-x-[10deg]">View Details</div>
             </Button>
           </Link>
         </div>

@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 
 // Validate environment variables
 const validateEnv = () => {
-  const required = ['ZOHO_EMAIL', 'ZOHO_PASSWORD', 'ZOHO_SMTP_HOST', 'ZOHO_SMTP_PORT'];
+  const required = ['SMTP_EMAIL', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM_EMAIL'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -16,12 +16,12 @@ const validateEnv = () => {
 // Create Zoho Mail transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.ZOHO_SMTP_HOST,
-    port: parseInt(process.env.ZOHO_SMTP_PORT || '587'),
-    secure: process.env.ZOHO_SMTP_PORT === '465', // true for 465, false for other ports
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_PORT === '465',
     auth: {
-      user: process.env.ZOHO_EMAIL,
-      pass: process.env.ZOHO_PASSWORD,
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 };
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     // Validate environment variables
     if (!validateEnv()) {
-      console.error('❌ Missing Zoho environment variables');
+      console.error('❌ Missing SMTP environment variables');
       return NextResponse.json(
         { success: false, error: 'Server configuration error - missing email credentials' },
         { status: 500 }
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 
     // Email to KUER Admin
     const mailOptions = {
-      from: process.env.ZOHO_EMAIL,
-      to: 'info@kuer.co.ke', // Admin email
+      from: process.env.SMTP_FROM_EMAIL,
+      to: 'events@tunzaesports.com', // Admin email
       subject: `New Participant Registration: ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
           <p>Please log in to the Admin Panel to approve or reject this user.</p>
           
-          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.kenyaesportsrankings.org/'}/admin/users" 
+          <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.kve.co.ke/'}/admin/users" 
              style="display: inline-block; background-color: #961c18; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px;">
              Go to Admin Panel
           </a>

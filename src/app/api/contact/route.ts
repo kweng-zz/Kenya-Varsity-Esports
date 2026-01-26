@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 
 // Validate environment variables
 const validateEnv = () => {
-  const required = ['ZOHO_EMAIL', 'ZOHO_PASSWORD', 'ZOHO_SMTP_HOST', 'ZOHO_SMTP_PORT'];
+  const required = ['SMTP_EMAIL', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM_EMAIL'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -16,12 +16,12 @@ const validateEnv = () => {
 // Create Zoho Mail transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.ZOHO_SMTP_HOST,
-    port: parseInt(process.env.ZOHO_SMTP_PORT || '587'),
-    secure: process.env.ZOHO_SMTP_PORT === '465', // true for 465, false for other ports
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: process.env.SMTP_PORT === '465',
     auth: {
-      user: process.env.ZOHO_EMAIL,
-      pass: process.env.ZOHO_PASSWORD,
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 };
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     // Validate environment variables
     if (!validateEnv()) {
-      console.error('❌ Missing Zoho environment variables');
+      console.error('❌ Missing SMTP environment variables');
       return NextResponse.json(
         { success: false, error: 'Server configuration error - missing email credentials' },
         { status: 500 }
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const { name, email, message } = body;
 
     console.log('📧 Contact form submission received');
+    console.log(`🔌 Attempting to send using: ${process.env.SMTP_EMAIL}`);
 
     // Validate input
     if (!name || !email || !message) {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create transporter
-    console.log('🔌 Creating Zoho SMTP transporter...');
+    console.log('🔌 Creating SMTP transporter...');
     const transporter = createTransporter();
 
     // Test connection
@@ -79,27 +80,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Email to KUER
+    // Email to Tunza Admin
     const mailOptions = {
-      from: process.env.ZOHO_EMAIL,
-      to: 'info@kuer.co.ke',
-      subject: `New Partnership/Press Inquiry from ${name}`,
+      from: `"Tunza Esports Contact Form" <${process.env.SMTP_FROM_EMAIL}>`,
+      to: 'events@tunzaesports.com',
+      subject: `Contact Form Inquiry: ${name}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #961c18;">New Contact Form Submission</h2>
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+          <div style="background-color: #961c18; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Message from Website</h1>
+          </div>
           
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-            <p><strong>Message:</strong></p>
-            <p style="white-space: pre-wrap; background-color: white; padding: 15px; border-left: 4px solid #961c18;">
-              ${escapeHtml(message)}
+          <div style="padding: 30px; border: 1px solid #ddd; border-top: none; background-color: #fff;">
+            <p style="font-size: 16px;">You have received a new inquiry from the Tunza Esports website.</p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: bold; width: 30%;">Name:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eee;">${escapeHtml(name)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: bold;">User Email:</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #eee;">${escapeHtml(email)}</td>
+              </tr>
+            </table>
+            
+            <div style="margin-top: 25px;">
+              <p style="font-weight: bold; margin-bottom: 10px;">Message Content:</p>
+              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; border: 1px solid #eee; font-style: italic;">
+                ${escapeHtml(message).replace(/\n/g, '<br>')}
+              </div>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              You can reply directly to this email to contact the user.
             </p>
           </div>
-
-          <p style="color: #666; font-size: 12px; margin-top: 30px;">
-            This is an automated message from the KUER website contact form.
-          </p>
+          
+          <div style="text-align: center; padding: 20px; font-size: 12px; color: #999;">
+            <p>This is an automated notification from <a href="https://tunzaesports.com" style="color: #961c18; text-decoration: none;">Tunza Esports</a>.</p>
+          </div>
         </div>
       `,
       replyTo: email,
@@ -120,9 +140,9 @@ export async function POST(request: NextRequest) {
 
     // Optional: Send confirmation email to user
     const confirmationEmail = {
-      from: process.env.ZOHO_EMAIL,
+      from: process.env.SMTP_FROM_EMAIL,
       to: email,
-      subject: 'We received your message - KUER',
+      subject: 'We received your message - Tunza Esports',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #961c18;">Thank you for reaching out!</h2>

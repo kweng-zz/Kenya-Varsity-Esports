@@ -13,7 +13,7 @@ const privacyData = {
         "Company Name: Tunza Esports",
         "Address: P.O. Box 45085-00100, Nairobi, Kenya",
         "Registration Number: PVT-3QUDBV63",
-        "Email: info@kuer.co.ke",
+        "Email: events@tunzaesports.com",
       ],
     },
     {

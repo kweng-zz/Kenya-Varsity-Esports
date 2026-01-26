@@ -11,9 +11,6 @@ let databases: Databases | null = null;
 const initializeAppwrite = (): { account: Account; databases: Databases } | null => {
   // Check if we're in fallback mode
   if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Fallback mode enabled, Appwrite disabled');
-    }
     return null;
   }
 
@@ -212,6 +209,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const currentUser = await appwrite.account.get();
         setUser(currentUser);
+        
+        // Also ensure the bridge cookie is set after a refresh if we have a session
+        // We use a JWT because the actual session secret is hidden from the browser
+        try {
+          const jwtResponse = await appwrite.account.createJWT();
+          if (jwtResponse && jwtResponse.jwt) {
+            console.log(`🔑 Refreshed JWT bridge cookie (Length: ${jwtResponse.jwt.length})...`);
+            document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+          }
+        } catch (e) {
+          // No active session, ignore
+        }
+
         const userProfile = await getProfile(currentUser.$id);
         setProfile(userProfile);
       } catch (err) {
@@ -226,6 +236,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     init();
   }, []);
 
+  // --- Auto-refresh JWT cookie ---
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshJWT = async () => {
+      try {
+        const appwrite = initializeAppwrite();
+        if (!appwrite) return;
+        
+        const jwtResponse = await appwrite.account.createJWT();
+        if (jwtResponse && jwtResponse.jwt) {
+          document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+        }
+      } catch (e) {
+        // failed to refresh jwt
+      }
+    };
+
+    // Refresh every 10 minutes (Appwrite JWTs usually expire in 15)
+    const interval = setInterval(refreshJWT, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   // --- Auth Actions ---
   const signIn = async (email: string, password: string) => {
     try {
@@ -235,11 +268,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const session = await appwrite.account.createEmailPasswordSession(email, password);
+      
+      // Create a JWT token for the server bridge
+      // Appwrite JWTs are short-lived tokens that the server can use to verify identity
+      try {
+        const jwtResponse = await appwrite.account.createJWT();
+        console.log(`🔑 Setting JWT bridge cookie...`);
+        document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+      } catch (e) {
+        console.error('❌ Failed to create JWT for session bridge:', e);
+      }
+      
       const currentUser = await appwrite.account.get();
       setUser(currentUser);
       const userProfile = await getProfile(currentUser.$id);
       setProfile(userProfile);
-      return { user: currentUser };
       return { user: currentUser };
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
@@ -304,6 +347,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create a session for the new user so they can create their profile
       await appwrite.account.createEmailPasswordSession(email, password);
 
+      // Set session cookie via JWT
+      try {
+        const jwtResponse = await appwrite.account.createJWT();
+        document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+      } catch (e) {
+        // ignore
+      }
+
       // Create the profile document (permissions will be handled by collection settings)
       const profileDoc = await appwrite.databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
@@ -342,6 +393,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore errors when user is already signed out or has no active session
       // This can happen if the session expired or user is already a guest
     } finally {
+      // Clear the local session cookie
+      console.log('🗑️ Clearing local session bridge cookie...');
+      document.cookie = 'appwrite-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
       // Always clear local state regardless of API call success
       setUser(null);
       setProfile(null);

@@ -1,4 +1,4 @@
-import { Client, Databases, Query } from 'node-appwrite';
+import { Client, Databases, Query, Account } from 'node-appwrite';
 
 // Server-side Appwrite configuration with API key authentication
 let client: Client | null = null;
@@ -39,6 +39,35 @@ const initializeAppwrite = () => {
 
 export const getAppwriteServer = () => {
   return initializeAppwrite();
+};
+
+/**
+ * Creates an Appwrite client authenticated with a user's JWT token
+ * @param jwt The JWT token from the client-side session bridge
+ */
+export const getSessionClient = (jwt: string) => {
+  const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+  if (!endpoint || !projectId) {
+    console.error('❌ Missing Appwrite env vars for session client:', { endpoint: !!endpoint, projectId: !!projectId });
+    return null;
+  }
+
+  console.log(`🔌 Initializing session client with JWT for project: ${projectId}`);
+  const client = new Client()
+    .setEndpoint(endpoint)
+    .setProject(projectId)
+    .setJWT(jwt); // Use JWT for user impersonation
+
+  return {
+    get account() {
+      return new Account(client);
+    },
+    get databases() {
+      return new Databases(client);
+    }
+  };
 };
 
 export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';

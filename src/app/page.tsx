@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import SponsorTiers from '@/components/pages/landing/Sponsorship';
+import { SponsorLogos } from '@/components/pages/landing/SponsorLogos';
 
 
 
@@ -80,6 +81,7 @@ export default function Home() {
         <Navigation />  
       </div>
       <HeroBanner />
+      <SponsorLogos />
       <SeasonStatistics />
       <TopHighlightSection />
       <LatestNews />
@@ -89,7 +91,7 @@ export default function Home() {
       
       {/* Sponsor section - full width */}
       <section
-        className="relative w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-cover bg-center -mt-6 sm:-mt-8 md:-mt-12 lg:-mt-16"
+        className="relative w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-cover bg-center"
         style={{
           backgroundImage:
             "url(https://c.animaapp.com/md6ebassseX7AK/img/group-219-1.png)",

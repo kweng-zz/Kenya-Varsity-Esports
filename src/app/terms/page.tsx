@@ -97,7 +97,7 @@ const termsData = {
     },
     {
       title: "12. Contact Information",
-      points: ["📧 info@kuer.co.ke"],
+      points: ["📧 events@tunzaesports.com"],
     },
   ],
 };

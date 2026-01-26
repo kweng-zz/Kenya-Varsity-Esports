@@ -20,63 +20,58 @@
    - `✅ Form submitted successfully` (success) or `❌ Form submission failed:` (error)
 
 ### Step 2: Check Server Logs
-When you submit the form, you should see server logs like:
-```
 📧 Contact form submission received: { name: '...', email: '...' }
-🔌 Creating Zoho SMTP transporter...
+🔌 Creating SMTP transporter...
 🧪 Testing SMTP connection...
 ✅ SMTP connection verified
-📤 Sending email to KUER...
-✅ Email sent to KUER: <message-id>
+📤 Sending email...
+✅ Email sent: <message-id>
 📤 Sending confirmation email to user...
 ✅ Confirmation email sent: <message-id>
 ✅ Contact form processed successfully
-```
-
-### Step 3: Verify Zoho Credentials
 
 Check that your `.env` file has these variables:
 ```
-ZOHO_EMAIL=info@kuer.co.ke
-ZOHO_PASSWORD=Kuer@2024
-ZOHO_SMTP_HOST=smtp.zoho.com
-ZOHO_SMTP_PORT=587
+SMTP_EMAIL=events@tunzaesports.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
 ```
 
-**Important:** The `ZOHO_PASSWORD` should be an **app-specific password**, not your account password.
+**Important:** The `SMTP_PASSWORD` must be a **Google App Password**, not your regular account password.
 
 ### Step 4: Common Issues and Solutions
 
 #### Issue 1: "Server configuration error - missing email credentials"
 **Cause:** Environment variables are not set
 **Solution:**
-1. Check `.env` file has all Zoho variables
+1. Check `.env` file has all SMTP variables
 2. Restart the development server: `npm run dev`
 3. Verify variables are loaded: Check server logs on startup
 
 #### Issue 2: "Email service connection failed"
 **Cause:** SMTP connection cannot be established
 **Solution:**
-1. Verify Zoho credentials are correct
-2. Check if Zoho SMTP port 587 is open (not blocked by firewall)
+1. Verify SMTP credentials are correct
+2. Check if SMTP port 465 or 587 is open (not blocked by firewall)
 3. Ensure you're using an app-specific password (not account password)
 4. Try connecting from a different network to rule out firewall issues
 
 #### Issue 3: "Failed to send email. Please check your email and try again."
 **Cause:** Email sending failed after connection succeeded
 **Solution:**
-1. Check if `info@kuer.co.ke` is a valid Zoho email address
+1. Check if `events@tunzaesports.com` is a valid email address
 2. Verify the email address has permission to send emails
-3. Check Zoho Mail settings for any restrictions
-4. Look at Zoho Mail logs for bounce/rejection reasons
+3. Check Google account settings for any restrictions
+4. Look at Google/Mail logs for bounce/rejection reasons
 
 #### Issue 4: Form submits but no email received
 **Cause:** Email might be going to spam or blocked
 **Solution:**
-1. Check spam/junk folder in `info@kuer.co.ke`
-2. Check Zoho Mail quarantine
+1. Check spam/junk folder in `events@tunzaesports.com`
+2. Check Google Workspace quarantine if applicable
 3. Verify sender email is whitelisted
-4. Check Zoho Mail security settings
+4. Check Google security settings
 
 ## Testing the Form
 
@@ -119,15 +114,15 @@ All logs are prefixed with emojis for easy identification:
 - ❌ = Error
 - ⚠️ = Warning
 
-## Zoho Mail Setup Checklist
+## Google SMTP Setup Checklist
 
-- [ ] Zoho Mail account created
-- [ ] SMTP enabled in Zoho Mail settings
+- [ ] Google account (events@tunzaesports.com) accessible
+- [ ] 2-Step Verification enabled
 - [ ] App-specific password generated
-- [ ] ZOHO_EMAIL set in .env
-- [ ] ZOHO_PASSWORD set in .env (app-specific password)
-- [ ] ZOHO_SMTP_HOST set to smtp.zoho.com
-- [ ] ZOHO_SMTP_PORT set to 587
+- [ ] SMTP_EMAIL set in .env
+- [ ] SMTP_PASSWORD set in .env (the 16-character App Password)
+- [ ] SMTP_HOST set to smtp.gmail.com
+- [ ] SMTP_PORT set to 465
 - [ ] Development server restarted after .env changes
 - [ ] Test email sent successfully
 - [ ] Confirmation email received
@@ -161,10 +156,10 @@ All logs are prefixed with emojis for easy identification:
 ## Support
 
 If the form still doesn't work after checking all these items:
-1. Check the server logs for specific error messages
-2. Verify Zoho Mail account is active and has SMTP enabled
-3. Ensure the app-specific password is correct
-4. Check firewall/network settings for SMTP port 587
-5. Contact Zoho support if SMTP connection fails
+1. Check server logs for specific error messages
+2. Verify Google account is active and has App Password enabled
+3. Ensure the app-specific password is correct (no spaces needed in .env, but usually they work)
+4. Check firewall/network settings for SMTP port 465
+5. Contact Google support if SMTP connection fails
 
 The enhanced logging should help identify exactly where the issue is occurring!

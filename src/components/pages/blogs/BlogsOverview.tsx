@@ -141,9 +141,9 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
   const imageUrl = getImageUrl(article.imageUrl);
 
   return (
-    <Link href={`/blogs/${article.slug}`}>
-      <div className="bg-black rounded-none border border-white/50 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
-        <div className="relative h-48 bg-gray-800">
+    <Link href={`/blogs/${article.slug}`} className="block h-full">
+      <div className="bg-black rounded-none border border-white/50 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group h-full flex flex-col">
+        <div className="relative h-48 bg-gray-800 shrink-0">
           <ImageWithFallback
             src={imageUrl}
             alt={article.title}
@@ -164,7 +164,7 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 flex flex-col flex-1">
           <div className="flex flex-wrap gap-2 mb-3">
             <span className="px-2 py-1 bg-[#961c18] text-white rounded text-xs">
               {article.category}
@@ -178,9 +178,9 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
             {article.title}
           </h3>
 
-          <p className="text-gray-400 text-sm line-clamp-3 mb-4">{article.description}</p>
+          <p className="text-gray-400 text-sm line-clamp-3 mb-4 flex-1">{article.description}</p>
 
-          <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs text-gray-500 mt-auto">
             <span>By {article.author}</span>
             <span className="text-[#961c18] group-hover:text-white transition-colors">Read More →</span>
           </div>

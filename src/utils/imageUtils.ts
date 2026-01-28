@@ -4,20 +4,48 @@
 
 /**
  * Ensures that an image src is never empty or null
- * @param src - The source URL that might be empty, null, or undefined
+ * @param src - The source URL that might be empty, null, undefined, or an object
  * @param fallback - The fallback URL to use if src is invalid
  * @returns A safe URL that is never empty
  */
 export function getSafeImageSrc(
-  src: string | null | undefined, 
+  src: string | null | undefined | object, 
   fallback: string = '/images/Join our tournaments.png'
 ): string {
-  // Handle null, undefined, or empty string
-  if (!src || src === null || src === undefined || src.trim() === '') {
+  // Handle null, undefined, empty string, or non-string types
+  if (!src || src === null || src === undefined) {
     return fallback;
   }
   
-  const trimmedUrl = src.trim();
+  // Handle case where src is an object (common error in the logs)
+  if (typeof src !== 'string') {
+    console.warn('Image src is not a string, received:', typeof src, src);
+    
+    // Try to extract URL from object if it has common properties
+    if (src && typeof src === 'object') {
+      const obj = src as any;
+      if (obj.url) {
+        src = obj.url;
+      } else if (obj.src) {
+        src = obj.src;
+      } else if (obj.href) {
+        src = obj.href;
+      } else {
+        return fallback;
+      }
+    } else {
+      return fallback;
+    }
+  }
+  
+  // Now src should be a string
+  const urlString = src as string;
+  
+  if (urlString.trim() === '') {
+    return fallback;
+  }
+  
+  const trimmedUrl = urlString.trim();
   
   // If it's already a full URL, return as is
   if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if Contentful is configured
-    const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
+    const spaceId = process.env.CONTENTFUL_SPACE_ID;
     const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
     const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 

@@ -18,7 +18,7 @@ interface BlogPostPageProps {
 export async function generateStaticParams() {
   try {
     // Check if Contentful is available during build
-    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID) {
+    if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true' || !process.env.CONTENTFUL_SPACE_ID) {
       // Return fallback slugs for build time
       return [
         { slug: 'mmust-makes-history' },
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     const { slug } = await params;
     
     // Try to fetch from Contentful
-    if (process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
+    if (process.env.CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
       try {
         const response = await contentfulAPI.getArticleBySlug(slug);
         
@@ -121,7 +121,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   
   try {
     // Try to fetch from Contentful
-    if (process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
+    if (process.env.CONTENTFUL_SPACE_ID && process.env.NEXT_PUBLIC_FALLBACK_MODE !== 'true') {
       try {
         const response = await contentfulAPI.getArticleBySlug(slug);
         

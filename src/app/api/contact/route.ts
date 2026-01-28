@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { validateInput, commonSchemas } from '@/lib/validation';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Validate environment variables
 const validateEnv = () => {
@@ -27,6 +29,10 @@ const createTransporter = () => {
 };
 
 export async function POST(request: NextRequest) {
+  // Check rate limit
+  const rateLimitError = await checkRateLimit(request, 'CONTACT');
+  if (rateLimitError) return rateLimitError;
+
   try {
     // Validate environment variables
     if (!validateEnv()) {
@@ -39,28 +45,21 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { name, email, message } = body;
+    const { name, email, message, type = 'general' } = body;
 
     console.log('📧 Contact form submission received');
     console.log(`🔌 Attempting to send using: ${process.env.SMTP_EMAIL}`);
 
-    // Validate input
-    if (!name || !email || !message) {
-      console.error('❌ Missing required fields:', { name: !!name, email: !!email, message: !!message });
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error('❌ Invalid email format');
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
+    // Input validation using schema
+    const validation = validateInput(body, commonSchemas.contactMessage);
+    if (!validation.isValid) {
+      console.error('❌ Validation errors:', validation.errors);
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'Invalid input data',
+        details: validation.errors
+      }, { status: 400 });
     }
 
     // Create transporter

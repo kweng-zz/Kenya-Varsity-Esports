@@ -207,12 +207,12 @@ async function setupContentful() {
   log.title('🚀 CONTENTFUL SIMPLE SETUP');
 
   // Check environment variables
-  const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
+  const spaceId = process.env.CONTENTFUL_SPACE_ID;
   const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   const environmentId = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 
   if (!spaceId) {
-    log.error('NEXT_PUBLIC_CONTENTFUL_SPACE_ID is not set in .env.local');
+    log.error('CONTENTFUL_SPACE_ID is not set in .env.local');
     return false;
   }
 

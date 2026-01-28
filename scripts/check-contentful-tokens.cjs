@@ -73,8 +73,8 @@ async function main() {
   log.title('🔑 CONTENTFUL TOKEN CHECKER');
   
   // Read from environment variables
-  const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID || 'gk83salrhozo';
-  const deliveryToken = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+  const spaceId = process.env.CONTENTFUL_SPACE_ID || 'gk83salrhozo';
+  const deliveryToken = process.env.CONTENTFUL_ACCESS_TOKEN;
   const previewToken = process.env.CONTENTFUL_PREVIEW_ACCESS_TOKEN;
   const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   
@@ -115,7 +115,7 @@ async function main() {
     
     if (isDelivery) {
       log.success(`✅ This is a DELIVERY API token`);
-      log.info('Use this for: NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
+      log.info('Use this for: CONTENTFUL_ACCESS_TOKEN');
     }
     
     if (isPreview) {

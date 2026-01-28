@@ -112,11 +112,14 @@ build
 ############################
 # Environment
 ############################
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 production-keys.env
+*-keys.env
+*.env.production
 
 ############################
 # Next.js

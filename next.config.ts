@@ -9,6 +9,35 @@ const nextConfig: NextConfig = {
 
   // Cache control headers for better control over stale data
   headers: async () => {
+    // Allowed origins for CORS
+    const allowedOrigins = [
+      'https://tunzaesports.com',
+      'https://www.tunzaesports.com',
+      'https://kuer.co.ke',
+      'https://www.kuer.co.ke',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+
+    // Get origin from request or use default
+    const getOriginHeaders = (origin: string | undefined) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: origin || allowedOrigins[0],
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          }
+        ];
+      }
+      
+      // Return empty for unauthorized origins
+      return [];
+    };
+
     // In development, we want no caching to avoid stuck stale content
     if (process.env.NODE_ENV === 'development') {
         return [
@@ -19,6 +48,23 @@ const nextConfig: NextConfig = {
                 key: 'Cache-Control',
                 value: 'no-cache, no-store, must-revalidate',
               },
+              {
+                key: 'Access-Control-Allow-Methods',
+                value: 'GET, POST, PUT, DELETE, OPTIONS',
+              },
+              {
+                key: 'Access-Control-Allow-Headers',
+                value: 'Content-Type, Authorization, X-Requested-With',
+              },
+              {
+                key: 'Access-Control-Max-Age',
+                value: '86400',
+              },
+              {
+                key: 'Vary',
+                value: 'Origin',
+              },
+              ...getOriginHeaders(process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : undefined)
             ],
           },
         ];
@@ -32,6 +78,23 @@ const nextConfig: NextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=0, must-revalidate',
           },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
+          },
+          {
+            key: 'Vary',
+            value: 'Origin',
+          },
+          ...getOriginHeaders(undefined)
         ],
       },
       {
@@ -41,6 +104,23 @@ const nextConfig: NextConfig = {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
           },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
+          },
+          {
+            key: 'Vary',
+            value: 'Origin',
+          },
+          ...getOriginHeaders(undefined)
         ],
       },
       {
@@ -106,8 +186,8 @@ const nextConfig: NextConfig = {
   // Environment variables
   env: {
     SKIP_STRAPI_BUILD: process.env.SKIP_STRAPI_BUILD || 'true',
-    NEXT_PUBLIC_CONTENTFUL_SPACE_ID: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID,
-    NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN: process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN,
+    CONTENTFUL_SPACE_ID: process.env.CONTENTFUL_SPACE_ID,
+    CONTENTFUL_ACCESS_TOKEN: process.env.CONTENTFUL_ACCESS_TOKEN,
     NEXT_PUBLIC_FALLBACK_MODE: process.env.NEXT_PUBLIC_FALLBACK_MODE,
   },
 

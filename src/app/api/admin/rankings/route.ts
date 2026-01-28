@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, Query, ID } from 'node-appwrite';
+import { checkAdminAuth } from '@/lib/auth-check';
 
 // Initialize server-side Appwrite client
 const initializeAppwrite = () => {
@@ -51,6 +52,10 @@ interface RankingsRequest {
  *   - limit: (optional) Number of rankings to return (default: 100)
  */
 export async function GET(request: NextRequest) {
+    // Check admin authentication
+    const authError = await checkAdminAuth(request);
+    if (authError) return authError;
+
     try {
         const { searchParams } = new URL(request.url);
         const categoryId = searchParams.get('categoryId');
@@ -137,6 +142,10 @@ export async function GET(request: NextRequest) {
  *   - replaceAll: boolean (optional) - If true, replace all existing rankings for this category
  */
 export async function POST(request: NextRequest) {
+    // Check admin authentication
+    const authError = await checkAdminAuth(request);
+    if (authError) return authError;
+
     try {
         const body: RankingsRequest = await request.json();
         const { categoryId, rankings, replaceAll = true } = body;
@@ -286,6 +295,10 @@ export async function POST(request: NextRequest) {
  *   - ranking: RankingEntry (required) - Updated ranking data
  */
 export async function PUT(request: NextRequest) {
+    // Check admin authentication
+    const authError = await checkAdminAuth(request);
+    if (authError) return authError;
+
     try {
         const body = await request.json();
         const { rankingId, categoryId, ranking } = body;
@@ -367,6 +380,10 @@ export async function PUT(request: NextRequest) {
  *   - categoryId: (optional) Delete all rankings for this category
  */
 export async function DELETE(request: NextRequest) {
+    // Check admin authentication
+    const authError = await checkAdminAuth(request);
+    if (authError) return authError;
+
     try {
         const { searchParams } = new URL(request.url);
         const rankingId = searchParams.get('rankingId');

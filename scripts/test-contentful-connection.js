@@ -40,21 +40,21 @@ async function testContentfulConnection() {
   log.title('🧪 CONTENTFUL CONNECTION TEST');
 
   // Check environment variables
-  const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
-  const accessToken = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+  const spaceId = process.env.CONTENTFUL_SPACE_ID;
+  const accessToken = process.env.CONTENTFUL_ACCESS_TOKEN;
   const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   const environment = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 
   log.step('Checking environment variables...');
 
   if (!spaceId) {
-    log.error('NEXT_PUBLIC_CONTENTFUL_SPACE_ID is not set');
+    log.error('CONTENTFUL_SPACE_ID is not set');
     return false;
   }
   log.success(`Space ID: ${spaceId}`);
 
   if (!accessToken) {
-    log.error('NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN is not set');
+    log.error('CONTENTFUL_ACCESS_TOKEN is not set');
     return false;
   }
   log.success('Delivery API token is set');

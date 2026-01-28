@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
     timestamp: new Date().toISOString(),
     environment: {
       fallbackMode: process.env.NEXT_PUBLIC_FALLBACK_MODE,
-      contentfulSpaceId: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID ? '✅ Present' : '❌ Missing',
-      contentfulAccessToken: process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN ? '✅ Present' : '❌ Missing',
+      contentfulSpaceId: process.env.CONTENTFUL_SPACE_ID ? '✅ Present' : '❌ Missing',
+      contentfulAccessToken: process.env.CONTENTFUL_ACCESS_TOKEN ? '✅ Present' : '❌ Missing',
       contentfulManagementToken: process.env.CONTENTFUL_MANAGEMENT_TOKEN ? '✅ Present' : '❌ Missing'
     }
   });

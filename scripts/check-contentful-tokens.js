@@ -93,7 +93,7 @@ async function main() {
     
     if (isDelivery) {
       log.success(`✅ This is a DELIVERY API token`);
-      log.info('Use this for: NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN');
+      log.info('Use this for: CONTENTFUL_ACCESS_TOKEN');
     }
     
     if (isPreview) {

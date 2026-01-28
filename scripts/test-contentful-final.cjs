@@ -35,8 +35,8 @@ async function testContentfulIntegration() {
   log.title('🧪 FINAL CONTENTFUL INTEGRATION TEST');
 
   // Get environment variables
-  const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
-  const accessToken = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+  const spaceId = process.env.CONTENTFUL_SPACE_ID;
+  const accessToken = process.env.CONTENTFUL_ACCESS_TOKEN;
   const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   const environment = process.env.CONTENTFUL_ENVIRONMENT || 'master';
 

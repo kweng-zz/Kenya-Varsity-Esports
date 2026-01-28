@@ -26,7 +26,7 @@ export const HydrationFix: React.FC<HydrationFixProps> = ({
 };
 
 interface ImageWithFallbackProps {
-  src: string;
+  src: string | object | null | undefined;
   alt: string;
   fallbackSrc?: string;
   className?: string;
@@ -50,10 +50,17 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    const safeSrc = getSafeImageSrc(src, fallbackSrc);
-    setCurrentSrc(safeSrc);
-    setHasError(false);
-    setIsLoading(true);
+    try {
+      const safeSrc = getSafeImageSrc(src, fallbackSrc);
+      setCurrentSrc(safeSrc);
+      setHasError(false);
+      setIsLoading(true);
+    } catch (error) {
+      console.error('Error processing image src:', error, 'Original src:', src);
+      setCurrentSrc(fallbackSrc);
+      setHasError(true);
+      setIsLoading(false);
+    }
   }, [src, fallbackSrc]);
 
   // Monitor the image element for completion

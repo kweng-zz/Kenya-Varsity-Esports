@@ -96,8 +96,8 @@ class ContentfulVerifier {
     log.step('Checking environment variables...');
     
     const requiredVars = [
-      'NEXT_PUBLIC_CONTENTFUL_SPACE_ID',
-      'NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN'
+      'CONTENTFUL_SPACE_ID',
+      'CONTENTFUL_ACCESS_TOKEN'
     ];
     
     const optionalVars = [
@@ -171,8 +171,8 @@ class ContentfulVerifier {
       require('dotenv').config({ path: '.env.local' });
       require('dotenv').config({ path: '.env' });
       
-      const spaceId = process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID;
-      const accessToken = process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN;
+      const spaceId = process.env.CONTENTFUL_SPACE_ID;
+      const accessToken = process.env.CONTENTFUL_ACCESS_TOKEN;
       
       if (!spaceId || !accessToken) {
         log.error('Environment variables not loaded properly');
@@ -216,8 +216,8 @@ class ContentfulVerifier {
     try {
       const { createClient } = require('contentful');
       const client = createClient({
-        space: process.env.NEXT_PUBLIC_CONTENTFUL_SPACE_ID,
-        accessToken: process.env.NEXT_PUBLIC_CONTENTFUL_ACCESS_TOKEN
+        space: process.env.CONTENTFUL_SPACE_ID,
+        accessToken: process.env.CONTENTFUL_ACCESS_TOKEN
       });
       
       const requiredContentTypes = ['article', 'category', 'game'];

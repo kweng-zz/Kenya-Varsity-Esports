@@ -16,13 +16,17 @@ export const HeroBannerSection = () => {
     try {
       // Check if we're in fallback mode
       if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-        console.log('Fallback mode enabled, using fallback content');
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Fallback mode enabled, using fallback content');
+        }
         setFeaturedArticle(null);
         setLoading(false);
         return;
       }
 
-      console.log('Loading featured article from Contentful...');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Loading featured article from Contentful...');
+      }
       const response = await contentfulAPI.getArticles({
         page: 1,
         pageSize: 1,
@@ -31,14 +35,20 @@ export const HeroBannerSection = () => {
       
       if (response.data.length > 0) {
         const article = response.data[0];
-        console.log('Featured article loaded:', article);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Featured article loaded:', article.id, article.title);
+        }
         setFeaturedArticle(article);
       } else {
-        console.log('No featured articles found');
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('No featured articles found');
+        }
         setFeaturedArticle(null);
       }
     } catch (error) {
-      console.log('Contentful not available, using fallback content');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Contentful not available, using fallback content');
+      }
       setFeaturedArticle(null);
     } finally {
       setLoading(false);

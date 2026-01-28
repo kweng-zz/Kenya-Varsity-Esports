@@ -48,9 +48,9 @@ export async function POST(request: Request) {
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
       
-      const members = batch.map((contact: any) => ({
+const members = batch.map((contact: any) => ({
         email_address: contact.email,
-        status: 'subscribed',
+        status: contact.subscribeNewsletter ? 'subscribed' : 'transactional',
         merge_fields: {
           FNAME: contact.fullname.split(' ')[0] || '',
           LNAME: contact.fullname.split(' ').slice(1).join(' ') || '',

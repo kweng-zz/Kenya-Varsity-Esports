@@ -4,6 +4,7 @@ export interface MailchimpContact {
   university?: string;
   student_id?: string;
   phone_number?: string;
+  subscribeNewsletter?: boolean;
 }
 
 export interface BatchResult {

@@ -36,6 +36,7 @@ export const RegistrationFormSection = () => {
     phoneNumber: '',
     acceptTerms: false,
     acceptMarketing: false,
+    subscribeNewsletter: false,
     user_type: 'visitor' as 'participant' | 'visitor'
   });
 
@@ -185,22 +186,27 @@ export const RegistrationFormSection = () => {
           }
         }
 
-        // Auto-sync to Mailchimp for all new users
-        try {
-          console.log('🐒 Syncing new user to Mailchimp...');
-          const university = formData.university === 'Other / Not Listed' ? formData.institution : formData.university;
-          
-          await mailchimpClientService.addContact({
-            email: formData.email,
-            fullname: formData.fullName, // Use full name for Mailchimp
-            university: university || 'Not specified',
-            student_id: formData.studentId,
-            phone_number: formData.phoneNumber
-          });
-          console.log('✅ User synced to Mailchimp');
-        } catch (mailchimpError) {
-          console.error('⚠️ Failed to sync to Mailchimp:', mailchimpError);
-          // Don't result in error for user, just log it
+        // Sync to Mailchimp only if user subscribed to newsletter
+        if (formData.subscribeNewsletter) {
+          try {
+            console.log('🐒 Syncing new user to Mailchimp...');
+            const university = formData.university === 'Other / Not Listed' ? formData.institution : formData.university;
+            
+            await mailchimpClientService.addContact({
+              email: formData.email,
+              fullname: formData.fullName, // Use full name for Mailchimp
+              university: university || 'Not specified',
+              student_id: formData.studentId,
+              phone_number: formData.phoneNumber,
+              subscribeNewsletter: true
+            });
+            console.log('✅ User synced to Mailchimp with newsletter subscription');
+          } catch (mailchimpError) {
+            console.error('⚠️ Failed to sync to Mailchimp:', mailchimpError);
+            // Don't result in error for user, just log it
+          }
+        } else {
+          console.log('📧 User opted out of newsletter subscription');
         }
 
         // Send verification email
@@ -433,6 +439,15 @@ export const RegistrationFormSection = () => {
               <Label htmlFor="terms" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">When you register you confirm that you have read and accept the terms of the terms and conditions, privacy policy and cookie policy.</Label>
             </div>
             {errors.acceptTerms && (<p className="text-red-400 text-sm">{errors.acceptTerms}</p>)}
+            
+            {/* Newsletter Subscription */}
+            <div className="flex items-start space-x-2">
+              <Checkbox id="newsletter" className="mt-1 border-[#961c18]" checked={formData.subscribeNewsletter} onCheckedChange={(checked) => handleInputChange('subscribeNewsletter', checked as boolean)} />
+              <Label htmlFor="newsletter" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">
+                I would like to receive esports news, tournament updates, and exclusive offers via email (optional)
+              </Label>
+            </div>
+            
             <div className="flex items-start space-x-2">
               <Checkbox id="marketing" className="mt-1 border-[#961c18]" checked={formData.acceptMarketing} onCheckedChange={(checked) => handleInputChange('acceptMarketing', checked as boolean)} />
               <Label htmlFor="marketing" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">Would you like to receive information of interest and commercial information?</Label>

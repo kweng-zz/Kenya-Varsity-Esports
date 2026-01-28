@@ -104,7 +104,7 @@ export const LoginSection = () => {
       <Card className="max-w-md mx-auto bg-transparent border-none shadow-none relative z-20">
         <CardContent className="flex flex-col items-center space-y-6 pt-6">
           <h2 className="font-['Hind',Helvetica] font-bold text-[#961c18] text-[28px] text-center tracking-wide leading-tight">
-            {view === 'login' && 'WELCOME TO KUER'}
+            {view === 'login' && 'WELCOME TO KVE'}
             {view === 'forgotPassword' && 'RESET YOUR PASSWORD'}
           </h2>
 

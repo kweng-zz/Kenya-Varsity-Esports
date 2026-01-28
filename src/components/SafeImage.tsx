@@ -13,6 +13,7 @@ interface SafeImageProps {
   height?: number;
   fill?: boolean;
   priority?: boolean;
+  sizes?: string;
   onError?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
   onLoad?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
   [key: string]: any;

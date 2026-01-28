@@ -172,6 +172,8 @@ const LatestNews = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadArticles = async () => {
       try {
         setLoading(true);
@@ -188,8 +190,10 @@ const LatestNews = () => {
             date: article.publishedAt,
             slug: article.slug
           }));
-          setArticles(newsArticles);
-          setLoading(false);
+          if (isMounted) {
+            setArticles(newsArticles);
+            setLoading(false);
+          }
           return;
         }
       } catch (error) {
@@ -198,31 +202,41 @@ const LatestNews = () => {
 
       // Fallback to static articles
       setTimeout(() => {
-        setArticles([
+        if (!isMounted) return;
+        
+        const fallbackArticles: NewsArticle[] = [
           {
-            id: 'news-1',
-            title: "MASINDE MULIRO UNIVERSITY (MMUST) MAKES HISTORY",
-            description: "As the Only Non-Nairobi Winner in the Kenya University Esports Rankings, MMUST has proven that talent exists beyond the capital city.",
-            imageUrl: '/images/Join our tournaments.png',
-            category: "Tournament Results",
-            date: "2024-01-15",
-            slug: "mmust-makes-history"
+            id: '1',
+            title: 'KVE Season 3 Registration Now Open',
+            description: 'Universities across Kenya can now register their teams for the biggest collegiate esports tournament.',
+            imageUrl: '/images/News/Registration_News.png',
+            category: 'Tournament',
+            date: '2024-03-15',
+            slug: 'kve-season-3-registration'
           },
           {
-            id: 'news-2',
-            title: "TUK TAKES THE OVERALL POSITION FOR SEASON 2",
-            description: "The Technical University of Kenya gathers the top position in KUER Season 2, showcasing exceptional gaming skills and teamwork.",
-            imageUrl: '/images/Join-Your-Uni.png',
-            category: "Championship",
-            date: "2024-01-10",
-            slug: "tuk-season-2-champions"
+            id: '2',
+            title: 'New Gaming Titles Announced',
+            description: 'KVE expands to include 5 new game titles in Season 3, bringing more opportunities for diverse gaming communities.',
+            imageUrl: '/images/News/New_Titles_News.png',
+            category: 'Announcement',
+            date: '2024-03-10',
+            slug: 'new-gaming-titles'
           }
-        ]);
-        setLoading(false);
-      }, 500);
+        ];
+        
+        if (isMounted) {
+          setArticles(fallbackArticles);
+          setLoading(false);
+        }
+      }, 1000);
     };
 
     loadArticles();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

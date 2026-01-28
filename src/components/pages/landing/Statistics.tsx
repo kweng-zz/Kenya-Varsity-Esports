@@ -222,6 +222,8 @@ const SeasonStatistics = () => {
                 height={400}
                 className="w-full h-auto rounded-none shadow-2xl object-cover"
                 unoptimized // <-- bypass Next.js optimization (required for SVG)
+                loading="eager"
+                priority
                 onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.onerror = null;

@@ -29,45 +29,52 @@ export const TicketNotifications: React.FC = () => {
   useEffect(() => {
     if (!isAdmin) return;
 
+    let isMounted = true;
+
+    const loadNotifications = async () => {
+      if (!isMounted || !isAdmin) return;
+
+      try {
+        setLoading(true);
+        
+        // Get unread tickets and recent activity
+        const { tickets } = await ticketService.getTickets(
+          { unreadOnly: true },
+          10,
+          0
+        );
+
+        const newNotifications: TicketNotification[] = tickets.map(ticket => ({
+          id: ticket.$id,
+          ticketId: ticket.ticketId,
+          title: ticket.title,
+          type: ticket.priority === 'urgent' ? 'urgent' : 'new_ticket',
+          timestamp: ticket.$createdAt,
+          isRead: false
+        }));
+
+        if (isMounted) {
+          setNotifications(newNotifications);
+          setUnreadCount(newNotifications.length);
+        }
+      } catch (error) {
+        if (isMounted) console.error('Error loading notifications:', error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     // Load initial notifications
     loadNotifications();
 
     // Set up polling for new notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isAdmin]);
-
-  const loadNotifications = async () => {
-    if (!isAdmin) return;
-
-    try {
-      setLoading(true);
-      
-      // Get unread tickets and recent activity
-      const { tickets } = await ticketService.getTickets(
-        { unreadOnly: true },
-        10,
-        0
-      );
-
-      const newNotifications: TicketNotification[] = tickets.map(ticket => ({
-        id: ticket.$id,
-        ticketId: ticket.ticketId,
-        title: ticket.title,
-        type: ticket.priority === 'urgent' ? 'urgent' : 'new_ticket',
-        timestamp: ticket.$createdAt,
-        isRead: false
-      }));
-
-      setNotifications(newNotifications);
-      setUnreadCount(newNotifications.length);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => 

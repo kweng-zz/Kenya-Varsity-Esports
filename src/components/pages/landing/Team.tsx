@@ -36,6 +36,7 @@ const TeamMemberCard = ({ member, index }: { member: TeamMember; index: number }
           src={imageError ? "https://placehold.co/300x400/111111/FFFFFF?text=Team+Member" : member.backgroundImage}
           alt={member.name}
           fill
+          sizes="300px"
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           fallbackSrc="https://placehold.co/300x400/111111/FFFFFF?text=Team+Member"
           onError={() => setImageError(true)}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Models } from 'appwrite';
 import { getSessionClient } from '@/lib/appwrite-server';
 
 /**
@@ -9,7 +10,7 @@ import { getSessionClient } from '@/lib/appwrite-server';
 export async function verifyAdminAuth(request: NextRequest) {
   try {
     // Get session token from cookies
-    const sessionToken = request.cookies.get('session')?.value;
+    const sessionToken = request.cookies.get('appwrite-session')?.value;
 
     if (!sessionToken) {
       return NextResponse.json(
@@ -29,7 +30,15 @@ export async function verifyAdminAuth(request: NextRequest) {
     }
 
     // Verify session with Appwrite
-    const user = await sessionClient.account.get();
+    let user: Models.User<Record<string, unknown>> | null = null;
+    try {
+      user = await sessionClient.account.get();
+    } catch (sessionError: any) {
+      return NextResponse.json(
+        { success: false, error: 'UNAUTHORIZED', message: 'Invalid session or guest user' },
+        { status: 401 }
+      );
+    }
     
     if (!user) {
       return NextResponse.json(

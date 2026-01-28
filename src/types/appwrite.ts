@@ -10,4 +10,5 @@ export type AppwriteProfile = {
   student_id?: string;
   phone_number?: string;
   isAdmin?: boolean;
+  cookieBlocked?: boolean;
 };

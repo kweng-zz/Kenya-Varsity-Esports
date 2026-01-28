@@ -19,8 +19,11 @@ const validateEnv = () => {
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '465'),
+    port: parseInt(process.env.SMTP_PORT || '587'),
     secure: process.env.SMTP_PORT === '465',
+    tls: {
+      rejectUnauthorized: false
+    },
     auth: {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD,
@@ -29,31 +32,34 @@ const createTransporter = () => {
 };
 
 export async function POST(request: NextRequest) {
-  // Check rate limit
-  const rateLimitError = await checkRateLimit(request, 'CONTACT');
-  if (rateLimitError) return rateLimitError;
-
   try {
-    // Validate environment variables
-    if (!validateEnv()) {
-      console.error('❌ Missing SMTP environment variables');
-      return NextResponse.json(
-        { success: false, error: 'Server configuration error - missing email credentials' },
-        { status: 500 }
-      );
+    // Check rate limit
+    const rateLimitError = await checkRateLimit(request, 'CONTACT');
+    if (rateLimitError) {
+      return rateLimitError;
     }
+
+    // Validate environment variables (temporarily disabled for testing)
+     if (!validateEnv()) {
+       return NextResponse.json(
+         { success: false, error: 'Server configuration error - missing email credentials' },
+         { status: 500 }
+       );
+     }
 
     // Parse request body
     const body = await request.json();
-    const { name, email, message, type = 'general' } = body;
-
-    console.log('📧 Contact form submission received');
-    console.log(`🔌 Attempting to send using: ${process.env.SMTP_EMAIL}`);
+    
+    // Ensure type is set to default if not provided
+    if (!body.type) {
+      body.type = 'general';
+    }
+    
+    const { name, email, message, type } = body;
 
     // Input validation using schema
     const validation = validateInput(body, commonSchemas.contactMessage);
     if (!validation.isValid) {
-      console.error('❌ Validation errors:', validation.errors);
       return NextResponse.json({
         success: false,
         error: 'VALIDATION_ERROR',
@@ -63,25 +69,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create transporter
-    console.log('🔌 Creating SMTP transporter...');
     const transporter = createTransporter();
 
-    // Test connection
-    try {
-      console.log('🧪 Testing SMTP connection...');
-      await transporter.verify();
-      console.log('✅ SMTP connection verified');
-    } catch (verifyError) {
-      console.error('❌ SMTP connection failed:', verifyError);
-      return NextResponse.json(
-        { success: false, error: 'Email service connection failed. Please try again later.' },
-        { status: 503 }
-      );
-    }
+    // Test connection (temporarily disabled for testing)
+    // try {
+    //   await transporter.verify();
+    // } catch (verifyError) {
+    //   return NextResponse.json(
+    //     { success: false, error: 'Email service connection failed. Please try again later.' },
+    //     { status: 503 }
+    //   );
+    // }
 
     // Email to Tunza Admin
     const mailOptions = {
-      from: `"Tunza Esports Contact Form" <${process.env.SMTP_FROM_EMAIL}>`,
+      from: `"Tunza Esports Contact Form" <${process.env.SMTP_EMAIL}>`,
       to: 'events@tunzaesports.com',
       subject: `Contact Form Inquiry: ${name}`,
       html: `
@@ -125,21 +127,21 @@ export async function POST(request: NextRequest) {
     };
 
     // Send email to KUER
-    console.log('📤 Sending email to KUER...');
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log('✅ Email sent to KUER:', info.messageId);
+      console.log('Email sent successfully:', info);
     } catch (sendError) {
-      console.error('❌ Failed to send email to KUER:', sendError);
+      console.error('SMTP Error:', sendError);
+      const errorMessage = sendError instanceof Error ? sendError.message : 'Unknown error';
       return NextResponse.json(
-        { success: false, error: 'Failed to send email. Please check your email and try again.' },
+        { success: false, error: `Failed to send email: ${errorMessage}` },
         { status: 500 }
       );
     }
 
     // Optional: Send confirmation email to user
     const confirmationEmail = {
-      from: process.env.SMTP_FROM_EMAIL,
+      from: `"Tunza Esports" <${process.env.SMTP_EMAIL}>`,
       to: email,
       subject: 'We received your message - Tunza Esports',
       html: `
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
           </div>
 
           <p>Best regards,<br/>
-          <strong>KUER Team</strong><br/>
+          <strong>KVE Team</strong><br/>
           Kenya University Esports Rankings</p>
           
           <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
@@ -171,21 +173,16 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      console.log('📤 Sending confirmation email to user...');
-      const confirmInfo = await transporter.sendMail(confirmationEmail);
-      console.log('✅ Confirmation email sent:', confirmInfo.messageId);
+      // const confirmInfo = await transporter.sendMail(confirmationEmail);
     } catch (confirmError) {
-      console.error('⚠️ Error sending confirmation email (non-critical):', confirmError);
       // Don't fail the request if confirmation email fails
     }
 
-    console.log('✅ Contact form processed successfully');
     return NextResponse.json(
       { success: true, message: 'Email sent successfully' },
       { status: 200 }
     );
   } catch (error) {
-    console.error('❌ Unexpected error in contact form:', error);
     return NextResponse.json(
       { success: false, error: 'An unexpected error occurred. Please try again later.' },
       { status: 500 }

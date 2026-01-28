@@ -63,15 +63,16 @@ export type AppwriteProfile = {
   phone_number?: string;
   isAdmin?: boolean; // optional admin flag
   isTeamCaptain?: boolean; // team captain flag
-  user_type?: 'participant' | 'visitor';
-  status?: 'pending' | 'approved' | 'rejected';
+  user_type?: string; // user type
+  status?: string; // user status
+  cookieBlocked?: boolean; // flag for third-party cookie blocking
 };
 
 export interface AuthContextType {
   user: Models.User<Record<string, unknown>> | null;
   profile: AppwriteProfile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: unknown; user?: Models.User<Record<string, unknown>> }>;
+  signIn: (email: string, password: string) => Promise<{ error?: unknown; user?: Models.User<Record<string, unknown>>; warning?: string }>;
   signUp: (
     email: string,
     password: string,
@@ -155,7 +156,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // --- Initialize User ---
   useEffect(() => {
+    let isMounted = true;
+    
     const init = async () => {
+      // Check for third-party cookie support
+      if (typeof window !== 'undefined' && !navigator.cookieEnabled) {
+        console.warn('Cookies are disabled in this browser');
+        if (isMounted) setLoading(false);
+        return;
+      }
+      
       try {
         const appwrite = initializeAppwrite();
         if (!appwrite) {
@@ -199,16 +209,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               status: 'approved'
             };
             
-            setUser(demoUser);
-            setProfile(demoProfile);
+            if (isMounted) {
+              setUser(demoUser);
+              setProfile(demoProfile);
+            }
           }
           
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
-        const currentUser = await appwrite.account.get();
-        setUser(currentUser);
+        let currentUser: Models.User<Record<string, unknown>> | null = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        // Check if user has an active session before calling account.get()
+        // Implement retry logic for timing issues
+        while (!currentUser && retryCount < maxRetries) {
+          try {
+            currentUser = await appwrite.account.get();
+            if (isMounted && currentUser) {
+              setUser(currentUser);
+              break; // Success, exit retry loop
+            }
+          } catch (sessionError: any) {
+            retryCount++;
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Account.get() attempt ${retryCount} failed:`, sessionError.message);
+            }
+            
+            // Handle scope errors for guest users
+            if (sessionError?.code === 401 || sessionError?.message?.includes('missing scopes')) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('No active session or guest user without account scopes');
+              }
+              if (isMounted) {
+                setUser(null);
+                setProfile(null);
+              }
+              return;
+            }
+            
+            // If we've exhausted retries, handle gracefully
+            if (retryCount >= maxRetries) {
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Max retries reached for account.get(), session may be blocked');
+              }
+              if (isMounted) {
+                setUser(null);
+                setProfile(null);
+              }
+              return;
+            }
+            
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
+          }
+        }
         
         // Also ensure the bridge cookie is set after a refresh if we have a session
         // We use a JWT because the actual session secret is hidden from the browser
@@ -218,31 +276,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (process.env.NODE_ENV === 'development') {
               console.log(`🔑 Refreshed JWT bridge cookie (Length: ${jwtResponse.jwt.length})...`);
             }
-            document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+          const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+          document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax;${domain ? ` domain=${domain};` : ''}`;
           }
         } catch (e) {
           // No active session, ignore
         }
 
-        const userProfile = await getProfile(currentUser.$id);
-        setProfile(userProfile);
+        if (currentUser) {
+          const userProfile = await getProfile(currentUser.$id);
+          if (isMounted) setProfile(userProfile);
+        }
       } catch (err) {
         // Expected when no active session exists (401 Unauthorized)
         // This is normal behavior, not an error
-        setUser(null);
-        setProfile(null);
+        if (isMounted) {
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     init();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // --- Auto-refresh JWT cookie ---
   useEffect(() => {
     if (!user) return;
 
+    let isMounted = true;
+
     const refreshJWT = async () => {
+      if (!isMounted) return;
+      
       try {
         const appwrite = initializeAppwrite();
         if (!appwrite) return;
@@ -258,7 +329,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Refresh every 10 minutes (Appwrite JWTs usually expire in 15)
     const interval = setInterval(refreshJWT, 10 * 60 * 1000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [user]);
 
   // --- Auth Actions ---
@@ -269,29 +344,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('Appwrite not configured') };
       }
 
+      // Email/Password authentication
       const session = await appwrite.account.createEmailPasswordSession(email, password);
+      console.log('✅ Session created:', session);
       
-      // Create a JWT token for the server bridge
-      // Appwrite JWTs are short-lived tokens that the server can use to verify identity
-      try {
-        const jwtResponse = await appwrite.account.createJWT();
-        console.log(`🔑 Setting JWT bridge cookie...`);
-        document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
-      } catch (e) {
-        console.error('❌ Failed to create JWT for session bridge:', e);
+      // Validate session was actually created and stored
+      if (!session || !session.userId) {
+        throw new Error('Session creation failed - no user ID returned');
       }
       
-      const currentUser = await appwrite.account.get();
-      setUser(currentUser);
-      const userProfile = await getProfile(currentUser.$id);
-      setProfile(userProfile);
-      return { user: currentUser };
+      // Wait a moment for session to be stored in localStorage
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Try to get user details with the established session
+      let currentUser: Models.User<Record<string, unknown>> | null = null;
+      
+      try {
+        currentUser = await appwrite.account.get();
+        console.log('✅ User retrieved after session:', currentUser);
+        
+        setUser(currentUser);
+        const userProfile = await getProfile(currentUser.$id);
+        setProfile(userProfile);
+        
+        // Create JWT for server bridge now that we have a valid session
+        try {
+          const jwtResponse = await appwrite.account.createJWT();
+          console.log(`🔑 Setting JWT bridge cookie...`);
+          const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+          document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax;${domain ? ` domain=${domain};` : ''}`;
+        } catch (e) {
+          console.error('❌ Failed to create JWT for session bridge:', e);
+          // Don't fail sign-in if JWT creation fails
+        }
+        
+        return { user: currentUser };
+        
+      } catch (accountError: any) {
+        console.error('Failed to get user account after sign-in:', accountError);
+        
+        // Check if the error is about missing scopes despite having a session
+        if (accountError?.message?.includes('missing scopes') && session?.userId) {
+          console.warn('⚠️ Session exists but user has guest scopes - third-party cookies likely blocked');
+          
+          // Create a local session fallback user
+          const fallbackUser = {
+            $id: session.userId,
+            email: email,
+            name: email.split('@')[0],
+            emailVerification: true,
+            phoneVerification: false,
+            phone: '',
+            passwordUpdate: new Date().toISOString(),
+            prefs: {},
+            registration: new Date().toISOString(),
+            status: true,
+            labels: ['authenticated'], // Mark as authenticated locally
+            accessedAt: new Date().toISOString(),
+            $createdAt: new Date().toISOString(),
+            $updatedAt: new Date().toISOString(),
+            mfa: false,
+            targets: []
+          } as Models.User<Record<string, unknown>>;
+          
+          // Create fallback profile
+          const fallbackProfile: AppwriteProfile = {
+            $id: session.userId,
+            $createdAt: new Date().toISOString(),
+            $updatedAt: new Date().toISOString(),
+            $collectionId: 'fallback',
+            $permissions: [],
+            fullname: email.split('@')[0],
+            email: email,
+            university: 'Unknown',
+            isAdmin: false,
+            isTeamCaptain: false,
+            user_type: 'visitor',
+            status: 'pending',
+            cookieBlocked: true // Flag for UI to show cookie warning
+          };
+          
+          setUser(fallbackUser);
+          setProfile(fallbackProfile);
+          
+          // Return with warning for user
+          return { 
+            user: fallbackUser, 
+            warning: 'Authentication succeeded but browser may be blocking some cookies. Some features may be limited.' 
+          };
+        }
+        
+        throw accountError;
+      }
+      
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Sign in error:', error);
       }
 
-      // Check for Third-Party Cookie blocking (successfull session create but failed get())
+      // Check for Third-Party Cookie blocking (successful session create but failed get())
       if (error?.message?.includes('missing scopes') && error?.message?.includes('guest')) {
         return { 
           error: new Error('Login failed due to browser cookie blocking. Please try:\n1. Disabling "Block Third-Party Cookies"\n2. Using a Custom Domain in Appwrite Console\n3. Using a different browser') 

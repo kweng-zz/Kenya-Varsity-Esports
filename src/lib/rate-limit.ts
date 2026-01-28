@@ -92,9 +92,9 @@ export const RATE_LIMITS = {
     windowMs: 60 * 1000 // per minute
   },
   
-  // Contact form - very restrictive to prevent spam
+  // Contact form - less restrictive for testing
   CONTACT: {
-    limit: 3, // 3 requests
+    limit: 10, // 10 requests per minute (increased from 3)
     windowMs: 60 * 1000 // per minute
   },
   

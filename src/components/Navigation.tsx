@@ -196,8 +196,10 @@ export function Navigation() {
           src="https://c.animaapp.com/md6ebassseX7AK/img/group-44.png"
           alt="Background"
           fill
+          sizes="(max-width: 768px) 100vw, 100vw"
           className="object-cover opacity-20 pointer-events-none"
           priority
+          loading="eager"
         />
 
         {/* Mobile nav top bar */}

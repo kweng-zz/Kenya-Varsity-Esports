@@ -17,10 +17,13 @@ const validateEnv = () => {
 
 // Create Zoho Mail transporter
 const createTransporter = () => {
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const isSecurePort = port === 465 || port === 465;
+  
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465',
+    port: port,
+    secure: isSecurePort, // true for 465, false for 587
     tls: {
       rejectUnauthorized: false
     },

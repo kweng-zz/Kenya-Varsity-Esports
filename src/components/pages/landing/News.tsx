@@ -98,7 +98,9 @@ const NewsCard = ({ article }: NewsCardProps) => {
   useEffect(() => {
     setImageError(false);
     const processedUrl = getImageUrl(imageUrl);
-    console.log('Processing image URL:', { original: typeof imageUrl, processed: processedUrl });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Processing image URL:', { original: typeof imageUrl, processed: processedUrl });
+    }
     setCurrentImageUrl(processedUrl);
   }, [imageUrl]);
 

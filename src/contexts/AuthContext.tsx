@@ -215,7 +215,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const jwtResponse = await appwrite.account.createJWT();
           if (jwtResponse && jwtResponse.jwt) {
-            console.log(`🔑 Refreshed JWT bridge cookie (Length: ${jwtResponse.jwt.length})...`);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🔑 Refreshed JWT bridge cookie (Length: ${jwtResponse.jwt.length})...`);
+            }
             document.cookie = `appwrite-session=${jwtResponse.jwt}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
           }
         } catch (e) {

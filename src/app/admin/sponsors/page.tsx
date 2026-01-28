@@ -5,6 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Plus, Edit, Trash2, ExternalLink, Search, Award, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Sponsor {
   $id?: string;
@@ -295,136 +303,134 @@ export default function AdminSponsorsPage() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-2xl font-bold text-white">
-                {currentSponsor.$id ? 'Edit Sponsor' : 'Add New Sponsor'}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
+{/* Add/Edit Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="bg-gray-800 border-gray-700 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white">
+              {currentSponsor.$id ? 'Edit Sponsor' : 'Add New Sponsor'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Add or edit sponsor information for the website.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSave} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Sponsor Name*</label>
+              <input
+                type="text"
+                required
+                value={currentSponsor.name}
+                onChange={e => setCurrentSponsor({ ...currentSponsor, name: e.target.value })}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
+                placeholder="e.g. Truehost Kenya"
+              />
             </div>
-            
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Sponsor Name*</label>
-                <input
-                  type="text"
-                  required
-                  value={currentSponsor.name}
-                  onChange={e => setCurrentSponsor({ ...currentSponsor, name: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
-                  placeholder="e.g. Truehost Kenya"
-                />
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Website URL</label>
-                <input
-                  type="url"
-                  value={currentSponsor.website}
-                  onChange={e => setCurrentSponsor({ ...currentSponsor, website: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
-                  placeholder="https://..."
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Website URL</label>
+              <input
+                type="url"
+                value={currentSponsor.website}
+                onChange={e => setCurrentSponsor({ ...currentSponsor, website: e.target.value })}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
+                placeholder="https://..."
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">Sponsor Logo*</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center p-2 relative overflow-hidden">
-                    {currentSponsor.logo ? (
-                      <img src={currentSponsor.logo} className="w-full h-full object-contain" />
-                    ) : (
-                      <Upload className="w-8 h-8 text-gray-600" />
-                    )}
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      id="logo-upload"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      disabled={isUploading}
-                    />
-                    <label
-                      htmlFor="logo-upload"
-                      className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm font-semibold"
-                    >
-                      {isUploading ? 'Uploading...' : 'Choose File'}
-                    </label>
-                    <p className="text-xs text-gray-500 mt-2">Recommended: PNG or SVG with transparent background</p>
-                  </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Sponsor Logo*</label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 bg-gray-900 border border-gray-700 rounded-lg flex items-center justify-center p-2 relative overflow-hidden">
+                  {currentSponsor.logo ? (
+                    <img src={currentSponsor.logo} className="w-full h-full object-contain" />
+                  ) : (
+                    <Upload className="w-8 h-8 text-gray-600" />
+                  )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Display Order</label>
+                <div className="flex-1">
                   <input
-                    type="number"
-                    value={currentSponsor.order}
-                    onChange={e => setCurrentSponsor({ ...currentSponsor, order: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
+                    type="file"
+                    id="logo-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isUploading}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Tier</label>
-                  <select
-                    value={currentSponsor.tier}
-                    onChange={e => setCurrentSponsor({ ...currentSponsor, tier: e.target.value })}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
+                  <label
+                    htmlFor="logo-upload"
+                    className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm font-semibold"
                   >
-                    <option value="platinum">Platinum</option>
-                    <option value="gold">Gold</option>
-                    <option value="silver">Silver</option>
-                    <option value="bronze">Bronze</option>
-                    <option value="partner">Partner</option>
-                  </select>
+                    {isUploading ? 'Uploading...' : 'Choose File'}
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Recommended: PNG or SVG with transparent background</p>
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Display Order</label>
                 <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={currentSponsor.isActive}
-                  onChange={e => setCurrentSponsor({ ...currentSponsor, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded text-red-600 focus:ring-red-500 bg-gray-900 border-gray-700"
+                  type="number"
+                  value={currentSponsor.order}
+                  onChange={e => setCurrentSponsor({ ...currentSponsor, order: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
                 />
-                <label htmlFor="isActive" className="text-sm font-medium text-gray-300">Visible on Website</label>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Tier</label>
+                <select
+                  value={currentSponsor.tier}
+                  onChange={e => setCurrentSponsor({ ...currentSponsor, tier: e.target.value })}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500 outline-none"
+                >
+                  <option value="platinum">Platinum</option>
+                  <option value="gold">Gold</option>
+                  <option value="silver">Silver</option>
+                  <option value="bronze">Bronze</option>
+                  <option value="partner">Partner</option>
+                </select>
+              </div>
+            </div>
 
-              <div className="flex gap-4 pt-4 border-t border-gray-700">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-transparent border-gray-600 hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSaving || isUploading}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
-                  {isSaving ? 'Saving...' : 'Save Sponsor'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="flex items-center gap-2 py-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={currentSponsor.isActive}
+                onChange={e => setCurrentSponsor({ ...currentSponsor, isActive: e.target.checked })}
+                className="w-4 h-4 rounded text-red-600 focus:ring-red-500 bg-gray-900 border-gray-700"
+              />
+              <label htmlFor="isActive" className="text-sm font-medium text-gray-300">Visible on Website</label>
+            </div>
+
+            <div className="flex gap-4 pt-4 border-t border-gray-700">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 bg-transparent border-gray-600 hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSaving || isUploading}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {isSaving ? 'Saving...' : 'Save Sponsor'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

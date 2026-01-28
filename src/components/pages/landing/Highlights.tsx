@@ -4,6 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { X, Play } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Client, Databases } from "appwrite";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Appwrite setup with lazy initialization
 let client: Client | null = null;
@@ -224,24 +229,21 @@ export const TopHighlightSection = () => {
 
     // Video Modal Component
     const VideoModal = ({ videoId, onClose }: { videoId: string; onClose: () => void }) => (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div className="relative w-full max-w-4xl aspect-video">
-                <button
-                    onClick={onClose}
-                    className="absolute -top-12 right-0 text-white hover:text-red-500 transition-colors"
-                >
-                    <X className="w-8 h-8" />
-                </button>
-                <iframe
-                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-                    title="YouTube video player"
-                    style={{ border: 0 }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full rounded-none"
-                />
-            </div>
-        </div>
+        <Dialog open={!!videoId} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="bg-black border-gray-700 max-w-4xl p-0 overflow-hidden">
+                <DialogTitle className="sr-only">Video Player</DialogTitle>
+                <div className="relative w-full aspect-video">
+                    <iframe
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+                        title="YouTube video player"
+                        style={{ border: 0 }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="w-full h-full rounded-none"
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 
     // Video Thumbnail Component
@@ -369,9 +371,7 @@ export const TopHighlightSection = () => {
             </section>
 
             {/* Video Modal */}
-            {activeVideo && (
-                <VideoModal videoId={activeVideo} onClose={closeVideo} />
-            )}
+            <VideoModal videoId={activeVideo || ''} onClose={closeVideo} />
         </>
     );
 };

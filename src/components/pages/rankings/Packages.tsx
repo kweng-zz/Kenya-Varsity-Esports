@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { SEASON_REGIONAL } from "@/config/seasonConfig";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface University {
   id: string;
@@ -183,65 +190,54 @@ export const GamePackageSection = () => {
         )}
       </div>
 
-      {/* Coming Soon Modal */}
-      {showComingSoonModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a1a] border border-[#961c18] rounded-lg max-w-md w-full p-8 text-center relative">
-            {/* Close button */}
-            <button
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-white hover:text-[#961c18] transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Icon */}
-            <div className="w-16 h-16 bg-[#961c18] rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-
-            {/* Content */}
-            <h2 className="text-2xl font-bold text-white mb-4">
+      {/* Coming Soon Dialog */}
+      <Dialog open={showComingSoonModal} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="bg-[#1a1a1a] border-[#961c18] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">
               {selectedRegion}
-            </h2>
-            <h3 className="text-xl font-semibold text-[#961c18] mb-4">
+            </DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-[#961c18] text-center">
               Rankings Coming Soon
-            </h3>
-            <p className="text-[#aaaaaa] mb-8 leading-relaxed">
+            </DialogTitle>
+            <DialogDescription className="text-[#aaaaaa] text-center">
               Rankings for the {selectedRegion} region will be available soon. We&apos;re currently setting up competitions and gathering university participation data for this region.
-            </p>
+            </DialogDescription>
+          </DialogHeader>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/"
-                className="bg-[#961c18] hover:bg-[#961c18]/80 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 text-center"
-                onClick={closeModal}
-              >
-                Return to Home
-              </Link>
-              <Link
-                href="/tournaments"
-                className="bg-transparent border border-[#961c18] text-[#961c18] hover:bg-[#961c18] hover:text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 text-center"
-                onClick={closeModal}
-              >
-                View Tournaments
-              </Link>
-            </div>
-
-            {/* Additional Info */}
-            <div className="mt-6 pt-6 border-t border-[#961c18]/30">
-              <p className="text-[#aaaaaa] text-sm">
-                Stay tuned for updates on regional competitions and university rankings.
-              </p>
-            </div>
+          {/* Icon */}
+          <div className="w-16 h-16 bg-[#961c18] rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
           </div>
-        </div>
-      )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/"
+              className="bg-[#961c18] hover:bg-[#961c18]/80 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 text-center"
+              onClick={closeModal}
+            >
+              Return to Home
+            </Link>
+            <Link
+              href="/tournaments"
+              className="bg-transparent border border-[#961c18] text-[#961c18] hover:bg-[#961c18] hover:text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 text-center"
+              onClick={closeModal}
+            >
+              View Tournaments
+            </Link>
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-6 pt-6 border-t border-[#961c18]/30">
+            <p className="text-[#aaaaaa] text-sm text-center">
+              Stay tuned for updates on regional competitions and university rankings.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

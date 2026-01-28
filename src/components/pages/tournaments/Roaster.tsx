@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getTournamentsPageData, SeasonInfo, GameInfo, getSeasonGames, getActiveSeasonGames } from "@/lib/pagedata/tournaments";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const TeamRosterSection = () => {
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);

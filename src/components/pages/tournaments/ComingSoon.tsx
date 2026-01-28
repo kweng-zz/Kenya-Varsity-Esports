@@ -46,7 +46,7 @@ export const ComingSoonSection = () => {
     try {
       // Add cache-busting parameter to force fresh data
       const timestamp = new Date().getTime();
-      const response = await fetch(`/api/admin/rankings?t=${timestamp}`);
+      const response = await fetch(`/api/rankings?t=${timestamp}`);
       const result = await response.json();
 
       if (result.success && result.data) {

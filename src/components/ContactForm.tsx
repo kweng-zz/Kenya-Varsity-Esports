@@ -38,6 +38,25 @@ export const ContactForm = () => {
             return;
         }
 
+        if (formData.name.trim().length < 2) {
+            setErrorMessage('Name must be at least 2 characters long');
+            setSubmitStatus('error');
+            return;
+        }
+
+        if (formData.message.trim().length < 10) {
+            setErrorMessage('Message must be at least 10 characters long');
+            setSubmitStatus('error');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email.trim())) {
+            setErrorMessage('Please enter a valid email address');
+            setSubmitStatus('error');
+            return;
+        }
+
         setIsSubmitting(true);
         setSubmitStatus('idle');
         setErrorMessage('');

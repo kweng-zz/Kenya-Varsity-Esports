@@ -83,9 +83,17 @@ export const ContactForm = () => {
                 setSubmitStatus('success');
                 setFormData({ name: '', email: '', message: '' });
             } else {
-                console.error('❌ Form submission failed:', result.error);
+                // Log validation details for debugging
+                if (result.details && Array.isArray(result.details)) {
+                    console.error('❌ Form submission failed:', result.error, result.details);
+                    // Create user-friendly error message from validation details
+                    const detailMessages = result.details.map((detail: { field: string; message: string }) => detail.message).join(', ');
+                    setErrorMessage(detailMessages || result.error || 'Failed to send message');
+                } else {
+                    console.error('❌ Form submission failed:', result.error);
+                    setErrorMessage(result.error || 'Failed to send message');
+                }
                 setSubmitStatus('error');
-                setErrorMessage(result.error || 'Failed to send message');
             }
         } catch (error) {
             console.error('❌ Contact form error:', error);

@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: Follow us on
+          - generic [ref=e18]:
+            - link "facebook" [ref=e19] [cursor=pointer]:
+              - /url: https://www.facebook.com/people/Kenya-University-Esports-Rankings/61564114237402/?mibextid=LQQJ4d
+              - img "facebook social icon" [ref=e21]
+            - link "instagram" [ref=e26] [cursor=pointer]:
+              - /url: https://www.instagram.com/keuniesportsrankings/?igsh=MXRmNHZtOTVqZDh5dQ%3D%3D&utm_source=qr
+              - img "instagram social icon" [ref=e28]
+            - link "linkedin" [ref=e33] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/kenya-university-esports-rankings
+              - img "linkedin social icon" [ref=e35]
+            - link "whatsapp" [ref=e40] [cursor=pointer]:
+              - /url: https://www.whatsapp.com/channel/0029VafLdwE96H4XI1gb3X3Z
+              - img "whatsapp social icon" [ref=e42]
+            - link "tiktok" [ref=e47] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@kenyauniesportsrankings
+              - img "tiktok social icon" [ref=e49]
+            - link "youtube" [ref=e54] [cursor=pointer]:
+              - /url: https://www.youtube.com/@kenyauniversityesportsrankings
+              - img "youtube social icon" [ref=e56]
+        - generic [ref=e61]:
+          - link "Login" [ref=e62] [cursor=pointer]:
+            - /url: /login
+          - link "Register" [ref=e63] [cursor=pointer]:
+            - /url: /register
+      - generic [ref=e64]:
+        - img "Background"
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - link "HOME" [ref=e67] [cursor=pointer]:
+              - /url: /
+            - link "ABOUT US" [ref=e68] [cursor=pointer]:
+              - /url: /about
+            - link "BLOGS" [ref=e69] [cursor=pointer]:
+              - /url: /blogs
+          - img "Group" [ref=e70]
+          - img "Kuer transparent" [ref=e71]
+          - generic [ref=e72]:
+            - link "TOURNAMENTS" [ref=e73] [cursor=pointer]:
+              - /url: /tournaments
+            - link "EVENTS" [ref=e74] [cursor=pointer]:
+              - /url: /events
+            - link "SHOP" [ref=e75] [cursor=pointer]:
+              - /url: /shop
+            - button [ref=e77]:
+              - img [ref=e78]
+    - generic [ref=e82]:
+      - heading "CONTACT US!" [level=1] [ref=e84]
+      - paragraph [ref=e87]: If you would like to make a general enquiry, get involved in KVE or are interested in working with us, please get in touch via Discord, support email or our social media accounts below
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - heading "Connect With Us" [level=2] [ref=e91]
+        - paragraph [ref=e92]: Follow us on social media for the latest updates, tournament announcements, and gaming content
+      - generic [ref=e93]:
+        - generic [ref=e96] [cursor=pointer]:
+          - img [ref=e98]
+          - generic [ref=e100]:
+            - heading "Discord" [level=3] [ref=e101]
+            - paragraph [ref=e102]: Join our gaming community
+          - img [ref=e104]
+        - generic [ref=e108] [cursor=pointer]:
+          - img [ref=e110]
+          - generic [ref=e112]:
+            - heading "Instagram" [level=3] [ref=e113]
+            - paragraph [ref=e114]: See our latest content
+          - img [ref=e116]
+        - generic [ref=e120] [cursor=pointer]:
+          - img [ref=e122]
+          - generic [ref=e124]:
+            - heading "YouTube" [level=3] [ref=e125]
+            - paragraph [ref=e126]: Watch our tournaments
+          - img [ref=e128]
+        - generic [ref=e132] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e136]:
+            - heading "TikTok" [level=3] [ref=e137]
+            - paragraph [ref=e138]: Short gaming clips
+          - img [ref=e140]
+        - generic [ref=e144] [cursor=pointer]:
+          - img [ref=e146]
+          - generic [ref=e148]:
+            - heading "WhatsApp" [level=3] [ref=e149]
+            - paragraph [ref=e150]: Direct messaging
+          - img [ref=e152]
+      - generic [ref=e154]:
+        - paragraph [ref=e155]: Join our growing community of esports enthusiasts
+        - generic [ref=e156]:
+          - generic [ref=e157]: 🎮 Gaming Updates
+          - generic [ref=e158]: 🏆 Tournament News
+          - generic [ref=e159]: 📺 Live Streams
+          - generic [ref=e160]: 🤝 Community Events
+    - generic [ref=e161]:
+      - generic [ref=e164]:
+        - generic [ref=e165]:
+          - img "Kuer transparent" [ref=e166]
+          - generic [ref=e167]:
+            - link "Facebook" [ref=e168] [cursor=pointer]:
+              - /url: https://www.facebook.com/people/Kenya-University-Esports-Rankings/61564114237402/?mibextid=LQQJ4d
+              - img "Facebook" [ref=e169]
+            - link "Instagram" [ref=e170] [cursor=pointer]:
+              - /url: https://www.instagram.com/keuniesportsrankings/?igsh=MXRmNHZtOTVqZDh5dQ%3D%3D&utm_source=qr
+              - img "Instagram" [ref=e171]
+            - link "LinkedIn" [ref=e172] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/kenya-university-esports-rankings
+              - img "LinkedIn" [ref=e173]
+            - link "YouTube" [ref=e174] [cursor=pointer]:
+              - /url: https://www.youtube.com/@kenyauniversityesportsrankings
+              - img "YouTube" [ref=e175]
+            - link "WhatsApp" [ref=e176] [cursor=pointer]:
+              - /url: https://www.whatsapp.com/channel/0029VafLdwE96H4XI1gb3X3Z
+              - img "WhatsApp" [ref=e177]
+            - link "TikTok" [ref=e178] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@kenyauniesportsrankings
+              - img "TikTok" [ref=e179]
+        - generic [ref=e180]:
+          - heading "INFORMATION" [level=3] [ref=e181]
+          - generic [ref=e182]:
+            - link "Terms and Conditions" [ref=e183] [cursor=pointer]:
+              - /url: /terms
+              - generic [ref=e185]: Terms and Conditions
+            - link "Privacy Policy" [ref=e186] [cursor=pointer]:
+              - /url: /privacy
+              - generic [ref=e188]: Privacy Policy
+        - generic [ref=e189]:
+          - heading "HELP" [level=3] [ref=e190]
+          - generic [ref=e191]:
+            - link "Help" [ref=e192] [cursor=pointer]:
+              - /url: /help
+            - link "Frequently Asked Questions - FAQs" [ref=e193] [cursor=pointer]:
+              - /url: /faq
+            - link "Contact" [ref=e194] [cursor=pointer]:
+              - /url: /contact
+            - link "View all news here Arrow" [ref=e195] [cursor=pointer]:
+              - /url: /blogs
+              - generic [ref=e196]: View all news here
+              - img "Arrow" [ref=e197]
+        - generic [ref=e198]:
+          - heading "LINKS OF INTEREST" [level=3] [ref=e199]
+          - button "TUNZA ESPORTS" [ref=e201] [cursor=pointer]
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - generic [ref=e204]:
+            - img "Location pin" [ref=e205]
+            - generic [ref=e206]:
+              - generic [ref=e207]: Nairobi, Kenya
+              - generic [ref=e208]: P.O BOX 45085-00100
+          - generic [ref=e209]:
+            - generic [ref=e210]: "Support the Movement:"
+            - generic [ref=e211]: Fuel the Future of Kenyan Esports!
+            - button "Donate Now" [ref=e212]
+        - button "Scroll to top of page" [ref=e213]:
+          - img [ref=e214]
+      - generic [ref=e218]: KENYA VARSITY ESPORTS (KVE) COPYRIGHTS ALL RESERVED 2026
+```

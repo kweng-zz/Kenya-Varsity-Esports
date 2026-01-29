@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
+    console.log('API Contact Body:', JSON.stringify(body, null, 2));
     
     // Ensure type is set to default if not provided
     if (!body.type) {
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
     // Input validation using schema
     const validation = validateInput(body, commonSchemas.contactMessage);
     if (!validation.isValid) {
+      console.error('Validation Error:', JSON.stringify(validation.errors, null, 2));
       return NextResponse.json({
         success: false,
         error: 'VALIDATION_ERROR',

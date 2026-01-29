@@ -40,10 +40,22 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.message) {
+    // Client-side validation to match server rules
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
       setSubmitStatus('error');
+      // You might want to set a specific error message state here if you have one
       setTimeout(() => setSubmitStatus('idle'), 3000);
       return;
+    }
+
+    if (formData.name.trim().length < 2) {
+       alert('Name must be at least 2 characters long'); // Simple feedback since UI doesn't have error state for text
+       return;
+    }
+
+    if (formData.message.trim().length < 10) {
+       alert('Message must be at least 10 characters long');
+       return;
     }
 
     setIsSubmitting(true);
@@ -58,12 +70,21 @@ export default function Home() {
         body: JSON.stringify(formData),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
         setSubmitStatus('success');
         setFormData({ name: '', email: '', message: '' });
         setTimeout(() => setSubmitStatus('idle'), 3000);
       } else {
+        console.error('Server validation error:', result);
         setSubmitStatus('error');
+        if (result.details && Array.isArray(result.details)) {
+            // Show first validation error
+            alert(result.details[0].message);
+        } else if (result.error) {
+            alert(result.error);
+        }
         setTimeout(() => setSubmitStatus('idle'), 3000);
       }
     } catch (error) {

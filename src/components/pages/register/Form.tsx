@@ -161,12 +161,12 @@ export const RegistrationFormSection = () => {
           setErrors({ general: errorMessage });
         }
       } else if (user) {
-        console.log('📝 User registration successful:', user);
+        // console.log('📝 User registration successful:', user);
 
         // If registered as participant, send notification to admin
         if (formData.user_type === 'participant') {
           try {
-            console.log('📧 Sending admin notification for participant...');
+            // console.log('📧 Sending admin notification for participant...');
             await fetch('/api/notifications/register', {
               method: 'POST',
               headers: {
@@ -180,7 +180,7 @@ export const RegistrationFormSection = () => {
                 phone: formData.phoneNumber
               }),
             });
-            console.log('✅ Admin notification sent');
+            // console.log('✅ Admin notification sent');
           } catch (notifyError) {
             console.error('⚠️ Failed to send admin notification:', notifyError);
           }
@@ -189,7 +189,7 @@ export const RegistrationFormSection = () => {
         // Sync to Mailchimp only if user subscribed to newsletter
         if (formData.subscribeNewsletter) {
           try {
-            console.log('🐒 Syncing new user to Mailchimp...');
+            // console.log('🐒 Syncing new user to Mailchimp...');
             const university = formData.university === 'Other / Not Listed' ? formData.institution : formData.university;
             
             await mailchimpClientService.addContact({
@@ -200,48 +200,20 @@ export const RegistrationFormSection = () => {
               phone_number: formData.phoneNumber,
               subscribeNewsletter: true
             });
-            console.log('✅ User synced to Mailchimp with newsletter subscription');
+            // console.log('✅ User synced to Mailchimp with newsletter subscription');
           } catch (mailchimpError) {
             console.error('⚠️ Failed to sync to Mailchimp:', mailchimpError);
             // Don't result in error for user, just log it
           }
         } else {
-          console.log('📧 User opted out of newsletter subscription');
+          // console.log('📧 User opted out of newsletter subscription');
         }
 
         // Send verification email
         try {
-          console.log('📧 Sending verification email...');
-          // Create verification using the account service directly or via context if exposed
-          // using the client-side account from context would be ideal but signUp returns the user object
-          // We can try to use the context's resendVerificationEmail (which calls createVerification on current session)
-          
-          // Since we are logged in by createEmailPasswordSession inside signUp, we should be able to trigger this.
-          // However, we need to access the function from the context.
-          // Since we can't easily destructure it inside the function, we might need to rely on the user manually clicking 'resend' 
-          // on the verify page, OR we can try to assume Appwrite might send it automatically if configured.
-          // BUT, to be sure, we can try to use the SDK directly here if we had the client initialized, 
-          // or properly, updating AuthContext to expose a helper or just letting the /verify-email page handle the initial send?
-          // Typically Appwrite doesn't send automatically unless using a function.
-          // Let's rely on the Verify Email page to have a "Resend" button, OR better, 
-          // let's grab the function from useAuth().
-          
-          // Actually, let's just let the user know they need to verify.
-          // The /verify-email page usually handles the "please verify" state.
-          // If we want to force send it now:
-          
-          // We can't access `resendVerificationEmail` here easily because it's from the hook, 
-          // which is available in the component scope.
-          // Let's use the one from the hook!
-        } catch (emailError) {
-          console.error('⚠️ Failed to send verification email:', emailError);
-        }
-
-        // Send verification email
-        try {
-          console.log('📧 Sending verification email...');
+          // console.log('📧 Sending verification email...');
           await resendVerificationEmail();
-          console.log('✅ Verification email sent');
+          // console.log('✅ Verification email sent');
         } catch (emailError) {
           console.error('⚠️ Failed to send verification email:', emailError);
         }

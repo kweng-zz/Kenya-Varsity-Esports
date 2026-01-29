@@ -14,6 +14,7 @@ interface SeasonStatsDoc {
   seasonStatus?: 'active' | 'completed';
   seasonEndDate?: string;
   eventImage?: string;
+  seasonTitle?: string; // Added dynamic title field
 }
 
 interface SeasonInfo {
@@ -158,8 +159,14 @@ const SeasonStatistics = () => {
           setImageUrl(eventImage);
         }
 
-        // Set dynamic title with season number (previous season stats usually)
-        setTitleText(`STATISTICS OF SEASON ${seasonNumber - 1}`);
+        // Set dynamic title
+        const currentSeasonDoc = response.documents.find(doc => doc.$id === 'current_season_settings');
+        if (currentSeasonDoc?.seasonTitle) {
+          setTitleText(currentSeasonDoc.seasonTitle);
+        } else {
+          // Fallback to generated title with season number (previous season stats usually)
+          setTitleText(`STATISTICS OF SEASON ${seasonNumber - 1}`);
+        }
 
       } catch (err) {
         console.error('Error fetching stats:', err);

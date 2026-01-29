@@ -304,8 +304,7 @@ export const TopHighlightSection = () => {
             <section className="w-full bg-black py-24">
                 <div className="container mx-auto px-4">
                     <h2 className="text-center font-['Hind', Helvetica] font-bold text-[46px] tracking-[1.84px] mb-16">
-                        <span className="text-white tracking-[0.85px]">Top Highlight of </span>
-                        <span className="text-[#961c18] tracking-[0.85px]">SEASON 2</span>
+                        <span className="text-white tracking-[0.85px]">Top Highlights</span>
                     </h2>
 
                     {loading ? (

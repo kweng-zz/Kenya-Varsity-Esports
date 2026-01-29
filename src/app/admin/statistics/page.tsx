@@ -20,6 +20,7 @@ interface SeasonStatsDoc {
 interface SeasonSettings {
   $id: string;
   seasonNumber: number;
+  seasonTitle?: string; // Added dynamic season title
   seasonEndDate: string;
   registrationStartDate?: string;
   eventImage: string;
@@ -80,6 +81,7 @@ export default function AdminStatisticsPage() {
   // Form states
   const [editingStatId, setEditingStatId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', label: '' });
+  const [newSeasonTitle, setNewSeasonTitle] = useState('');
   const [newRegistrationStartDate, setNewRegistrationStartDate] = useState('');
   const [newEventImageUrl, setNewEventImageUrl] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -137,6 +139,7 @@ export default function AdminStatisticsPage() {
         setSeasonSettings({
           $id: settings.$id,
           seasonNumber: settings.seasonNumber || 4,
+          seasonTitle: settings.seasonTitle || '', // Fetch title
           seasonEndDate: settings.seasonEndDate || '',
           registrationStartDate: settings.registrationStartDate || '',
           eventImage: settings.eventImage || '',
@@ -144,6 +147,7 @@ export default function AdminStatisticsPage() {
         });
         setPreviewUrl(settings.eventImage || '');
         setNewEventImageUrl(settings.eventImage || '');
+        setNewSeasonTitle(settings.seasonTitle || ''); // Set initial title state
         setNewRegistrationStartDate(settings.registrationStartDate ? settings.registrationStartDate.split('T')[0] : '');
       }
       
@@ -274,6 +278,7 @@ export default function AdminStatisticsPage() {
 
       const updateData: Record<string, unknown> = {
         eventImage: eventImageUrl,
+        seasonTitle: newSeasonTitle, // Save new title
         registrationStartDate: newRegistrationStartDate ? new Date(newRegistrationStartDate + 'T00:00:00.000Z').toISOString() : null
       };
 
@@ -433,6 +438,19 @@ export default function AdminStatisticsPage() {
                 )}
               </div>
               
+
+              {/* Season Title */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Season Helper Title (e.g. STATISTICS OF SEASON 3)</label>
+                <input
+                  type="text"
+                  value={newSeasonTitle || ''}
+                  onChange={(e) => setNewSeasonTitle(e.target.value)}
+                  placeholder="STATISTICS OF SEASON 3"
+                  className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
+                />
+                <p className="text-xs text-gray-400 mt-1">This text will be displayed as the main title of the Statistics section.</p>
+              </div>
 
               {/* Registration Start Date */}
               <div>

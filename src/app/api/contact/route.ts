@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
             <p>Best regards,<br/>
             <strong>Tunza Esports Team</strong><br/>
-            Kenya University Esports Rankings</p>
+            Kenya Varsity Esports</p>
             
             <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
               This is an automated confirmation email. Please do not reply to this email.

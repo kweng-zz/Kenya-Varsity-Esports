@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Hind } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext"; // <-- import AuthProvider
 import { HydrationFix } from "@/components/HydrationFix";
+import { TawkToWidget } from "@/components/TawkToWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default function RootLayout({
               {children}
             </div>
           </HydrationFix>
+          <TawkToWidget />
         </AuthProvider>
       </body>
     </html>

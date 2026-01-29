@@ -53,6 +53,7 @@
     "contentful-management": "^11.58.1",
     "dotenv": "^17.2.2",
     "lucide-react": "^0.544.0",
+    "mailtrap": "^4.4.0",
     "next": "^15.6.0-canary.60",
     "node-appwrite": "^19.0.0",
     "nodemailer": "^7.0.12",

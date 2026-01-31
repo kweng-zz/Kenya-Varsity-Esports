@@ -15,6 +15,16 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [animationClass, setAnimationClass] = useState('');
 
+  // Filter out past-due events - only show events from today onwards
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const activeEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    eventDate.setHours(23, 59, 59, 999); // End of event day
+    return eventDate >= today;
+  });
+
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
@@ -30,8 +40,8 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  // Get events for current month
-  const monthEvents = events.filter(event => {
+  // Get events for current month (only active events)
+  const monthEvents = activeEvents.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate.getFullYear() === currentYear && eventDate.getMonth() === currentMonth;
   });
@@ -70,7 +80,7 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
   const getEventTypeIcon = (type: string): string => {
     switch (type) {
       case 'registration': return '📝';
-      case 'match': return '⚽';
+      case 'match': return '🎮';
       case 'tournament': return '🏆';
       case 'deadline': return '⏰';
       case 'announcement': return '📢';
@@ -317,8 +327,7 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
             Upcoming Events
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {events
-              .filter(event => new Date(event.date) >= new Date())
+            {activeEvents
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .slice(0, 6)
               .map(event => (

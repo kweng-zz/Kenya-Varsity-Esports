@@ -226,6 +226,141 @@ class ParticipantsServiceSSR {
       return [];
     }
   }
+
+  // Get combined list of approved participants and pending registrations
+  async getTournamentParticipants(tournamentSlug: string): Promise<Participant[]> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return [];
+
+      const TOURNAMENTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID || 'tournaments';
+      const REGISTRATIONS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID || 'tournament_registrations';
+
+      // 1. Get Tournament ID from Slug - try multiple approaches
+      let tournamentId: string | undefined;
+      
+      // First try: published tournaments (preferred)
+      const publishedTournamentResp = await db.listDocuments(
+        DB_ID,
+        TOURNAMENTS_COLLECTION_ID,
+        [Query.equal('slug', tournamentSlug), Query.equal('status', 'published'), Query.limit(1)]
+      );
+      
+      if (publishedTournamentResp.documents.length > 0) {
+        tournamentId = publishedTournamentResp.documents[0].$id;
+      } else {
+        // Second try: any tournament with matching slug
+        const allTournamentsResp = await db.listDocuments(
+          DB_ID,
+          TOURNAMENTS_COLLECTION_ID,
+          [Query.equal('slug', tournamentSlug), Query.limit(5)]
+        );
+        
+        if (allTournamentsResp.documents.length > 0) {
+          tournamentId = allTournamentsResp.documents[0].$id;
+        }
+      }
+
+      // 2. Fetch Approved Participants
+      const approvedTeams = await this.getApprovedParticipants(tournamentSlug);
+
+      // 3. Fetch Pending Registrations
+      let pendingRegistrations: Participant[] = [];
+      if (tournamentId) {
+        const registrationsResp = await db.listDocuments(
+          DB_ID,
+          REGISTRATIONS_COLLECTION_ID,
+          [
+            Query.equal('tournamentId', tournamentId),
+            Query.equal('status', 'pending'),
+            Query.orderDesc('registrationDate')
+          ]
+        );
+
+        pendingRegistrations = registrationsResp.documents.map((doc: any) => {
+          let totalMembersCount = 1; // Default to 1 (captain)
+          try {
+            if (doc.players) {
+              const teamData = JSON.parse(doc.players);
+              totalMembersCount = (teamData.players?.length || 0) + (teamData.substitutes?.length || 0) + 1;
+            }
+          } catch (e) {
+            console.error('Error parsing players JSON for count:', doc.$id);
+          }
+
+          return {
+            $id: doc.$id,
+            tournamentSlug,
+            teamName: doc.teamName || doc.playerName,
+            teamLeader: doc.playerName,
+            teamLeaderEmail: doc.email,
+            university: doc.university,
+            members: doc.players || '{"players":[],"substitutes":[]}',
+            registrationDate: doc.registrationDate,
+            status: 'pending',
+            paymentStatus: 'pending',
+            totalMembers: totalMembersCount
+          } as Participant;
+        });
+      } else {
+        // Fallback: Try to find any registrations that might match by checking tournament references
+        try {
+          const allRegistrationsResp = await db.listDocuments(
+            DB_ID,
+            REGISTRATIONS_COLLECTION_ID,
+            [Query.equal('status', 'pending'), Query.orderDesc('registrationDate'), Query.limit(20)]
+          );
+          
+          // Try to match registrations by fetching their tournament references
+          for (const doc of allRegistrationsResp.documents) {
+            if (doc.tournamentId) {
+              try {
+                const referencedTournament = await db.getDocument(DB_ID, TOURNAMENTS_COLLECTION_ID, doc.tournamentId);
+                
+                // Check if this tournament matches the slug we're looking for
+                if (referencedTournament.slug === tournamentSlug) {
+                  let totalMembersCount = 1;
+                  try {
+                    if (doc.players) {
+                      const teamData = JSON.parse(doc.players);
+                      totalMembersCount = (teamData.players?.length || 0) + (teamData.substitutes?.length || 0) + 1;
+                    }
+                  } catch (e) {
+                    console.error('Error parsing players JSON for count:', doc.$id);
+                  }
+
+                  pendingRegistrations.push({
+                    $id: doc.$id,
+                    tournamentSlug,
+                    teamName: doc.teamName || doc.playerName,
+                    teamLeader: doc.playerName,
+                    teamLeaderEmail: doc.email,
+                    university: doc.university,
+                    members: doc.players || '{"players":[],"substitutes":[]}',
+                    registrationDate: doc.registrationDate,
+                    status: 'pending',
+                    paymentStatus: 'pending',
+                    totalMembers: totalMembersCount
+                  } as Participant);
+                }
+              } catch (tournamentError) {
+                // Tournament might not exist or user doesn't have access - continue silently
+              }
+            }
+          }
+          
+        } catch (fallbackError) {
+          console.error('Fallback search for tournament registrations failed:', fallbackError);
+        }
+      }
+
+      // Combine and return
+      return [...approvedTeams, ...pendingRegistrations];
+    } catch (error) {
+      console.error('Error getting unified tournament participants:', error);
+      return [];
+    }
+  }
 }
 
 export const participantsServiceSSR = new ParticipantsServiceSSR();

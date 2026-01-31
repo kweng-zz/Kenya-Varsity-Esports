@@ -160,6 +160,7 @@ export default function TournamentRegistrationPage() {
   const getGameSlugFromName = (gameName: string): string | null => {
     const gameNameMappings: Record<string, string> = {
       'PUBG Mobile': 'pubg-mobile',
+      'PUBG': 'pubg-mobile',
       'Call of Duty Mobile BR': 'call-of-duty-mobile-br',
       'COD Mobile BR': 'call-of-duty-mobile-br',
       'CODM BR': 'call-of-duty-mobile-br',
@@ -302,26 +303,81 @@ export default function TournamentRegistrationPage() {
         return;
       }
 
-      // Check if student ID has already registered for any tournament
-      try {
-        const existingRegistrations = await appwrite.databases.listDocuments(
-          dbId,
-          registrationsCollectionId,
-          [Query.equal('studentId', profile.student_id || '')]
-        );
+        // Check if any team member (including captain) is already registered for THIS tournament
+        try {
+          // Collect all student IDs from this registration
+          const allTeamStudentIds = [
+            profile.student_id || '',
+            ...filteredPlayers.map(p => p.studentId),
+            ...filteredSubstitutes.map(s => s.studentId)
+          ].filter(id => id.trim() !== '');
 
-        if (existingRegistrations.documents.length > 0) {
-          setMessage({ 
-            type: 'error', 
-            text: 'Your student ID has already been used to register for a tournament. Each student ID can only register once.' 
-          });
-          setIsSubmitting(false);
-          return;
+          // Fetch all existing registrations for this tournament
+          const existingRegistrations = await appwrite.databases.listDocuments(
+            dbId,
+            registrationsCollectionId,
+            [
+              Query.equal('tournamentId', selectedTournament),
+              Query.limit(100) // Get all registrations
+            ]
+          );
+
+          // Build a set of all registered student IDs
+          const registeredStudentIds = new Set<string>();
+          
+          for (const reg of existingRegistrations.documents) {
+            // Add the captain's student ID
+            if ((reg as any).studentId) {
+              registeredStudentIds.add((reg as any).studentId);
+            }
+            
+            // Parse and add team members' student IDs
+            if ((reg as any).players) {
+              try {
+                const teamData = JSON.parse((reg as any).players);
+                
+                // Add main players
+                if (teamData.players && Array.isArray(teamData.players)) {
+                  for (const player of teamData.players) {
+                    if (player.studentId) {
+                      registeredStudentIds.add(player.studentId);
+                    }
+                  }
+                }
+                
+                // Add substitutes
+                if (teamData.substitutes && Array.isArray(teamData.substitutes)) {
+                  for (const sub of teamData.substitutes) {
+                    if (sub.studentId) {
+                      registeredStudentIds.add(sub.studentId);
+                    }
+                  }
+                }
+              } catch (parseError) {
+                console.error('Error parsing players JSON:', parseError);
+              }
+            }
+          }
+
+          // Find conflicts - student IDs that are already registered
+          const conflicts = allTeamStudentIds.filter(id => registeredStudentIds.has(id));
+          
+          if (conflicts.length > 0) {
+            const conflictMessage = conflicts.length === 1
+              ? `Student ID "${conflicts[0]}" is already registered for this tournament.`
+              : `The following student IDs are already registered for this tournament: ${conflicts.join(', ')}`;
+            
+            setMessage({ 
+              type: 'error', 
+              text: `${conflictMessage} Each student can only be part of one team per tournament.`
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking existing registrations:', error);
+          // Continue with registration even if check fails
         }
-      } catch (error) {
-        console.error('Error checking existing registrations:', error);
-        // Continue with registration even if check fails
-      }
 
       const registrationData: Omit<TournamentRegistrationData, '$id' | '$createdAt' | '$updatedAt' | '$collectionId' | '$permissions'> = {
         tournamentId: selectedTournament,
@@ -369,7 +425,7 @@ export default function TournamentRegistrationPage() {
     }
   };
 
-  if (loading || checkingCaptainStatus) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
@@ -384,40 +440,7 @@ export default function TournamentRegistrationPage() {
     return null; // Will redirect to login
   }
 
-  // Check if user is a team captain or admin
-  if (!isTeamCaptain && !profile?.isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white py-8">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <svg className="w-16 h-16 text-yellow-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <h1 className="text-3xl font-bold text-[#961c18] mb-4">
-                Team Captain Access Required
-              </h1>
-              <p className="text-gray-300 mb-6">
-                Tournament registration is restricted to team captains only. This helps us manage team registrations more effectively and ensures proper coordination.
-              </p>
-              <div className="bg-gray-700 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold mb-2">How to become a team captain:</h3>
-                <ul className="text-sm text-gray-300 space-y-1 text-left">
-                  <li>• Contact your university's esports coordinator</li>
-                  <li>• Join your game's captain WhatsApp group</li>
-                  <li>• Get verified by the tournament administrators</li>
-                  <li>• Your account will be updated with captain privileges</li>
-                </ul>
-              </div>
-              <p className="text-sm text-gray-400">
-                If you believe you should have team captain access, please contact the administrators.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
    <div 

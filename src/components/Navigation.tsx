@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { SocialIcon } from 'react-social-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import TicketNotifications from './TicketNotifications';
@@ -27,6 +27,7 @@ export function Navigation() {
 
   const { user, profile, loading, signOut } = useAuth();
   const isAdmin = profile?.isAdmin;
+  const router = useRouter();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -285,10 +286,20 @@ export function Navigation() {
                 <div className="absolute top-10 right-0 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-[250px] z-50">
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search tournaments, blogs..."
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#961c18] text-black"
                     autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const query = e.currentTarget.value.trim();
+                        if (query) {
+                          setIsSearchOpen(false);
+                          router.push(`/search?q=${encodeURIComponent(query)}`);
+                        }
+                      }
+                    }}
                   />
+                  <p className="text-xs text-gray-500 mt-2">Press Enter to search</p>
                 </div>
               )}
             </div>

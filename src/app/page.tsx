@@ -20,6 +20,7 @@ import { SponsorLogos } from '@/components/pages/landing/SponsorLogos';
 
 
 
+
 export default function Home() {
   const [formData, setFormData] = useState({
     name: '',
@@ -28,6 +29,8 @@ export default function Home() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -42,14 +45,14 @@ export default function Home() {
     
     // Client-side validation to match server rules
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      alert('Please fill in all fields');
       setSubmitStatus('error');
-      // You might want to set a specific error message state here if you have one
       setTimeout(() => setSubmitStatus('idle'), 3000);
       return;
     }
 
     if (formData.name.trim().length < 2) {
-       alert('Name must be at least 2 characters long'); // Simple feedback since UI doesn't have error state for text
+       alert('Name must be at least 2 characters long');
        return;
     }
 
@@ -58,37 +61,68 @@ export default function Home() {
        return;
     }
 
+    if (formData.message.trim().length > 1000) {
+       alert('Message must be less than 1000 characters');
+       return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Additional validation to prevent spam
+    const spamKeywords = ['http', 'www', 'link', 'click', 'offer', 'promotion', 'discount', 'free', 'win', 'prize', 'lottery', 'casino', 'viagra', 'cialis'];
+    const messageLower = formData.message.toLowerCase();
+    const hasSpamKeywords = spamKeywords.some(keyword => messageLower.includes(keyword));
+    
+    if (hasSpamKeywords) {
+      alert('Message contains content that may be flagged as spam. Please remove any promotional links or suspicious content.');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
     try {
+      console.log('📤 Submitting contact form via API...');
+      
+      // Use our API endpoint with cPanel SMTP
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          message: formData.message.trim(),
+          subject: `Contact Form: ${formData.name.trim()}`
+        })
       });
 
       const result = await response.json();
-
-      if (response.ok) {
+      
+      if (response.ok && result.success) {
+        console.log('✅ Email sent successfully via API');
         setSubmitStatus('success');
         setFormData({ name: '', email: '', message: '' });
-        setTimeout(() => setSubmitStatus('idle'), 3000);
+        setTimeout(() => setSubmitStatus('idle'), 5000);
       } else {
-        console.error('Server validation error:', result);
-        setSubmitStatus('error');
-        if (result.details && Array.isArray(result.details)) {
-            // Show first validation error
-            alert(result.details[0].message);
-        } else if (result.error) {
-            alert(result.error);
-        }
-        setTimeout(() => setSubmitStatus('idle'), 3000);
+        throw new Error(result.error || 'Failed to send message');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('❌ Contact form error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Provide helpful error messages
+      if (errorMessage.includes('spam')) {
+        alert('Your message was flagged as potential spam. Please try rephrasing your message with simpler content.');
+      } else {
+        alert(errorMessage || 'Failed to send message. Please try again or contact us directly at events@tunzaesports.com');
+      }
+      
       setSubmitStatus('error');
       setTimeout(() => setSubmitStatus('idle'), 3000);
     } finally {

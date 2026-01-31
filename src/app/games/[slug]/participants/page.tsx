@@ -18,6 +18,7 @@ interface TournamentNavItem {
 }
 
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
+import { participantsServiceSSR } from '@/lib/services/participantsServiceSSR';
 
 
 export default async function TournamentParticipantsPage({ params }: TournamentParticipantsPageProps) {
@@ -30,10 +31,11 @@ export default async function TournamentParticipantsPage({ params }: TournamentP
 
   const currentPath = `/games/${slug}/participants`;
 
-  // Use empty array for build time - data will be fetched client-side
-  const teams: any[] = [];
+  // Fetch participants server-side
+  // We use the SSR service which handles environment variables correctly for server context
+  const teams = await participantsServiceSSR.getTournamentParticipants(slug);
 
-  console.log('⏭️ Using static build for participants page - data will be fetched client-side');
+  console.log(`🎮 Participants Page: Fetched ${teams.length} teams for ${slug}`);
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">

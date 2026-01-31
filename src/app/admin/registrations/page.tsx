@@ -161,18 +161,42 @@ export default function AdminRegistrationsPage() {
     setProcessingIds(prev => new Set(prev).add(registrationId));
 
     try {
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        console.error('Appwrite not configured for status update');
-        return;
-      }
+      if (newStatus === 'approved') {
+        const registration = registrations.find(reg => reg.$id === registrationId);
+        if (!registration) return;
 
-      await appwrite.databases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
-        registrationId,
-        { status: newStatus }
-      );
+        console.log('Sending approval request for:', registrationId);
+        const response = await fetch('/api/admin/approve-registration', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registrationId,
+            status: newStatus,
+            registration,
+            tournamentTitle: tournaments[registration.tournamentId]?.title || tournaments[registration.tournamentId]?.gameName || 'Tournament',
+            tournamentSlug: tournaments[registration.tournamentId]?.slug
+          })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to approve registration');
+        }
+        
+        console.log('Approval successful:', data);
+      } else {
+        // Fallback for rejection (keep client-side or move to API too - client side is fine for simple update)
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.databases) return;
+        
+        await appwrite.databases.updateDocument(
+          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+          registrationId,
+          { status: newStatus }
+        );
+      }
 
       // Update local state
       setRegistrations(prev => 
@@ -183,52 +207,9 @@ export default function AdminRegistrationsPage() {
         )
       );
 
-      // If approved, also add to participants collection
-      if (newStatus === 'approved') {
-        const registration = registrations.find(reg => reg.$id === registrationId);
-        if (registration) {
-          try {
-            // Parse team data to determine game format
-            const teamData = parseTeamData(registration.players);
-            const gameFormat = teamData.players.length === 0 ? 'individual' : 
-                              teamData.players.length === 1 ? 'duo' : 'team';
-
-            // Create participant entry (only using available schema attributes)
-            await appwrite.databases.createDocument(
-              process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-              process.env.NEXT_PUBLIC_APPWRITE_PARTICIPANTS_COLLECTION_ID!,
-              registrationId, // Use same ID to prevent duplicates
-              {
-                tournamentSlug: tournaments[registration.tournamentId]?.slug || 'unknown',
-                teamName: registration.teamName || registration.playerName,
-                teamLeader: registration.playerName,
-                teamLeaderEmail: registration.email,
-                teamLeaderPhone: '',
-                university: registration.university || '',
-                members: registration.players || JSON.stringify([{
-                  name: registration.playerName,
-                  ign: registration.playerName, // Use playerName as IGN if no specific IGN
-                  email: registration.email,
-                  phone: '',
-                  role: 'captain'
-                }]),
-                registrationDate: registration.registrationDate,
-                status: 'approved',
-                paymentStatus: 'pending',
-                totalMembers: teamData.players.length + teamData.substitutes.length + 1 // +1 for captain
-              }
-            );
-            
-            console.log(`✅ Added team to participants: ${registration.teamName || registration.playerName}`);
-          } catch (participantError) {
-            console.error('Error adding to participants:', participantError);
-            // Don't fail the approval if participant creation fails
-          }
-        }
-      }
-
     } catch (error) {
       console.error('Error updating registration status:', error);
+      alert('Failed to update status. Check console for details.');
     } finally {
       setProcessingIds(prev => {
         const newSet = new Set(prev);

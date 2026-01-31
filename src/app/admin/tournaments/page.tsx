@@ -607,11 +607,11 @@ export default function TournamentsAdminPage() {
                     <label className="block text-sm font-medium mb-2">🥇 1st Position Prize</label>
                     <input
                       type="number"
-                      value={formData.firstPrize}
+                      value={formData.firstPrize || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, firstPrize: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                       min="0"
-                      step="0.01"
+                      step="50"
                       placeholder="e.g., 25000"
                     />
                   </div>
@@ -620,11 +620,11 @@ export default function TournamentsAdminPage() {
                     <label className="block text-sm font-medium mb-2">🥈 2nd Position Prize</label>
                     <input
                       type="number"
-                      value={formData.secondPrize}
+                      value={formData.secondPrize || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, secondPrize: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                       min="0"
-                      step="0.01"
+                      step="50"
                       placeholder="e.g., 15000"
                     />
                   </div>
@@ -633,11 +633,11 @@ export default function TournamentsAdminPage() {
                     <label className="block text-sm font-medium mb-2">🥉 3rd Position Prize</label>
                     <input
                       type="number"
-                      value={formData.thirdPrize}
+                      value={formData.thirdPrize || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, thirdPrize: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                       min="0"
-                      step="0.01"
+                      step="50"
                       placeholder="e.g., 10000"
                     />
                   </div>
@@ -646,11 +646,11 @@ export default function TournamentsAdminPage() {
                     <label className="block text-sm font-medium mb-2">🏅 4th Position Prize</label>
                     <input
                       type="number"
-                      value={formData.fourthPrize}
+                      value={formData.fourthPrize || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, fourthPrize: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                       min="0"
-                      step="0.01"
+                      step="50"
                       placeholder="e.g., 5000"
                     />
                   </div>
@@ -766,11 +766,11 @@ export default function TournamentsAdminPage() {
                     <label className="block text-sm font-medium mb-2">Prize Amount</label>
                     <input
                       type="number"
-                      value={awardFormData.prize}
+                      value={awardFormData.prize || ''}
                       onChange={(e) => setAwardFormData(prev => ({ ...prev, prize: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                       min="0"
-                      step="0.01"
+                      step="50"
                     />
                   </div>
                   

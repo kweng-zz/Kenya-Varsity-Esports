@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import emailjs from '@emailjs/browser';
+import { testEmailJSConsole } from '@/lib/emailjs-test';
 
 interface ContactFormData {
     name: string;
@@ -12,6 +14,10 @@ interface ContactFormData {
 }
 
 export const ContactForm = () => {
+    // Initialize test function in development mode
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        testEmailJSConsole();
+    }
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -62,43 +68,44 @@ export const ContactForm = () => {
         setErrorMessage('');
 
         try {
-            console.log('📤 Submitting contact form...');
-            const response = await fetch('/api/contact', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    type: 'partnership'
-                }),
+            console.log('📤 Submitting contact form via EmailJS...');
+            
+            // EmailJS configuration - these will be set from environment variables
+            const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
+            const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
+            const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+
+            if (!serviceId || !templateId || !publicKey) {
+                throw new Error('EmailJS configuration missing');
+            }
+
+            // Initialize EmailJS with public key
+            emailjs.init(publicKey);
+
+            // Send email via EmailJS
+            const result = await emailjs.send(serviceId, templateId, {
+                from_name: formData.name,
+                from_email: formData.email,
+                message: formData.message,
+                to_email: 'events@tunzaesports.com',
+                reply_to: formData.email,
+                type: 'partnership'
             });
 
-            console.log('📊 Response status:', response.status);
-            const result = await response.json();
-            console.log('📊 Response data:', result);
+            console.log('✅ EmailJS response:', result);
 
-            if (result.success || response.ok) {
+            if (result.status === 200) {
                 console.log('✅ Form submitted successfully');
                 setSubmitStatus('success');
                 setFormData({ name: '', email: '', message: '' });
             } else {
-                // Log validation details for debugging
-                if (result.details && Array.isArray(result.details)) {
-                    console.error('❌ Form submission failed:', result.error, result.details);
-                    // Create user-friendly error message from validation details
-                    const detailMessages = result.details.map((detail: { field: string; message: string }) => detail.message).join(', ');
-                    setErrorMessage(detailMessages || result.error || 'Failed to send message');
-                } else {
-                    console.error('❌ Form submission failed:', result.error);
-                    setErrorMessage(result.error || 'Failed to send message');
-                }
-                setSubmitStatus('error');
+                throw new Error('EmailJS returned non-200 status');
             }
         } catch (error) {
             console.error('❌ Contact form error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            setErrorMessage(errorMessage || 'Failed to send message. Please try again.');
             setSubmitStatus('error');
-            setErrorMessage('Network error. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

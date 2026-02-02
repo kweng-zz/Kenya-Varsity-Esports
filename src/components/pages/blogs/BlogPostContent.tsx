@@ -368,7 +368,7 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
           const id = `heading-${headingIndex}`;
           headingIndex++;
           
-          const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+          const Tag = `h${level}` as any;
           const sizeClasses = {
             1: 'text-4xl md:text-5xl',
             2: 'text-3xl md:text-4xl',

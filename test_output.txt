@@ -1,0 +1,14 @@
+bun test v1.3.8 (b64edcb4)
+
+src\__tests__\auth-integration.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@happy-dom/global-registrator' from 'E:\Apps\esports\bun.test.config.ts'
+-------------------------------
+
+
+ 0 pass
+ 1 fail
+ 1 error
+Ran 1 test across 1 file. [51.00ms]

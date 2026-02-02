@@ -1,10 +1,27 @@
 import { ID, Databases, Query } from 'appwrite';
+import { PostgreSQLBlogDatabase } from './postgres-db';
+
+interface BlogDatabaseAdapter {
+  getLikes: (articleId: string, userId?: string) => Promise<{ count: number; userLiked?: boolean }>;
+  toggleLike: (articleId: string, userId: string) => Promise<{ liked: boolean; totalLikes: number }>;
+  getComments: (articleId: string, page?: number, limit?: number) => Promise<any>;
+  createComment: (articleId: string, authorName: string, content: string, authorAvatar?: string, parentId?: string | number) => Promise<any>;
+  getBookmarks: (userId: string, page?: number, limit?: number) => Promise<any>;
+  isBookmarked: (articleId: string, userId: string) => Promise<boolean>;
+  toggleBookmark: (articleId: string, userId: string) => Promise<{ bookmarked: boolean }>;
+  trackView: (articleId: string) => Promise<{ viewCount: number; lastViewed: number }>;
+  getViews: (articleId: string) => Promise<{ viewCount: number; lastViewed: number } | null>;
+  isFollowing: (authorName: string, userId: string) => Promise<boolean>;
+  toggleFollow: (authorName: string, userId: string) => Promise<{ following: boolean; followerCount: number }>;
+  getFollowerCount: (authorName: string) => Promise<number>;
+  close: () => void | Promise<void>;
+}
 
 /**
  * Appwrite database adapter for production use
  * Since you use Appwrite as your database, this provides a production-ready interface
  */
-class AppwriteAdapter {
+class AppwriteAdapter implements BlogDatabaseAdapter {
   private databases: Databases;
   private databaseId: string;
   private likesCollectionId: string;
@@ -30,7 +47,7 @@ class AppwriteAdapter {
     this.followsCollectionId = 'author_follows';
     this.viewsCollectionId = 'article_views';
     
-    console.log('Using Appwrite database for production');
+    console.log('Using Appwrite database adapter');
   }
 
   private async ensureCollections() {
@@ -45,7 +62,7 @@ class AppwriteAdapter {
       ];
 
       // Skip collection creation for build - collections should be manually created
-      console.log('Collections configured:', collections);
+      // console.log('Collections configured:', collections);
     } catch (error) {
       console.error('Error ensuring Appwrite collections:', error);
     }
@@ -206,7 +223,7 @@ class AppwriteAdapter {
     }
   }
 
-  async createComment(articleId: string, authorName: string, content: string, authorAvatar?: string, parentId?: string) {
+  async createComment(articleId: string, authorName: string, content: string, authorAvatar?: string, parentId?: string | number) {
     try {
       await this.ensureCollections();
       
@@ -216,7 +233,7 @@ class AppwriteAdapter {
         content,
         createdAt: new Date().toISOString(),
         authorAvatar: authorAvatar || undefined,
-        parentId: parentId || undefined
+        parentId: parentId ? String(parentId) : undefined
       };
       
       if (authorAvatar) {
@@ -531,17 +548,29 @@ class AppwriteAdapter {
 }
 
 /**
- * Universal database adapter that uses Appwrite for production
+ * Universal database adapter that manages transitions between database strategies
  */
 class UniversalBlogDatabase {
-  private adapter: AppwriteAdapter;
+  private adapter: BlogDatabaseAdapter;
 
   constructor() {
-    this.adapter = new AppwriteAdapter();
-    console.log('Using Appwrite database for production');
+    const dbType = process.env.DB_TYPE || 'appwrite';
+    
+    switch (dbType) {
+      case 'postgresql':
+      case 'postgres':
+        console.log('Using PostgreSQL database for production');
+        this.adapter = new PostgreSQLBlogDatabase();
+        break;
+      case 'appwrite':
+      default:
+        console.log(`Using Appwrite database for production (type=${dbType})`);
+        this.adapter = new AppwriteAdapter();
+        break;
+    }
   }
 
-  // Delegate all methods to the Appwrite adapter
+  // Delegate all methods to the selected adapter
   getLikes(articleId?: string, userId?: string) {
     return this.adapter.getLikes(articleId || '', userId || '');
   }

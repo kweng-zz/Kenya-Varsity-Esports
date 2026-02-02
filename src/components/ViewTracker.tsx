@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Eye } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ViewTrackerProps {
   articleId: string;
@@ -14,6 +15,7 @@ interface ViewData {
 }
 
 export const ViewTracker: React.FC<ViewTrackerProps> = ({ articleId, trackView = true }) => {
+  const { user } = useAuth();
   const [viewData, setViewData] = useState<ViewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,19 +50,18 @@ export const ViewTracker: React.FC<ViewTrackerProps> = ({ articleId, trackView =
         // Track view if requested (for progressive enhancement)
         if (trackView) {
           try {
-            await fetch(`/api/articles/${encodeURIComponent(articleId)}/views`, {
+            const trackResponse = await fetch(`/api/articles/${encodeURIComponent(articleId)}/views`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
+              body: JSON.stringify({ userId: user?.$id || 'anonymous' })
             });
             
-            // Refresh view count after tracking
-            const updatedResponse = await fetch(`/api/articles/${encodeURIComponent(articleId)}/views`);
-            if (updatedResponse.ok) {
-              const updatedResult = await updatedResponse.json();
-              if (mounted && updatedResult.success && updatedResult.data) {
-                setViewData(updatedResult.data);
+            if (trackResponse.ok) {
+              const trackResult = await trackResponse.json();
+              if (mounted && trackResult.success && trackResult.data) {
+                setViewData(trackResult.data);
               }
             }
           } catch (trackError) {

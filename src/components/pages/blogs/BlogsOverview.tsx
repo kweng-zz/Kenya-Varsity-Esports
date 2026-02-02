@@ -107,7 +107,7 @@ const FilterDropdown = ({
 // Blog Card Component
 const BlogCard = ({ article }: { article: TransformedArticle }) => {
   const { user } = useAuth();
-  const { isBookmarked, trackView } = useBlogState();
+  const { isBookmarked, trackView, toggleBookmark } = useBlogState();
   
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -157,12 +157,23 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
   const handleBookmarkToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Bookmark toggle is handled by centralized state
+    
+    if (!user) {
+      console.warn('User must be logged in to bookmark');
+      // Optional: Trigger login modal or redirect
+      return;
+    }
+
+    try {
+      await toggleBookmark(article.id, user.$id);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
   };
 
   const handleArticleClick = async () => {
-    // Track view when article is clicked
-    trackView(article.id);
+    // Track view when article is clicked with user association
+    trackView(article.id, user?.$id);
   };
 
   return (
@@ -236,7 +247,7 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
               <Clock className="w-3 h-3" />
               <span>{getReadingTime(article.description)} min</span>
             </div>
-            <ViewTracker articleId={article.id} trackView={true} />
+            <ViewTracker articleId={article.id} trackView={false} />
             <span className="text-[#961c18] group-hover:text-white transition-colors font-semibold">Read More →</span>
           </div>
         </div>

@@ -28,7 +28,7 @@ interface BlogState {
   toggleBookmark: (articleId: string, userId?: string) => Promise<{ bookmarked: boolean } | null>;
   
   // Track view
-  trackView: (articleId: string) => Promise<void>;
+  trackView: (articleId: string, userId?: string) => Promise<void>;
   
   // Getters
   getInteraction: (articleId: string) => BlogInteraction | undefined;
@@ -105,8 +105,26 @@ export const useBlogStore = create<BlogState>()(
           }
         },
 
-        // Toggle like
+        // Toggle like (Optimistic)
         toggleLike: async (articleId: string, userId?: string) => {
+          const prevState = get().interactions.get(articleId);
+          if (!prevState) return null;
+
+          // Optimistic update
+          set((state) => {
+            const newInteractions = new Map(state.interactions);
+            const current = newInteractions.get(articleId);
+            if (current) {
+              const newLiked = !current.isLiked;
+              newInteractions.set(articleId, {
+                ...current,
+                isLiked: newLiked,
+                likeCount: current.likeCount + (newLiked ? 1 : -1),
+              });
+            }
+            return { interactions: newInteractions };
+          });
+
           try {
             const finalUserId = userId || 'anonymous';
             const response = await fetch(`/api/articles/${articleId}/likes`, {
@@ -117,12 +135,22 @@ export const useBlogStore = create<BlogState>()(
 
             const data = await response.json();
             
-            if (data.success) {
-              // Update local state
+            if (!data.success) {
+              // Revert on error
+              console.error('Like API error, reverting:', data);
               set((state) => {
                 const newInteractions = new Map(state.interactions);
+                newInteractions.set(articleId, prevState);
+                return { interactions: newInteractions };
+              });
+              return null;
+            }
+
+            // Sync with server response to be sure
+             set((state) => {
+                const newInteractions = new Map(state.interactions);
                 const existing = newInteractions.get(articleId);
-                if (existing) {
+                 if (existing) {
                   newInteractions.set(articleId, {
                     ...existing,
                     isLiked: data.data.isLiked,
@@ -136,18 +164,37 @@ export const useBlogStore = create<BlogState>()(
                 liked: data.data.isLiked,
                 totalLikes: data.data.totalLikes
               };
-            } else {
-              console.error('Like API error:', data);
-              return null;
-            }
+
           } catch (err) {
-            console.error('Error toggling like:', err);
+            console.error('Error toggling like, reverting:', err);
+             // Revert on error
+             set((state) => {
+                const newInteractions = new Map(state.interactions);
+                newInteractions.set(articleId, prevState);
+                return { interactions: newInteractions };
+              });
             return null;
           }
         },
 
-        // Toggle bookmark
+        // Toggle bookmark (Optimistic)
         toggleBookmark: async (articleId: string, userId?: string) => {
+           const prevState = get().interactions.get(articleId);
+           if (!prevState) return null;
+
+           // Optimistic update
+           set((state) => {
+            const newInteractions = new Map(state.interactions);
+            const current = newInteractions.get(articleId);
+            if (current) {
+              newInteractions.set(articleId, {
+                ...current,
+                isBookmarked: !current.isBookmarked,
+              });
+            }
+            return { interactions: newInteractions };
+          });
+
           try {
             const finalUserId = userId || 'anonymous';
             const response = await fetch(`/api/articles/${articleId}/bookmarks`, {
@@ -158,9 +205,19 @@ export const useBlogStore = create<BlogState>()(
 
             const data = await response.json();
             
-            if (data.success) {
-              // Update local state
-              set((state) => {
+            if (!data.success) {
+               // Revert on error
+               console.error('Bookmark API error, reverting:', data);
+               set((state) => {
+                  const newInteractions = new Map(state.interactions);
+                  newInteractions.set(articleId, prevState);
+                  return { interactions: newInteractions };
+                });
+              return null;
+            }
+
+            // Sync with server response
+            set((state) => {
                 const newInteractions = new Map(state.interactions);
                 const existing = newInteractions.get(articleId);
                 if (existing) {
@@ -172,27 +229,23 @@ export const useBlogStore = create<BlogState>()(
                 return { interactions: newInteractions };
               });
               
-              return { bookmarked: data.data.bookmarked };
-            } else {
-              console.error('Bookmark API error:', data);
-              return null;
-            }
+            return { bookmarked: data.data.bookmarked };
           } catch (err) {
-            console.error('Error toggling bookmark:', err);
+            console.error('Error toggling bookmark, reverting:', err);
+             // Revert on error
+             set((state) => {
+                const newInteractions = new Map(state.interactions);
+                newInteractions.set(articleId, prevState);
+                return { interactions: newInteractions };
+              });
             return null;
           }
         },
 
-        // Track view
-        trackView: async (articleId: string) => {
-          try {
-            await fetch(`/api/articles/${articleId}/views`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            // Update local state
-            set((state) => {
+        // Track view (Optimistic increment)
+        trackView: async (articleId: string, userId?: string) => {
+           // Optimistic update
+           set((state) => {
               const newInteractions = new Map(state.interactions);
               const existing = newInteractions.get(articleId);
               if (existing) {
@@ -203,6 +256,14 @@ export const useBlogStore = create<BlogState>()(
               }
               return { interactions: newInteractions };
             });
+
+          try {
+            await fetch(`/api/articles/${articleId}/views`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: userId || 'anonymous' })
+            });
+            // Validation happens silently, we don't strictly revert views as it's less critical
           } catch (err) {
             console.error('Error tracking view:', err);
           }

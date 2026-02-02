@@ -245,7 +245,7 @@ const LatestNews = () => {
             id: '1',
             title: 'KVE Season 3 Registration Now Open',
             description: 'Universities across Kenya can now register their teams for the biggest collegiate esports tournament.',
-            imageUrl: '/images/News/Registration_News.png',
+            imageUrl: '/images/Join our tournaments.png',
             category: 'Tournament',
             date: '2024-03-15',
             slug: 'kve-season-3-registration'
@@ -254,7 +254,7 @@ const LatestNews = () => {
             id: '2',
             title: 'New Gaming Titles Announced',
             description: 'KVE expands to include 5 new game titles in Season 3, bringing more opportunities for diverse gaming communities.',
-            imageUrl: '/images/News/New_Titles_News.png',
+            imageUrl: '/images/images/Bloodstrike.png',
             category: 'Announcement',
             date: '2024-03-10',
             slug: 'new-gaming-titles'

@@ -17,10 +17,10 @@ interface BlogStateContextType {
   error: string | null;
   
   // Actions
-  fetchArticleStatus: (articleId: string) => Promise<void>;
-  toggleLike: (articleId: string) => Promise<{ liked: boolean; totalLikes: number } | null>;
-  toggleBookmark: (articleId: string) => Promise<{ bookmarked: boolean } | null>;
-  trackView: (articleId: string) => Promise<void>;
+  fetchArticleStatus: (articleId: string, userId?: string) => Promise<void>;
+  toggleLike: (articleId: string, userId?: string) => Promise<{ liked: boolean; totalLikes: number } | null>;
+  toggleBookmark: (articleId: string, userId?: string) => Promise<{ bookmarked: boolean } | null>;
+  trackView: (articleId: string, userId?: string) => Promise<void>;
   
   // Getters
   getInteraction: (articleId: string) => BlogInteraction | undefined;

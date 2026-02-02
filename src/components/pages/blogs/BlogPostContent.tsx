@@ -149,9 +149,9 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
   // Fetch article status (likes, bookmarks, views) in one call
   useEffect(() => {
     if (!authLoading) {
-      fetchArticleStatus(post.id);
+      fetchArticleStatus(post.id, user?.$id);
     }
-  }, [post.id, user, authLoading]);
+  }, [post.id, user, authLoading, fetchArticleStatus]);
 
   // Fetch comments
   useEffect(() => {
@@ -173,9 +173,9 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
   // Track view when component mounts (after status is loaded)
   useEffect(() => {
     if (!authLoading && !blogLoading) {
-      trackView(post.id);
+      trackView(post.id, user?.$id);
     }
-  }, [post.id, authLoading, blogLoading]);
+  }, [post.id, user, authLoading, blogLoading, trackView]);
 
   // Fetch articles by author
   useEffect(() => {
@@ -609,7 +609,7 @@ const handleLikeToggle = async () => {
         return;
       }
       
-      const result = await toggleLike(post.id);
+      const result = await toggleLike(post.id, user?.$id);
       if (result === null) {
         console.error('Like operation failed');
       }
@@ -656,7 +656,7 @@ const handleLikeToggle = async () => {
         return;
       }
       
-      const result = await toggleBookmark(post.id);
+      const result = await toggleBookmark(post.id, user?.$id);
       if (result === null) {
         console.error('Bookmark operation failed');
       }

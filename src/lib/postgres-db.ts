@@ -1,4 +1,5 @@
 import { Pool, PoolClient } from 'pg';
+import { sanitizeInput } from './security';
 
 interface BlogInteraction {
   articleId: string;
@@ -126,12 +127,13 @@ export class PostgreSQLBlogDatabase {
     const client = await this.pool.connect();
     
     try {
-      await client.query('BEGIN');
+      const sArticleId = sanitizeInput(articleId);
+      const sUserId = sanitizeInput(userId);
       
       // Check if already liked
       const existing = await client.query(
         'SELECT 1 FROM article_likes WHERE article_id = $1 AND user_id = $2',
-        [articleId, userId]
+        [sArticleId, sUserId]
       );
       
       let liked: boolean;
@@ -139,14 +141,14 @@ export class PostgreSQLBlogDatabase {
         // Remove like
         await client.query(
           'DELETE FROM article_likes WHERE article_id = $1 AND user_id = $2',
-          [articleId, userId]
+          [sArticleId, sUserId]
         );
         liked = false;
       } else {
         // Add like
         await client.query(
           'INSERT INTO article_likes (article_id, user_id, created_at) VALUES ($1, $2, $3)',
-          [articleId, userId, Date.now()]
+          [sArticleId, sUserId, Date.now()]
         );
         liked = true;
       }
@@ -221,7 +223,7 @@ export class PostgreSQLBlogDatabase {
     authorName: string, 
     content: string, 
     authorAvatar?: string, 
-    parentId?: number
+    parentId?: string | number
   ): Promise<{
     id: number;
     article_id: string;
@@ -231,15 +233,21 @@ export class PostgreSQLBlogDatabase {
     parent_id?: number;
     created_at: number;
   } | null> {
+    const sArticleId = sanitizeInput(articleId);
+    const sAuthorName = sanitizeInput(authorName);
+    const sContent = sanitizeInput(content);
+    const sAuthorAvatar = authorAvatar ? sanitizeInput(authorAvatar) : undefined;
     const client = await this.pool.connect();
     
     try {
+      const parentIdVal = parentId ? Number(parentId) : null;
+      
       const result = await client.query(
         `INSERT INTO article_comments 
          (article_id, author_name, author_avatar, content, parent_id, created_at) 
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [articleId, authorName, authorAvatar, content, parentId, Date.now()]
+        [sArticleId, sAuthorName, sAuthorAvatar, sContent, parentIdVal, Date.now()]
       );
       
       return result.rows[0];
@@ -298,10 +306,13 @@ export class PostgreSQLBlogDatabase {
     try {
       await client.query('BEGIN');
       
+      const sArticleId = sanitizeInput(articleId);
+      const sUserId = sanitizeInput(userId);
+
       // Check if already bookmarked
       const existing = await client.query(
         'SELECT 1 FROM article_bookmarks WHERE article_id = $1 AND user_id = $2',
-        [articleId, userId]
+        [sArticleId, sUserId]
       );
       
       let bookmarked: boolean;
@@ -309,14 +320,14 @@ export class PostgreSQLBlogDatabase {
         // Remove bookmark
         await client.query(
           'DELETE FROM article_bookmarks WHERE article_id = $1 AND user_id = $2',
-          [articleId, userId]
+          [sArticleId, sUserId]
         );
         bookmarked = false;
       } else {
         // Add bookmark
         await client.query(
           'INSERT INTO article_bookmarks (article_id, user_id, created_at) VALUES ($1, $2, $3)',
-          [articleId, userId, Date.now()]
+          [sArticleId, sUserId, Date.now()]
         );
         bookmarked = true;
       }
@@ -337,13 +348,14 @@ export class PostgreSQLBlogDatabase {
     const client = await this.pool.connect();
     
     try {
+      const sArticleId = sanitizeInput(articleId);
       const result = await client.query(
         `INSERT INTO article_views (article_id, view_count, last_viewed) 
          VALUES ($1, 1, $2) 
          ON CONFLICT (article_id) DO UPDATE 
          SET view_count = article_views.view_count + 1, last_viewed = $2
          RETURNING view_count, last_viewed`,
-        [articleId, Date.now()]
+        [sArticleId, Date.now()]
       );
       
       return {
@@ -383,10 +395,13 @@ export class PostgreSQLBlogDatabase {
     try {
       await client.query('BEGIN');
       
+      const sAuthorName = sanitizeInput(authorName);
+      const sUserId = sanitizeInput(userId);
+
       // Check if already following
       const existing = await client.query(
         'SELECT 1 FROM author_follows WHERE author_name = $1 AND user_id = $2',
-        [authorName, userId]
+        [sAuthorName, sUserId]
       );
       
       let following: boolean;

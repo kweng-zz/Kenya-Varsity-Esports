@@ -279,7 +279,7 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
   // Enhanced content rendering with markdown support
   const renderMarkdownContent = (content: string) => {
     const lines = content.split('\n');
-    const elements: JSX.Element[] = [];
+    const elements: React.ReactNode[] = [];
     let inCodeBlock = false;
     let codeBlockLanguage = '';
     let codeBlockContent: string[] = [];

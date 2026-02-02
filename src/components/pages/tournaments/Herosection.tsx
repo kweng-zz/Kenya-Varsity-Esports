@@ -16,14 +16,14 @@ interface TimeLeft {
 }
 
 export const HeroSection: React.FC = () => {
-  // Array of images for the hero banner
+// Array of images for the hero banner
   const bannerImages = [
     {
-      src: "/images/eFOOTBALL-CTA-Rankings.png",
+      src: "/images/eFOOTBALL-CTA-Rankings.webp",
       alt: "Join Your University",
     },
     {
-      src: "/images/Tournament-page.png",
+      src: "/images/Tournament-page.webp",
       alt: "Join Your University",
     },
     

@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
     { label: "Discord", href: "https://discord.com/invite/yGHCzZax5S", icon: <MessageCircle size={28} /> },
     { label: "About", href: "/about", icon: <Info size={28} /> },
     { label: "Blogs", href: "/blogs", icon: <Newspaper size={28} /> },
-    { label: "Community", href: "/community", icon: <Users size={28} /> },
+    { label: "Contact", href: "/contact", icon: <Users size={28} /> },
     { label: "FAQ", href: "/faq", icon: <CircleHelp size={28} /> },
 ];
 

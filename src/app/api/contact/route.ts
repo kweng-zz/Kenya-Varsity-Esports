@@ -1,165 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateInput, commonSchemas } from '@/lib/validation';
-import { checkRateLimit } from '@/lib/rate-limit';
 import nodemailer from 'nodemailer';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check rate limit
+    /* ---------------- Rate limit ---------------- */
     const rateLimitError = await checkRateLimit(request, 'CONTACT');
-    if (rateLimitError) {
-      return rateLimitError;
-    }
+    if (rateLimitError) return rateLimitError;
 
-    // Parse request body
-    const body = await request.json();
-    console.log('📨 Contact API:', JSON.stringify(body, null, 2));
-    
-    const { name, email, message } = body;
+    /* ---------------- Input ---------------- */
+    const { name, email, message } = await request.json();
 
-    // Simple validation
     if (!name || !email || !message) {
-      return NextResponse.json({
-        success: false,
-        error: 'All fields are required'
-      }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'All fields are required' },
+        { status: 400 }
+      );
     }
 
-    // Create SMTP transporter
-    const transporter = nodemailer.createTransport({
+    /* ---------------- Admin transporter ---------------- */
+    const adminTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      port: Number(process.env.SMTP_PORT),
       secure: false,
       auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD,
+        user: process.env.SMTP_EVENTS_EMAIL,
+        pass: process.env.SMTP_EVENTS_PASSWORD,
       },
-      tls: {
-        rejectUnauthorized: false
-      }
+      tls: { rejectUnauthorized: false },
     });
 
-    console.log('🔄 Sending confirmation email to user...');
+    /* ---------------- No-reply transporter ---------------- */
+    const noreplyTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: false,
+      auth: {
+        user: process.env.SMTP_NOREPLY_EMAIL,
+        pass: process.env.SMTP_NOREPLY_PASSWORD,
+      },
+      tls: { rejectUnauthorized: false },
+    });
 
-    // Send both emails (use Promise.allSettled to handle both)
-    // Try with no-reply first, fallback to main email if fails
-    const userPromise = (async () => {
-      try {
-        console.log('🔄 Sending user confirmation email...');
-        console.log('📧 To:', email);
-        console.log('📧 From:', process.env.SMTP_FROM_EMAIL);
-        
-        // Try with no-reply@tunzaesports.com first
-        const result = await transporter.sendMail({
-          from: process.env.SMTP_FROM_EMAIL, // Use no-reply@tunzaesports.com
-          to: email, // Send to user directly 
-          subject: `Thank you for contacting Tunza Esports`,
-          text: `Hi ${name},
-
-Thank you for contacting Tunza Esports!
-
-We received your message:
-"${message}"
-
-We will review your inquiry and get back to you as soon as possible.
-
-Best regards,
-Tunza Esports Team`,
-        });
-        
-        console.log('✅ User confirmation sent!');
-        console.log('📧 Message ID:', result.messageId);
-        console.log('📧 Envelope:', result.envelope);
-        return result;
-      } catch (noReplyError) {
-        console.log('⚠️ no-reply failed, using main email instead');
-        console.error('❌ no-reply error:', noReplyError);
-        
-        // Fallback to main email if no-reply doesn't work
-        const fallbackResult = await transporter.sendMail({
-          from: process.env.SMTP_EMAIL, // Use events@tunzaesports.com
-          to: email,
-          subject: `Thank you for contacting Tunza Esports`,
-          text: `Hi ${name},
-
-Thank you for contacting Tunza Esports!
-
-We received your message:
-"${message}"
-
-We will review your inquiry and get back to you as soon as possible.
-
-Best regards,
-Tunza Esports Team`,
-        });
-        
-        console.log('✅ Fallback user confirmation sent!');
-        console.log('📧 Fallback Message ID:', fallbackResult.messageId);
-        console.log('📧 Fallback Envelope:', fallbackResult.envelope);
-        return fallbackResult;
-      }
-    })();
-
-    const adminPromise = transporter.sendMail({
-      from: process.env.SMTP_EMAIL, // Use events@tunzaesports.com for admin notifications
-      to: process.env.SMTP_EMAIL, // Send to events@tunzaesports.com (your admin email)
+    /* ---------------- 1️⃣ Admin email ---------------- */
+    const adminPromise = adminTransporter.sendMail({
+      from: `"Tunza Esports Website" <${process.env.SMTP_EVENTS_EMAIL}>`,
+      to: process.env.SMTP_EVENTS_EMAIL,
       subject: `Website Contact: ${name}`,
-      text: `New contact form submission from Tunza Esports website:
+      text: `New contact form submission from the Tunza Esports website:
 
 Name: ${name}
 Email: ${email}
-Message: ${message}
+
+Message:
+${message}
 
 ---
-Submitted: ${new Date().toISOString()}`,
+Submitted at: ${new Date().toISOString()}`,
     });
 
-    console.log('🔄 Sending both emails...');
+    /* ---------------- 2️⃣ Auto-reply ---------------- */
+    const userPromise = noreplyTransporter.sendMail({
+      from: `"Tunza Esports" <${process.env.SMTP_NOREPLY_EMAIL}>`,
+      to: email,
+      replyTo: process.env.SMTP_EVENTS_EMAIL,
+      subject: 'Thank you for contacting Tunza Esports',
+      headers: {
+        'Auto-Submitted': 'auto-replied',
+        Precedence: 'bulk',
+      },
+      text: `Hi ${name},
+
+Thanks for contacting Tunza Esports.
+We’ve received your message and our team will get back to you shortly.
+
+Please do not reply to this email.
+
+Regards,
+Tunza Esports`,
+    });
+
     const results = await Promise.allSettled([userPromise, adminPromise]);
 
-    console.log('📊 Email Results:', {
-      user: results[0].status,
-      admin: results[1].status
-    });
-
-    const userResult = results[0];
-    const adminResult = results[1];
-
-    // Extract successful results
-    let successCount = 0;
-    if (userResult.status === 'fulfilled') {
-      console.log('✅ User confirmation sent successfully!');
-      console.log('📧 Message ID:', userResult.value.messageId);
-      successCount++;
-    } else {
-      console.log('❌ User email failed:', userResult.reason);
-    }
-
-    if (adminResult.status === 'fulfilled') {
-      console.log('✅ Admin notification sent to Gmail!');
-      console.log('📧 Admin Message ID:', adminResult.value.messageId);
-      successCount++;
-    } else {
-      console.log('❌ Admin notification failed:', adminResult.reason);
-    }
-     return NextResponse.json({
-       success: successCount > 0,
-       message: `${successCount} email(s) sent successfully`
-      });
-
     return NextResponse.json({
-      success: successCount > 0,
-      message: `${successCount} email(s) sent successfully`,
-      userSent: userResult.status === 'fulfilled',
-      adminSent: adminResult.status === 'fulfilled',
-      messageId: userResult.status === 'fulfilled' ? userResult.value.messageId : null
+      success: true,
+      userAutoReplySent: results[0].status === 'fulfilled',
+      adminNotificationSent: results[1].status === 'fulfilled',
     });
 
   } catch (error) {
-    console.error('❌ Error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('❌ Contact API error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

@@ -228,12 +228,25 @@ function validateType(value: any, type: string, field: string): ValidationError 
  * @returns Sanitized string
  */
 function sanitizeString(str: string): string {
+  if (typeof str !== 'string') return str;
+  
   return str
+    // Remove potentially dangerous characters
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Encode HTML entities
+    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(/\//g, '&#x2F;')
+    // Remove javascript: and data: URLs
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    // Remove on* event handlers
+    .replace(/on\w+\s*=/gi, '')
+    // Normalize whitespace
+    .trim();
 }
 
 /**
@@ -296,26 +309,83 @@ export const commonSchemas = {
     rank: {
       required: true,
       type: 'number' as const,
-      min: 1
+      min: 1,
+      max: 10000
     },
     playerName: {
       required: true,
       type: 'string' as const,
       minLength: 2,
       maxLength: 100,
-      sanitize: true
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\s\-_]+$/
     },
     universityId: {
       required: true,
       type: 'string' as const,
+      minLength: 1,
       maxLength: 50,
-      sanitize: true
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\-_]+$/
     },
     categoryId: {
       required: true,
       type: 'string' as const,
+      minLength: 1,
       maxLength: 50,
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\-_]+$/
+    }
+  },
+
+  // Blog-specific validation schemas
+  articleInteraction: {
+    articleId: {
+      required: true,
+      type: 'string' as const,
+      minLength: 1,
+      maxLength: 255,
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\-_]+$/
+    },
+    userId: {
+      required: true,
+      type: 'string' as const,
+      minLength: 1,
+      maxLength: 255,
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\-_]+$/
+    }
+  },
+
+  commentSubmission: {
+    articleId: {
+      required: true,
+      type: 'string' as const,
+      minLength: 1,
+      maxLength: 255,
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\-_]+$/
+    },
+    authorName: {
+      required: true,
+      type: 'string' as const,
+      minLength: 2,
+      maxLength: 100,
+      sanitize: true,
+      pattern: /^[a-zA-Z0-9\s\-_\.]+$/
+    },
+    content: {
+      required: true,
+      type: 'string' as const,
+      minLength: 1,
+      maxLength: 2000,
       sanitize: true
+    },
+    parentId: {
+      required: false,
+      type: 'number' as const,
+      min: 1
     }
   }
 };

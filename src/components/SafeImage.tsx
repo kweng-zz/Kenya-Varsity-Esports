@@ -29,6 +29,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   ...props
 }) => {
   const safeSrc = getSafeImageSrc(src, fallbackSrc);
+  const safeAlt = alt || 'KVE Esports Image';
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error('Image failed to load:', safeSrc);
@@ -53,7 +54,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   return (
     <Image
       src={safeSrc}
-      alt={alt}
+      alt={safeAlt}
       className={className}
       onError={handleError}
       onLoad={handleLoad}
@@ -73,6 +74,7 @@ export const SafeImgTag: React.FC<SafeImageProps> = ({
   ...props
 }) => {
   const safeSrc = getSafeImageSrc(src, fallbackSrc);
+  const safeAlt = alt || 'KVE Esports Image';
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     console.error('Image failed to load:', safeSrc);
@@ -97,7 +99,7 @@ export const SafeImgTag: React.FC<SafeImageProps> = ({
   return (
     <img
       src={safeSrc}
-      alt={alt}
+      alt={safeAlt}
       className={className}
       onError={handleError}
       onLoad={handleLoad}

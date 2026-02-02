@@ -2,6 +2,7 @@
 
 import { RadialNavigation } from "@/components/RadialNavigation";
 import Link from "next/link";
+import { useState, useRef, useEffect } from "react";
 
 interface HeroBannerProps {
   fallbackBanners?: Array<{
@@ -16,7 +17,7 @@ interface HeroBannerProps {
 
 const defaultFallbackBanners = [
     {
-        src: "/images/Join-Your-Uni.png",
+        src: "/images/Join-Your-Uni.webp",
         alt: "Join Your University",
         title: "JOIN YOUR INSTITUTION'S ESPORTS LEGACY",
         subtitle: "To get information for upcoming events.",
@@ -28,6 +29,18 @@ const defaultFallbackBanners = [
 export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
     const displayBanners = fallbackBanners.length > 0 ? fallbackBanners : defaultFallbackBanners;
     const mainContent = displayBanners[0]; 
+    const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+    const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        // Load video after page load for better performance
+        const timer = setTimeout(() => {
+            setShouldLoadVideo(true);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <>
@@ -47,24 +60,35 @@ export function HeroBanner({ fallbackBanners = [] }: HeroBannerProps) {
                 }} />
 
                 {/* Video Background - on top of image, but behind overlay */}
-                <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    poster={mainContent.src} // Native fallback
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        zIndex: 1, // Above image
-                    }}
-                >
-                    <source src="/images/IMG_7172.MOV" />
-                </video>
+                {shouldLoadVideo && (
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        poster={mainContent.src}
+                        onLoadStart={() => setIsVideoLoaded(false)}
+                        onCanPlay={() => setIsVideoLoaded(true)}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            zIndex: 1, // Above image
+                            opacity: isVideoLoaded ? 1 : 0,
+                            transition: 'opacity 0.5s ease-in-out',
+                        }}
+                        title="Hero background video showing esports highlights"
+                    >
+                        {/* Optimized video sources - WebM first for modern browsers, MP4 as fallback */}
+                        <source src="/images/IMG_7172.webm" type="video/webm" />
+                        <source src="/images/IMG_7172.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                    </video>
+                )}
 
                 {/* Dark Overlay - on top of everything */}
                 <div style={{

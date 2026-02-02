@@ -1,47 +1,194 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-
 /**
- * In-memory rate limiter for API endpoints
- * In production, consider using Redis or a dedicated rate limiting service
+ * Simple rate limiter with Redis support
+ * Falls back to in-memory when Redis is not available
  */
-class RateLimiter {
-  private static instance: RateLimiter;
-  private requests: Map<string, RateLimitEntry> = new Map();
+class SimpleRateLimiter {
+  private static instance: SimpleRateLimiter;
+  private redis: any = null;
+  private memory: Map<string, { count: number; resetTime: number }> = new Map();
 
-  static getInstance(): RateLimiter {
-    if (!RateLimiter.instance) {
-      RateLimiter.instance = new RateLimiter();
+  static getInstance(): SimpleRateLimiter {
+    if (!SimpleRateLimiter.instance) {
+      SimpleRateLimiter.instance = new SimpleRateLimiter();
     }
-    return RateLimiter.instance;
+    return SimpleRateLimiter.instance;
   }
 
-  /**
-   * Check if a request is allowed
-   * @param identifier - Unique identifier (IP address, user ID, etc.)
-   * @param limit - Number of requests allowed
-   * @param windowMs - Time window in milliseconds
-   * @returns Object with allowed boolean and remaining requests
-   */
-  isAllowed(identifier: string, limit: number, windowMs: number): { allowed: boolean; remaining: number; resetTime: number } {
-    const now = Date.now();
-    const key = identifier;
-    const entry = this.requests.get(key);
+  constructor() {
+    this.initializeRedis();
+  }
 
-    // Clean up expired entries
+  private async initializeRedis() {
+    try {
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+      
+      if (redisUrl && redisToken) {
+        // Use Upstash Redis REST API
+        this.redis = {
+          async get(key: string) {
+            const response = await fetch(`${redisUrl}/get/${key}`, {
+              headers: {
+                'Authorization': `Bearer ${redisToken}`,
+              },
+            });
+            const data = await response.json();
+            return data.result;
+          },
+          async incr(key: string) {
+            const response = await fetch(`${redisUrl}/incr/${key}`, {
+              headers: {
+                'Authorization': `Bearer ${redisToken}`,
+              },
+            });
+            const data = await response.json();
+            return data.result;
+          },
+          async expire(key: string, seconds: number) {
+            const response = await fetch(`${redisUrl}/expire/${key}/${seconds}`, {
+              headers: {
+                'Authorization': `Bearer ${redisToken}`,
+              },
+            });
+            const data = await response.json();
+            return data.result;
+          },
+          async pipeline() {
+            // For Upstash, we'll handle operations individually
+            return {
+              commands: [] as Array<{method: string, key: string, args?: any[]}>,
+              get(key: string) {
+                this.commands.push({ method: 'get', key });
+                return this;
+              },
+              incr(key: string) {
+                this.commands.push({ method: 'incr', key });
+                return this;
+              },
+              expire(key: string, seconds: number) {
+                this.commands.push({ method: 'expire', key, args: [seconds] });
+                return this;
+              },
+              async exec() {
+                const results = [];
+                for (const cmd of this.commands) {
+                  try {
+                    if (cmd.method === 'get') {
+                      const response = await fetch(`${redisUrl}/get/${cmd.key}`, {
+                        headers: { 'Authorization': `Bearer ${redisToken}` },
+                      });
+                      const data = await response.json();
+                      results.push([null, data.result]);
+                    } else if (cmd.method === 'incr') {
+                      const response = await fetch(`${redisUrl}/incr/${cmd.key}`, {
+                        headers: { 'Authorization': `Bearer ${redisToken}` },
+                      });
+                      const data = await response.json();
+                      results.push([null, data.result]);
+                    } else if (cmd.method === 'expire') {
+                      const response = await fetch(`${redisUrl}/expire/${cmd.key}/${cmd.args?.[0] || 0}`, {
+                        headers: { 'Authorization': `Bearer ${redisToken}` },
+                      });
+                      const data = await response.json();
+                      results.push([null, data.result]);
+                    }
+                  } catch (error) {
+                    results.push([error, null]);
+                  }
+                }
+                return results;
+              }
+            };
+          }
+        };
+        console.log('Upstash Redis rate limiter initialized');
+      } else if (process.env.REDIS_URL) {
+        // Fallback to ioredis for traditional Redis
+        const Redis = await import('ioredis');
+        this.redis = new Redis.default(process.env.REDIS_URL, {
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          keepAlive: 30000,
+          connectTimeout: 10000,
+          commandTimeout: 5000,
+        });
+        console.log('Traditional Redis rate limiter initialized');
+      } else {
+        console.warn('Redis not configured, using in-memory rate limiting');
+      }
+    } catch (error) {
+      console.error('Failed to initialize Redis:', error);
+      console.warn('Falling back to in-memory rate limiting');
+      this.redis = null;
+    }
+  }
+
+  async isAllowed(
+    identifier: string,
+    limit: number,
+    windowMs: number
+  ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+    const now = Date.now();
+    const key = `rate_limit:${identifier}`;
+    const resetTime = now + windowMs;
+
+    try {
+      if (this.redis) {
+        // Redis implementation for Upstash REST API
+        try {
+          // Get current count
+          const currentCountResponse = await this.redis.get(key);
+          const currentCount = currentCountResponse ? parseInt(currentCountResponse) : 0;
+          
+          // Increment count
+          const newCountResponse = await this.redis.incr(key);
+          const newCount = newCountResponse ? parseInt(newCountResponse) : 1;
+          
+          // Set expiry
+          await this.redis.expire(key, Math.ceil(windowMs / 1000));
+
+          if (newCount > limit) {
+            return { allowed: false, remaining: 0, resetTime };
+          }
+
+          return {
+            allowed: true,
+            remaining: limit - newCount,
+            resetTime
+          };
+        } catch (error) {
+          console.error('Redis rate limiting error:', error);
+          // Fallback to in-memory on Redis errors
+          return this.isAllowedInMemory(identifier, limit, windowMs);
+        }
+      } else {
+        // In-memory fallback
+        return this.isAllowedInMemory(identifier, limit, windowMs);
+      }
+    } catch (error) {
+      console.error('Rate limiting error:', error);
+      return this.isAllowedInMemory(identifier, limit, windowMs);
+    }
+  }
+
+  private isAllowedInMemory(
+    identifier: string,
+    limit: number,
+    windowMs: number
+  ): { allowed: boolean; remaining: number; resetTime: number } {
+    const now = Date.now();
+    const entry = this.memory.get(identifier);
+
     if (entry && now > entry.resetTime) {
-      this.requests.delete(key);
+      this.memory.delete(identifier);
     }
 
-    const currentEntry = this.requests.get(key);
-    
+    const currentEntry = this.memory.get(identifier);
+
     if (!currentEntry) {
-      // First request from this identifier
-      this.requests.set(key, {
+      this.memory.set(identifier, {
         count: 1,
         resetTime: now + windowMs
       });
@@ -61,7 +208,6 @@ class RateLimiter {
       };
     }
 
-    // Increment counter
     currentEntry.count++;
     
     return {
@@ -71,66 +217,29 @@ class RateLimiter {
     };
   }
 
-  /**
-   * Clean up expired entries (call periodically)
-   */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     const now = Date.now();
-    for (const [key, entry] of this.requests.entries()) {
+    for (const [key, entry] of this.memory.entries()) {
       if (now > entry.resetTime) {
-        this.requests.delete(key);
+        this.memory.delete(key);
       }
     }
   }
 }
 
-// Rate limit configurations for different endpoint types
 export const RATE_LIMITS = {
-  // Public endpoints - more restrictive
-  PUBLIC: {
-    limit: 10, // 10 requests
-    windowMs: 60 * 1000 // per minute
-  },
-  
-  // Contact form - less restrictive for testing
-  CONTACT: {
-    limit: 10, // 10 requests per minute (increased from 3)
-    windowMs: 60 * 1000 // per minute
-  },
-  
-  // Newsletter subscription - moderate restriction
-  NEWSLETTER: {
-    limit: 5, // 5 requests
-    windowMs: 60 * 1000 // per minute
-  },
-  
-  // Authenticated endpoints - less restrictive
-  AUTHENTICATED: {
-    limit: 100, // 100 requests
-    windowMs: 60 * 1000 // per minute
-  },
-  
-  // Admin endpoints - even less restrictive for logged-in admins
-  ADMIN: {
-    limit: 200, // 200 requests
-    windowMs: 60 * 1000 // per minute
-  },
-  
-  // File upload - restrictive due to resource usage
-  UPLOAD: {
-    limit: 10, // 10 uploads
-    windowMs: 60 * 1000 // per minute
-  }
+  PUBLIC: { limit: 10, windowMs: 60 * 1000 },
+  CONTACT: { limit: 10, windowMs: 60 * 1000 },
+  NEWSLETTER: { limit: 5, windowMs: 60 * 1000 },
+  AUTHENTICATED: { limit: 100, windowMs: 60 * 1000 },
+  ADMIN: { limit: 200, windowMs: 60 * 1000 },
+  UPLOAD: { limit: 10, windowMs: 60 * 1000 }
 };
 
-/**
- * Get client IP address from request
- */
 function getClientIP(request: NextRequest): string {
-  // Try various headers for the real IP
   const forwardedFor = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
-  const cfConnectingIP = request.headers.get('cf-connecting-ip'); // Cloudflare
+  const cfConnectingIP = request.headers.get('cf-connecting-ip');
   
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim();
@@ -144,32 +253,20 @@ function getClientIP(request: NextRequest): string {
     return cfConnectingIP;
   }
   
-  // Fallback to request IP
   return '127.0.0.1';
 }
 
-/**
- * Rate limiting middleware
- * @param request - The incoming request
- * @param limitType - Type of rate limit to apply
- * @returns NextResponse with error if rate limited, null if allowed
- */
 export async function checkRateLimit(
-  request: NextRequest, 
+  request: NextRequest,
   limitType: keyof typeof RATE_LIMITS
 ): Promise<NextResponse | null> {
-  const rateLimiter = RateLimiter.getInstance();
   const config = RATE_LIMITS[limitType];
-  
-  // Get client identifier
+  const rateLimiter = SimpleRateLimiter.getInstance();
   const identifier = getClientIP(request);
-  
-  // Add user identifier if available (for authenticated routes)
   const userId = request.headers.get('x-user-id');
   const finalIdentifier = userId ? `user:${userId}` : `ip:${identifier}`;
   
-  // Check rate limit
-  const result = rateLimiter.isAllowed(finalIdentifier, config.limit, config.windowMs);
+  const result = await rateLimiter.isAllowed(finalIdentifier, config.limit, config.windowMs);
   
   if (!result.allowed) {
     return NextResponse.json({
@@ -188,21 +285,9 @@ export async function checkRateLimit(
     });
   }
   
-  // Add rate limit headers to successful responses
-  const headers = new Headers();
-  headers.set('X-RateLimit-Limit', config.limit.toString());
-  headers.set('X-RateLimit-Remaining', result.remaining.toString());
-  headers.set('X-RateLimit-Reset', new Date(result.resetTime).toISOString());
-  
   return null;
 }
 
-/**
- * Higher-order function to add rate limiting to API routes
- * @param handler - The route handler function
- * @param limitType - Type of rate limit to apply
- * @returns Protected route handler
- */
 export function withRateLimit(
   handler: (request: NextRequest) => Promise<NextResponse>,
   limitType: keyof typeof RATE_LIMITS
@@ -213,13 +298,12 @@ export function withRateLimit(
     
     const response = await handler(request);
     
-    // Add rate limit headers to the response
     const config = RATE_LIMITS[limitType];
-    const rateLimiter = RateLimiter.getInstance();
+    const rateLimiter = SimpleRateLimiter.getInstance();
     const identifier = getClientIP(request);
     const userId = request.headers.get('x-user-id');
     const finalIdentifier = userId ? `user:${userId}` : `ip:${identifier}`;
-    const result = rateLimiter.isAllowed(finalIdentifier, config.limit, config.windowMs);
+    const result = await rateLimiter.isAllowed(finalIdentifier, config.limit, config.windowMs);
     
     response.headers.set('X-RateLimit-Limit', config.limit.toString());
     response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
@@ -232,6 +316,6 @@ export function withRateLimit(
 // Cleanup expired entries every 5 minutes
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
-    RateLimiter.getInstance().cleanup();
+    SimpleRateLimiter.getInstance().cleanup();
   }, 5 * 60 * 1000);
 }

@@ -201,7 +201,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           game: 'Call of Duty Mobile',
           author: 'KUER Team',
           tags: ['TUK', 'Championship', 'Season 2', 'Victory'],
-          imageUrl: '/images/Join-Your-Uni.png',
+          imageUrl: '/images/Join-Your-Uni.webp',
           image: null
         },
         {

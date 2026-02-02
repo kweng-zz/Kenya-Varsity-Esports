@@ -145,7 +145,7 @@ export default function AdminBannersPage() {
 
       const defaultBanners = [
         {
-          src: '/images/Join-Your-Uni.png',
+          src: '/images/Join-Your-Uni.webp',
           alt: 'Join Your University',
           title: 'Join Your University',
           subtitle: 'Connect with your university esports community',
@@ -307,7 +307,7 @@ export default function AdminBannersPage() {
       setIsSaving(true);
       
       const newBanner = {
-        src: '/images/Join-Your-Uni.png',
+        src: '/images/Join-Your-Uni.webp',
         alt: 'New Banner',
         title: 'New Banner',
         subtitle: 'Banner subtitle',

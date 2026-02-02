@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
+import { Clock } from 'lucide-react';
 
 // Define the TypeScript interface for a single news article's data.
 interface NewsArticle {
@@ -33,6 +34,13 @@ const NewsCard = ({ article }: NewsCardProps) => {
       month: 'long',
       day: 'numeric'
     }).toUpperCase();
+  };
+
+  const getReadingTime = (description: string) => {
+    const wordsPerMinute = 200;
+    const wordCount = description.split(' ').length;
+    const readingTime = Math.ceil(wordCount / wordsPerMinute);
+    return readingTime;
   };
 
   // Ensure we have a valid image URL with proper fallback
@@ -113,54 +121,82 @@ const NewsCard = ({ article }: NewsCardProps) => {
 
   return (
     <Link href={linkHref}>
-      <div className="bg-black rounded-none overflow-hidden shadow-lg w-full cursor-pointer group transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-2 hover:bg-[#252525] relative">
-        {/* Image section with date overlay */}
-        <div className="w-full h-48 bg-gray-800 relative">
+      <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-none overflow-hidden shadow-2xl w-full cursor-pointer group transition-all duration-500 ease-in-out hover:shadow-3xl hover:shadow-red-500/30 hover:-translate-y-3 hover:bg-gradient-to-br hover:from-gray-800 hover:to-black">
+        {/* Image section with enhanced overlays */}
+        <div className="w-full h-48 bg-gray-800 relative overflow-hidden">
           {displayImageUrl && displayImageUrl.trim() !== '' ? (
-            <img
-              src={displayImageUrl}
-              alt={title}
-              className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
-              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                console.error('Image failed to load:', displayImageUrl);
-                if (!imageError) {
-                  setImageError(true);
-                }
-              }}
-              onLoad={() => {
-                // Reset error state if image loads successfully
-                if (imageError) {
-                  setImageError(false);
-                }
-              }}
-            />
+            <>
+              <img
+                src={displayImageUrl}
+                alt={title}
+                className="w-full h-full object-cover transition-all duration-700 ease-in-out group-hover:scale-115 group-hover:brightness-110"
+                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                  console.error('Image failed to load:', displayImageUrl);
+                  if (!imageError) {
+                    setImageError(true);
+                  }
+                }}
+                onLoad={() => {
+                  // Reset error state if image loads successfully
+                  if (imageError) {
+                    setImageError(false);
+                  }
+                }}
+              />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+              {/* Shine effect on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-800">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-700">
               <span className="text-gray-500 text-sm">No image available</span>
             </div>
           )}
           
-          {/* Date badge */}
-          <div className="absolute top-2 left-2 bg-black bg-opacity-50 group-hover:bg-opacity-70 text-white text-xs font-semibold px-3 py-1 rounded transition-all duration-300 ease-in-out">
+          {/* Enhanced date badge */}
+          <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md group-hover:bg-black/90 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-300 ease-in-out border border-white/20">
             {formatDate(date)}
           </div>
+          
+          {/* Reading time indicator */}
+          <div className="absolute top-3 right-3 bg-[#961c18]/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full transition-all duration-300 ease-in-out flex items-center gap-1 border border-white/20">
+            <Clock className="w-3 h-3" />
+            {getReadingTime(description)}m
+          </div>
         </div>
-        {/* Content section */}
-        <div className="p-6 transition-all duration-300 ease-in-out">
-          <p className="text-red-500 group-hover:text-red-400 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ease-in-out">{category}</p>
-          <h3 className="text-white group-hover:text-red-100 text-xl font-bold mt-2 mb-3 leading-tight transition-colors duration-300 ease-in-out">{title}</h3>
-          <p className="text-gray-400 group-hover:text-gray-300 text-sm leading-relaxed transition-colors duration-300 ease-in-out">{description}</p>
+        
+        {/* Enhanced content section */}
+        <div className="p-6 transition-all duration-300 ease-in-out relative z-10">
+          {/* Enhanced category badge */}
+          <div className="inline-block mb-3">
+            <span className="px-3 py-1 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg border border-white/20">
+              {category}
+            </span>
+          </div>
+          
+          <h3 className="text-white text-xl font-bold mt-2 mb-3 leading-tight transition-colors duration-300 ease-in-out group-hover:text-[#961c18]">
+            {title}
+          </h3>
+          
+          <p className="text-gray-400 text-sm leading-relaxed transition-colors duration-300 ease-in-out line-clamp-3">
+            {description}
+          </p>
         </div>
 
-        {/* Animated border effect */}
-        <div className="absolute inset-0 border-2 border-transparent group-hover:border-red-500/50 rounded-none transition-all duration-300 ease-in-out pointer-events-none"></div>
+        {/* Enhanced animated border effect */}
+        <div className="absolute inset-0 rounded-none border-2 border-transparent group-hover:border-[#961c18]/60 transition-all duration-500 ease-in-out pointer-events-none"></div>
 
-        {/* Subtle glow effect on hover */}
-        <div className="absolute inset-0 rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out pointer-events-none"
+        {/* Enhanced glow effect on hover */}
+        <div className="absolute inset-0 rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out pointer-events-none"
              style={{
-               background: 'radial-gradient(circle at center, rgba(143, 18, 14, 0.1) 0%, transparent 70%)'
+               background: 'radial-gradient(circle at center, rgba(150, 28, 24, 0.2) 0%, rgba(196, 30, 58, 0.1) 40%, transparent 70%)',
+               filter: 'blur(25px)'
              }}>
         </div>
+
+        {/* Corner accent effect */}
+        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-transparent to-[#961c18]/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out blur-xl"></div>
       </div>
     </Link>
   );

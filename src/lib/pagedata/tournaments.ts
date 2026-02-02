@@ -37,8 +37,8 @@ const defaultData: TournamentsPageData = {
       name: 'september',
       title: 'KVE GAME TITLES',
       subtitle: 'September Season',
-      description: 'The gaming titles being featured in the September Semester Period',
-      image: '/images/September-Season.png',
+      description: 'The gaming titles being featured in September Semester Period',
+      image: '/images/September-Season.webp',
       isActive: false,
       startDate: '2025-09-01',
       endDate: '2025-12-31'
@@ -48,8 +48,8 @@ const defaultData: TournamentsPageData = {
       name: 'january',
       title: 'KVE GAME TITLES',
       subtitle: 'January Season',
-      description: 'The gaming titles being featured in the January Semester Period',
-      image: '/images/January-Season.png',
+      description: 'The gaming titles being featured in January Semester Period',
+      image: '/images/January-Season.webp',
       isActive: true,
       startDate: '2026-01-01',
       endDate: '2026-05-31'

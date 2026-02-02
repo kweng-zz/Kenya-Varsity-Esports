@@ -1,4 +1,4 @@
-
+import { Metadata } from 'next';
 import ProtectedRoute from "@/components/auth/ProotectedRoute";
 import { FooterSection } from "@/components/Footer";
 import { Navigation } from "@/components/Navigation";
@@ -6,6 +6,15 @@ import { ComingSoonSection } from "@/components/pages/tournaments/ComingSoon";
 import HeroSection from "@/components/pages/tournaments/Herosection";
 import { TeamRosterSection } from "@/components/pages/tournaments/Roaster";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'Varsity Esports Tournaments',
+  description: 'Join competitive varsity esports tournaments in Kenya. Compete in PUBG Mobile, Call of Duty, Free Fire, and more for glory and prizes.',
+  openGraph: {
+    title: 'Varsity Esports Tournaments | KVE',
+    description: 'Compete with the best university esports teams in Kenya.',
+  },
+};
 
 // Custom fallback component for tournaments page
 const TournamentsAuthFallback = () => (

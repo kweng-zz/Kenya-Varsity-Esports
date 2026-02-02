@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 const nextConfig: NextConfig = {
   // Optimize for Vercel deployment
@@ -192,8 +193,28 @@ const nextConfig: NextConfig = {
   },
 
   // Webpack configuration for stability
-  webpack: (config, { isServer }) => {
-    // Disable Turbopack and use webpack
+  webpack: (config, { isServer, dev }) => {
+    // Add bundle analyzer for production builds when ANALYZE is set
+    if (!dev && !isServer && process.env.ANALYZE === 'true') {
+      console.log('🔍 Adding Bundle Analyzer Plugin...');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+          reportFilename: 'bundle-analyzer-report.html',
+          defaultSizes: 'gzip',
+          generateStatsFile: true,
+          statsFilename: 'bundle-stats.json',
+          statsOptions: {
+            source: false,
+            modules: true,
+            chunks: true,
+            chunkModules: true,
+          },
+        })
+      );
+    }
+    
     return config;
   },
 

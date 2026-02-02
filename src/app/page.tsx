@@ -1,21 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { FooterSection } from "@/components/Footer";
-import  { Navigation } from "@/components/Navigation";
+import dynamic from 'next/dynamic';
+
+const FooterSection = dynamic(() => import("@/components/Footer").then(mod => mod.FooterSection));
+const TopHighlightSection = dynamic(() => import("@/components/pages/landing/Highlights").then(mod => mod.TopHighlightSection));
+const LatestNews = dynamic(() => import("@/components/pages/landing/News"));
+const NewsletterSection = dynamic(() => import("@/components/pages/landing/NewsLetter").then(mod => mod.NewsletterSection));
+const ShopSection = dynamic(() => import("@/components/pages/landing/Shop").then(mod => mod.ShopSection));
+const SeasonStatistics = dynamic(() => import("@/components/pages/landing/Statistics"), {
+  loading: () => <div className="min-h-[400px] bg-black" />
+});
+const MeetTheTeamSection = dynamic(() => import("@/components/pages/landing/Team").then(mod => mod.MeetTheTeamSection));
+const SponsorTiers = dynamic(() => import('@/components/pages/landing/Sponsorship'));
+const SponsorLogos = dynamic(() => import('@/components/pages/landing/SponsorLogos').then(mod => mod.SponsorLogos));
+
+import { Navigation } from "@/components/Navigation";
 import { HeroBanner } from "@/components/pages/landing/Banner";
-import { TopHighlightSection } from "@/components/pages/landing/Highlights";
-import LatestNews from "@/components/pages/landing/News";
-import { NewsletterSection } from "@/components/pages/landing/NewsLetter";
-import { ShopSection } from "@/components/pages/landing/Shop";
-import SeasonStatistics from "@/components/pages/landing/Statistics";
-import { MeetTheTeamSection } from "@/components/pages/landing/Team";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import SponsorTiers from '@/components/pages/landing/Sponsorship';
-import { SponsorLogos } from '@/components/pages/landing/SponsorLogos';
 
 
 

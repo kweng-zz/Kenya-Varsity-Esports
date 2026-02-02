@@ -2,9 +2,13 @@
 
 import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronDown, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck, Clock, Eye } from "lucide-react";
 import { contentfulAPI, transformContentfulArticle, TransformedArticle } from "@/lib/contentful";
 import { ImageWithFallback } from "@/components/HydrationFix";
+import { ErrorBoundary, MinimalErrorBoundary } from "@/components/ErrorBoundary";
+import { ViewTracker } from "@/components/ViewTracker";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBlogState } from "@/contexts/BlogStateContext";
 
 // Search Input Component
 const SearchInput = ({
@@ -102,12 +106,22 @@ const FilterDropdown = ({
 
 // Blog Card Component
 const BlogCard = ({ article }: { article: TransformedArticle }) => {
+  const { user } = useAuth();
+  const { isBookmarked, trackView } = useBlogState();
+  
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+
+  const getReadingTime = (description: string) => {
+    const wordsPerMinute = 200;
+    const wordCount = description.split(' ').length;
+    const readingTime = Math.ceil(wordCount / wordsPerMinute);
+    return readingTime;
+  };
 
   // Ensure we have a valid image URL with proper fallback
   const getImageUrl = (url?: string | null) => {
@@ -140,50 +154,105 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
 
   const imageUrl = getImageUrl(article.imageUrl);
 
+  const handleBookmarkToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Bookmark toggle is handled by centralized state
+  };
+
+  const handleArticleClick = async () => {
+    // Track view when article is clicked
+    trackView(article.id);
+  };
+
   return (
-    <Link href={`/blogs/${article.slug}`} className="block h-full">
-      <div className="bg-black rounded-none border border-white/50 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group h-full flex flex-col">
+    <Link href={`/blogs/${article.slug}`} className="block h-full" onClick={handleArticleClick}>
+      <div className="relative bg-black rounded-none border border-white/20 overflow-hidden shadow-2xl hover:shadow-3xl hover:shadow-red-500/20 transition-all duration-500 hover:-translate-y-2 cursor-pointer group h-full flex flex-col">
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+        
         <div className="relative h-48 bg-gray-800 shrink-0">
           <ImageWithFallback
             src={imageUrl}
             alt={article.title}
             fallbackSrc="/images/Join our tournaments.png"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             onError={() => {
               console.error('Blog image failed to load:', imageUrl);
             }}
           />
           
+          {/* Gradient overlay for image */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+          
           {article.featured && (
-            <div className="absolute top-2 left-2 bg-[#961c18] text-white px-2 py-1 rounded text-xs font-semibold">
-              Featured
+            <div className="absolute top-3 left-3 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm border border-white/20 z-20">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                Featured
+              </span>
             </div>
           )}
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs">
+          
+          {/* Bookmark button */}
+          <button
+            onClick={handleBookmarkToggle}
+            className="absolute top-3 right-3 p-2 bg-black/60 backdrop-blur-md rounded-full hover:bg-black/80 transition-all duration-300 z-20 group/btn"
+          >
+            {isBookmarked(article.id) ? (
+              <BookmarkCheck className="w-4 h-4 text-[#961c18] fill-current" />
+            ) : (
+              <Bookmark className="w-4 h-4 text-white group-hover/btn:text-[#961c18] transition-colors" />
+            )}
+          </button>
+          
+          {/* Date badge with improved styling */}
+          <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-medium border border-white/20 z-20">
             {formatDate(article.publishedAt)}
           </div>
         </div>
 
-        <div className="p-6 flex flex-col flex-1">
-          <div className="flex flex-wrap gap-2 mb-3">
-            <span className="px-2 py-1 bg-[#961c18] text-white rounded text-xs">
+        <div className="p-6 flex flex-col flex-1 relative z-10">
+          {/* Enhanced category badges */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="px-3 py-1 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white rounded-full text-xs font-bold shadow-lg">
               {article.category}
             </span>
             {article.game && (
-              <span className="px-2 py-1 bg-gray-700 text-white rounded text-xs">{article.game}</span>
+              <span className="px-3 py-1 bg-gradient-to-r from-gray-700 to-gray-600 text-white rounded-full text-xs font-semibold shadow-md">{article.game}</span>
             )}
           </div>
 
-          <h3 className="text-white text-xl font-bold mb-2 group-hover:text-[#961c18] transition-colors line-clamp-2">
+          {/* Enhanced typography */}
+          <h3 className="text-white text-xl font-bold mb-3 group-hover:text-[#961c18] transition-colors duration-300 line-clamp-2 leading-tight">
             {article.title}
           </h3>
 
-          <p className="text-gray-400 text-sm line-clamp-3 mb-4 flex-1">{article.description}</p>
+          <p className="text-gray-400 text-sm line-clamp-3 mb-5 flex-1 leading-relaxed">{article.description}</p>
 
-          <div className="flex items-center justify-between text-xs text-gray-500 mt-auto">
-            <span>By {article.author}</span>
-            <span className="text-[#961c18] group-hover:text-white transition-colors">Read More →</span>
+          {/* Enhanced footer with more info */}
+          <div className="flex items-center justify-between text-xs text-gray-500 mt-auto pt-3 border-t border-white/10">
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>{getReadingTime(article.description)} min</span>
+            </div>
+            <ViewTracker articleId={article.id} trackView={true} />
+            <span className="text-[#961c18] group-hover:text-white transition-colors font-semibold">Read More →</span>
           </div>
+        </div>
+
+        {/* Shine effect on hover */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
+        
+        {/* Animated border effect */}
+        <div className="absolute inset-0 rounded-none border-2 border-transparent group-hover:border-[#961c18]/50 transition-all duration-500 pointer-events-none"></div>
+        
+        {/* Glow effect on hover */}
+        <div className="absolute inset-0 rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+             style={{
+               background: 'radial-gradient(circle at center, rgba(150, 28, 24, 0.15) 0%, transparent 70%)',
+               filter: 'blur(20px)'
+             }}>
         </div>
       </div>
     </Link>
@@ -229,6 +298,25 @@ const PaginationControls = ({
 
 // Main BlogsOverviewSection Component
 export const BlogsOverviewSection = () => {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('BlogsOverview Error:', error, errorInfo);
+        // Log to analytics or error tracking service
+        if (typeof window !== 'undefined' && window.gtag) {
+          window.gtag('event', 'exception', {
+            description: `BlogsOverview: ${error.toString()}`,
+            fatal: false
+          });
+        }
+      }}
+    >
+      <BlogsOverviewSectionInner />
+    </ErrorBoundary>
+  );
+};
+
+const BlogsOverviewSectionInner = () => {
   const [articles, setArticles] = useState<TransformedArticle[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [games, setGames] = useState<string[]>([]);
@@ -361,12 +449,14 @@ export const BlogsOverviewSection = () => {
                 onScroll={handleScroll}
                 className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
               >
-                {articles.map((article) => (
-                  <div key={article.id} className="flex-none w-80">
-                    <BlogCard article={article} />
-                  </div>
-                ))}
-              </div>
+                 {articles.map((article) => (
+                   <div key={article.id} className="flex-none w-80">
+                     <MinimalErrorBoundary>
+                       <BlogCard article={article} />
+                     </MinimalErrorBoundary>
+                   </div>
+                 ))}
+               </div>
 
               {canScrollLeft && (
                 <button

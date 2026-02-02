@@ -38,6 +38,7 @@ export interface ContentfulArticleFields {
   category: string;
   game?: string;
   author: string;
+  authorAvatar?: Asset;
   tags: string[];
   image?: Asset;
 }
@@ -286,6 +287,11 @@ export interface TransformedArticle {
   category: string;
   game: string;
   author: string;
+  authorAvatar?: string;
+  authorBio?: string;
+  authorTwitter?: string;
+  authorLinkedIn?: string;
+  authorInstagram?: string;
   tags: string[];
   imageUrl: string | null;
   image: any;
@@ -306,6 +312,13 @@ export const transformContentfulArticle = (article: ContentfulArticle): Transfor
     category: f.category || 'General',
     game: f.game || '',
     author: f.author || 'KUER Team',
+    authorAvatar: f.authorAvatar?.fields?.file?.url
+      ? `https:${f.authorAvatar.fields.file.url}`
+      : undefined,
+    authorBio: f.authorBio || `Esports writer and analyst covering ${(f.category || 'gaming').toLowerCase()} and competitive gaming trends.`,
+    authorTwitter: f.authorTwitter,
+    authorLinkedIn: f.authorLinkedIn,
+    authorInstagram: f.authorInstagram,
     tags: Array.isArray(f.tags) ? f.tags : [],
     imageUrl: getContentfulImageUrl(f.image, 800, 600) ?? '/images/Join our tournaments.png',
     image: f.image || null,

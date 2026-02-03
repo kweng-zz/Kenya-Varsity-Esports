@@ -89,7 +89,7 @@ export default function AdminBlogsPage() {
           featured: true,
           category: 'Tournament Results',
           game: 'PUBG Mobile',
-          author: 'KUER Team',
+          author: 'KVE Team',
           tags: ['MMUST', 'Tournament', 'Victory'],
           imageUrl: '/images/Join our tournaments.png',
           image: null
@@ -119,7 +119,7 @@ export default function AdminBlogsPage() {
   };
 
   const handleCreateNew = () => {
-    setFormData({ ...initialFormData, author: profile?.fullname || 'KUER Team' });
+    setFormData({ ...initialFormData, author: profile?.fullname || 'KVE Team' });
     setEditingArticle(null);
     setShowCreateForm(true);
   };

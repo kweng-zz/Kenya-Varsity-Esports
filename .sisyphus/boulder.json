@@ -1,12 +1,6 @@
 {
-  "active_plan": "E:\\Apps\\esports\\.sisyphus\\plans\\comprehensive-bug-fixes.md",
-  "started_at": "2026-02-01T10:35:36.000Z",
-  "session_ids": [
-    "ses_3e7b1c9fcffe90QI4knTT62vDu",
-    "ses_3e7adb74cffeTCL5W7DhRkcfag",
-    "ses_3e7aa81abffeyuSJmOSGt2a2rm",
-    "$SESSION_ID",
-    "ses_3e2a471dcffeJq3H4KFaDYtt41"
-  ],
-  "plan_name": "comprehensive-bug-fixes"
+  "active_plan": "E:\\Apps\\esports\\.sisyphus\\plans\\tournament-production-migration.md",
+  "started_at": "2026-02-03T01:15:00.000Z",
+  "session_ids": [],
+  "plan_name": "tournament-production-migration"
 }

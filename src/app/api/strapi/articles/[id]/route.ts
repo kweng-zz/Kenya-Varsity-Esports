@@ -51,7 +51,7 @@ export async function PUT(
       slug: slug || title.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-'),
       category,
       game: game || null,
-      author: author || 'KUER Team',
+      author: author || 'KVE Team',
       featured,
       tags,
     };

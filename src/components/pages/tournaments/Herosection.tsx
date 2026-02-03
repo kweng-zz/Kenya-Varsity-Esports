@@ -198,14 +198,14 @@ export const HeroSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Section: KUER ESPORTS RANKINGS & Countdown */}
+        {/* Bottom Section: KVE ESPORTS RANKINGS & Countdown */}
         <div className="w-full max-w-4xl flex flex-col md:flex-row items-center justify-between mt-8 ">
-          {/* Left: KUER Logo and Text */}
+          {/* Left: KVE Logo and Text */}
           <div className="flex items-center mb-8 md:mb-0">
             <div className="w-32 h-32 mr-4">
               <Image
                 src="/images/KVE white no words.png"
-                alt="KUER Logo"
+                alt="KVE Logo"
                 width={80}
                 height={80}
                 className="w-full h-full object-contain"

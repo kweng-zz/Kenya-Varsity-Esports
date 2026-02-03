@@ -16,7 +16,7 @@ export const SEASON_SEMESTERS = {
     name: 'September',
     // Full formatted title with HTML-like structure for display
     titleParts: {
-      part1: 'KUER',
+      part1: 'KVE',
       part2: 'SEASON 3',
       part3: 'OVERALL RANKINGS PER GAME CATEGORY',
     },
@@ -25,7 +25,7 @@ export const SEASON_SEMESTERS = {
   january: {
     name: 'January',
     titleParts: {
-      part1: 'KUER',
+      part1: 'KVE',
       part2: 'SEASON 3',
       part3: 'OVERALL RANKINGS PER GAME CATEGORY',
     },
@@ -35,7 +35,7 @@ export const SEASON_SEMESTERS = {
 
 export const SEASON_REGIONAL = {
   titleParts: {
-    part1: 'KUER',
+    part1: 'KVE',
     part2: 'SEASON 3',
     part3: 'OVERALL REGIONAL RANKINGS',
   },
@@ -43,7 +43,7 @@ export const SEASON_REGIONAL = {
 
 export const SEASON_GENERAL = {
   titleParts: {
-    part1: 'KUER',
+    part1: 'KVE',
     part2: 'SEASON 3',
     part3: 'OVERALL RANKINGS',
   },

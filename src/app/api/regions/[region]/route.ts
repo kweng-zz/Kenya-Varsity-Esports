@@ -57,13 +57,13 @@ export async function GET(
                     name: regionSlug.toUpperCase().replace(/-/g, ' '),
                     slug: regionSlug,
                     backgroundImage: "/images/Uganda.png",
-                    description: `${regionSlug.toUpperCase().replace(/-/g, ' ')} region universities competing in KUER`,
+                    description: `${regionSlug.toUpperCase().replace(/-/g, ' ')} region universities competing in KVE`,
                     isActive: true
                 },
                 seasons: [
                     {
                         seasonName: 'september' as const,
-                        seasonTitle: 'KUER SEASON 2',
+                        seasonTitle: 'KVE SEASON 2',
                         description: 'Current rankings for the September 2024 semester',
                         isActive: true,
                         universities: sampleRankings
@@ -170,7 +170,7 @@ export async function GET(
             seasons: [
                 {
                     seasonName: 'september' as const,
-                    seasonTitle: 'KUER SEASON 2',
+                    seasonTitle: 'KVE SEASON 2',
                     description: 'Current rankings for the September 2024 semester',
                     isActive: true,
                     universities: septemberUniversities

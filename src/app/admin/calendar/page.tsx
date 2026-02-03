@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { CalendarEvent } from '@/lib/services/calendarService';
+import { tournamentService } from '@/lib/services/tournamentService';
 
 // Client-side calendar service for admin operations
 import { Client, Databases, Query, ID } from 'appwrite';
@@ -128,50 +129,111 @@ export default function AdminCalendarPage() {
     }
   }, [user, profile, loading, router]);
 
-  // Fetch calendar events
+// Convert tournament to calendar event (same logic as calendar service)
+  const tournamentToCalendarEvent = (tournament: any): CalendarEvent => {
+    const now = new Date().toISOString();
+    let status: 'upcoming' | 'live' | 'completed' = 'upcoming';
+    
+    if (tournament.tournamentStatus === 'ongoing') {
+      status = 'live';
+    } else if (tournament.tournamentStatus === 'completed') {
+      status = 'completed';
+    }
+
+    const date = tournament.startDate || tournament.registrationStartDate || now;
+    const time = tournament.startDate ? new Date(tournament.startDate).toTimeString().slice(0, 5) : undefined;
+
+    return {
+      id: `tournament_${tournament.id}`,
+      title: tournament.title || `${tournament.gameName} Tournament`,
+      description: tournament.description || `Tournament for ${tournament.gameName}`,
+      date,
+      time,
+      type: 'tournament',
+      status,
+      gameSlug: tournament.gameName.toLowerCase().replace(/\s+/g, '-'),
+      tournamentId: tournament.id,
+      location: tournament.format || 'Online',
+      registrationDeadline: tournament.registrationDeadline,
+      maxParticipants: tournament.maxParticipants,
+      currentParticipants: tournament.currentParticipants || 0,
+      prizePool: tournament.prizePool ? `${tournament.prizePool} ${tournament.currency || 'USD'}` : undefined,
+      teams: [],
+      isImportant: true,
+      createdAt: tournament.createdAt,
+      updatedAt: tournament.updatedAt
+    };
+  };
+
+  // Fetch calendar events and tournaments
   useEffect(() => {
     const fetchEvents = async () => {
       if (!user || !profile?.isAdmin) return;
 
       try {
+        let allEvents: CalendarEvent[] = [];
+
+        // Fetch regular calendar events
         const db = initializeAppwrite();
-        if (!db) {
+        if (db) {
+          try {
+            const response = await db.listDocuments(
+              process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+              process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
+              [Query.orderDesc('date'), Query.limit(100)]
+            );
+
+            const calendarEventsData = response.documents.map((doc: any) => ({
+              id: doc.$id,
+              title: doc.title,
+              description: doc.description || '',
+              date: doc.date,
+              time: doc.time,
+              type: doc.type || 'event',
+              status: doc.status || 'upcoming',
+              gameSlug: doc.gameSlug,
+              tournamentId: doc.tournamentId,
+              location: doc.location,
+              registrationDeadline: doc.registrationDeadline,
+              maxParticipants: doc.maxParticipants,
+              currentParticipants: doc.currentParticipants || 0,
+              prizePool: doc.prizePool,
+              teams: doc.teams ? (Array.isArray(doc.teams) ? doc.teams : JSON.parse(doc.teams)) : undefined,
+              isImportant: doc.isImportant || false,
+              createdAt: doc.$createdAt,
+              updatedAt: doc.$updatedAt
+            })) as CalendarEvent[];
+            
+            allEvents = [...allEvents, ...calendarEventsData];
+          } catch (error) {
+            console.error('Error fetching calendar events:', error);
+          }
+        } else {
           console.warn('Appwrite not configured, skipping calendar events fetch');
-          setLoadingData(false);
-          return;
         }
 
-        const response = await db.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_CALENDAR_COLLECTION_ID || 'calendar_events',
-          [Query.orderDesc('date'), Query.limit(100)]
-        );
+        // Fetch tournaments and convert to calendar events
+        try {
+          console.log('🏆 AdminCalendar: Fetching tournaments...');
+          const publishedTournaments = await tournamentService.getPublishedTournaments();
+          console.log(`🏆 AdminCalendar: Found ${publishedTournaments.length} published tournaments`);
 
-        const eventsData = response.documents.map((doc: any) => ({
-          id: doc.$id,
-          title: doc.title,
-          description: doc.description || '',
-          date: doc.date,
-          time: doc.time,
-          type: doc.type || 'event',
-          status: doc.status || 'upcoming',
-          gameSlug: doc.gameSlug,
-          tournamentId: doc.tournamentId,
-          location: doc.location,
-          registrationDeadline: doc.registrationDeadline,
-          maxParticipants: doc.maxParticipants,
-          currentParticipants: doc.currentParticipants || 0,
-          prizePool: doc.prizePool,
-          teams: doc.teams ? (Array.isArray(doc.teams) ? doc.teams : JSON.parse(doc.teams)) : undefined,
-          isImportant: doc.isImportant || false,
-          createdAt: doc.$createdAt,
-          updatedAt: doc.$updatedAt
-        })) as CalendarEvent[];
+          const tournamentEvents = publishedTournaments.map(tournamentToCalendarEvent);
+          console.log(`🏆 AdminCalendar: Created ${tournamentEvents.length} tournament events`);
 
-        setEvents(eventsData);
+          allEvents = [...allEvents, ...tournamentEvents];
+        } catch (error) {
+          console.error('Error fetching tournaments:', error);
+        }
+
+        // Sort all events by date (newest first)
+        allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        console.log(`📅 AdminCalendar: Total events to display: ${allEvents.length}`);
+        setEvents(allEvents);
+        setLoadingData(false);
       } catch (error) {
-        console.error('Error fetching calendar events:', error);
-      } finally {
+        console.error('Error fetching calendar data:', error);
         setLoadingData(false);
       }
     };

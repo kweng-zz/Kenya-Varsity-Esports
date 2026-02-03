@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+// @ts-ignore
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 const nextConfig: NextConfig = {
@@ -14,8 +15,8 @@ const nextConfig: NextConfig = {
     const allowedOrigins = [
       'https://tunzaesports.com',
       'https://www.tunzaesports.com',
-      'https://kuer.co.ke',
-      'https://www.kuer.co.ke',
+      'https://kve.co.ke',
+      'https://www.kve.co.ke',
       'http://localhost:3000',
       'http://localhost:3001'
     ];
@@ -213,6 +214,14 @@ const nextConfig: NextConfig = {
           },
         })
       );
+    }
+
+    // Fix for socket.io requesting 'fs' module
+    if (!isServer) {
+        config.resolve.fallback = {
+            ...config.resolve.fallback,
+            fs: false,
+        };
     }
     
     return config;

@@ -100,7 +100,7 @@ export const TopHighlightSection = () => {
                     setHighlights([
                         {
                             $id: 'fallback-1',
-                            title: 'KUER DAY 1 HIGHLIGHTS',
+                            title: 'KVE DAY 1 HIGHLIGHTS',
                             badge: 'DAY 1 FINALS',
                             description: 'Season 2 was held at KCA University and here is the highlight for day 1',
                             youtubeUrl: 'https://youtu.be/bkP_yfEXW6o?si=oICSj8b72G7UVCtS',
@@ -109,7 +109,7 @@ export const TopHighlightSection = () => {
                         },
                         {
                             $id: 'fallback-2',
-                            title: 'KUER DAY 2 HIGHLIGHTS',
+                            title: 'KVE DAY 2 HIGHLIGHTS',
                             badge: 'DAY 2 FINALS',
                             description: 'Season 2 was held at KCA University and here is the highlight for day 2',
                             youtubeUrl: 'https://youtu.be/Yk-kScaNlbU?si=D8Lyafe88Km7vzzG',
@@ -161,7 +161,7 @@ export const TopHighlightSection = () => {
                     setHighlights([
                         {
                             $id: 'fallback-1',
-                            title: 'KUER DAY 1 HIGHLIGHTS',
+                            title: 'KVE DAY 1 HIGHLIGHTS',
                             badge: 'DAY 1 FINALS',
                             description: 'Season 2 was held at KCA University and here is the highlight for day 1',
                             youtubeUrl: 'https://youtu.be/bkP_yfEXW6o?si=oICSj8b72G7UVCtS',
@@ -170,7 +170,7 @@ export const TopHighlightSection = () => {
                         },
                         {
                             $id: 'fallback-2',
-                            title: 'KUER DAY 2 HIGHLIGHTS',
+                            title: 'KVE DAY 2 HIGHLIGHTS',
                             badge: 'DAY 2 FINALS',
                             description: 'Season 2 was held at KCA University and here is the highlight for day 2',
                             youtubeUrl: 'https://youtu.be/Yk-kScaNlbU?si=D8Lyafe88Km7vzzG',
@@ -193,7 +193,7 @@ export const TopHighlightSection = () => {
                 setHighlights([
                     {
                         $id: 'fallback-1',
-                        title: 'KUER DAY 1 HIGHLIGHTS',
+                        title: 'KVE DAY 1 HIGHLIGHTS',
                         badge: 'DAY 1 FINALS',
                         description: 'Season 2 was held at KCA University and here is the highlight for day 1',
                         youtubeUrl: 'https://youtu.be/bkP_yfEXW6o?si=oICSj8b72G7UVCtS',
@@ -202,7 +202,7 @@ export const TopHighlightSection = () => {
                     },
                     {
                         $id: 'fallback-2',
-                        title: 'KUER DAY 2 HIGHLIGHTS',
+                        title: 'KVE DAY 2 HIGHLIGHTS',
                         badge: 'DAY 2 FINALS',
                         description: 'Season 2 was held at KCA University and here is the highlight for day 2',
                         youtubeUrl: 'https://youtu.be/Yk-kScaNlbU?si=D8Lyafe88Km7vzzG',

@@ -13,12 +13,12 @@ const SECURITY_HEADERS = {
 // Content Security Policy
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://www.googletagmanager.com https://embed.tawk.to https://*.tawk.to",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://www.googletagmanager.com https://embed.tawk.to https://*.tawk.to https://cdn.jsdelivr.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://embed.tawk.to https://*.tawk.to",
   "font-src 'self' https://fonts.gstatic.com https://embed.tawk.to https://*.tawk.to",
   "img-src 'self' data: https: blob: https://*.tawk.to https://images.ctfassets.net https://www.google-analytics.com https://www.googletagmanager.com",
   "connect-src 'self' https://*.tawk.to wss://*.tawk.to https://cdn.contentful.com https://api.appwrite.io https://fra.cloud.appwrite.io https://cloud.appwrite.io https://related-mosquito-42593.upstash.io https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
-  "frame-src 'self' https://*.tawk.to",
+  "frame-src 'self' https://*.tawk.to https://vercel.live",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

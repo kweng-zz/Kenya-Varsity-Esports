@@ -9,6 +9,7 @@
     "types": ["bun-types"],
     "allowJs": true,
     "skipLibCheck": true,
+    "downlevelIteration": true,
     "strict": true,
     "noEmit": false,
     "esModuleInterop": true,

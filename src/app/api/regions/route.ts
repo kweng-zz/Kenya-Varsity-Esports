@@ -14,7 +14,7 @@ const getFallbackRegionsData = () => {
             name: "NAIROBI",
             slug: "nairobi",
             image: "/images/uganda.png", // Use existing image (lowercase)
-            description: "Nairobi region universities competing in KUER Season 2",
+            description: "Nairobi region universities competing in KVE Season 2",
             backgroundImage: "/images/uganda.png", // Use existing image instead of nairobi-bg.jpg
             isActive: true
         },

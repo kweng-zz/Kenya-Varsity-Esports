@@ -5,7 +5,7 @@ export async function GET() {
     { 
       status: 'healthy', 
       timestamp: new Date().toISOString(),
-      service: 'KUER Frontend',
+      service: 'KVE Frontend',
       environment: process.env.NODE_ENV || 'development'
     },
     { status: 200 }

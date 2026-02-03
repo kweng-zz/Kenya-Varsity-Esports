@@ -64,7 +64,7 @@ export const UniversityJoinSection = () => {
               </span>
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              How Universities Join{' '}
+              How Institutions Join{' '}
               <span className="text-red-800">KVE</span>
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
@@ -137,11 +137,11 @@ export const UniversityJoinSection = () => {
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-4">
-                    Download the Complete Guide
+                    View the Complete Guide
                   </h3>
 
                   <p className="text-gray-400 text-base mb-8 leading-relaxed">
-                    Get the full PDF with detailed onboarding steps, branding guidelines, 
+                    Get the full guide with detailed onboarding steps, branding guidelines, 
                     and semester timelines.
                   </p>
 
@@ -190,7 +190,7 @@ export const UniversityJoinSection = () => {
               </span>
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              Universities Already in{' '}
+              Institutions Already in{' '}
               <span className="text-red-800">KVE</span>
             </h2>
             <p className="text-gray-400 text-lg lg:text-xl max-w-3xl leading-relaxed">
@@ -204,7 +204,7 @@ export const UniversityJoinSection = () => {
               <h3 className="text-2xl font-bold text-white mb-8">
                 Featured Members{' '}
                 <span className="text-red-500 font-normal text-lg">
-                  ({featuredUniversitiesData.length} Universities)
+                  ({featuredUniversitiesData.length} Institutions)
                 </span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

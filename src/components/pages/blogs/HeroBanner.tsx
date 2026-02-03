@@ -57,7 +57,7 @@ export const HeroBannerSection = () => {
 
   // Fallback data if no featured article is found
   const fallbackData = {
-    title: 'KUER GAMING BLOG',
+    title: 'KVE GAMING BLOG',
     subtitle: 'Stay updated with the latest gaming news, tournament coverage, and esports insights from Kenya\'s premier gaming community',
     backgroundImage: '/images/Join our tournaments.png'
   };
@@ -169,7 +169,7 @@ export const HeroBannerSection = () => {
         <div className="relative flex-1 flex items-center justify-center p-0 md:p-12">
           <img
             className="w-full h-auto max-w-[450px] object-contain"
-            alt={featuredArticle ? featuredArticle.title : "KUER Gaming Blog"}
+            alt={featuredArticle ? featuredArticle.title : "KVE Gaming Blog"}
             src={featuredArticle?.imageUrl || fallbackData.backgroundImage}
             onError={(e) => {
               const target = e.target as HTMLImageElement;

@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     const eventData = await request.json();
 
     // Validate required fields
-    const requiredFields = ['title', 'gameSlug', 'image', 'date', 'time', 'prizePool', 'entryFee', 'status'];
+    const requiredFields = ['title', 'gameSlug', 'image', 'date', 'time', 'prizePool', 'status'];
     for (const field of requiredFields) {
       if (!eventData[field]) {
         return NextResponse.json(

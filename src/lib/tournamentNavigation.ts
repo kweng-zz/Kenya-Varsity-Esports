@@ -17,8 +17,5 @@ export const tournamentNavItems: TournamentNavItem[] = [
     name: 'Calendar',
     href: '/games/[slug]/calendar'
   },
-  {
-    name: 'Community',
-    href: '/games/[slug]/community'
-  }
+  
 ];

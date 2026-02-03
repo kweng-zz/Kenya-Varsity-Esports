@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { getGameBySlug } from '@/lib/gamesData';
 // Import Supabase calendar service instead of Sanity
 import { calendarService } from '@/lib/services/calendarService';
+import { tournamentServiceSSR } from '@/lib/services/tournamentServiceSSR';
+import { Tournament } from '@/types/tournament';
 import Link from 'next/link';
 import { Navigation } from '@/components/Navigation';
 import { FooterSection } from '@/components/Footer';
@@ -28,6 +30,23 @@ export default async function CalendarPage({ params }: PageProps) {
   const calendarData = await calendarService.getCalendarData(slug)
   const events = calendarData?.events || []
 
+  // Fetch tournament data for hero image
+  let tournamentData: Tournament | null = null;
+  try {
+    tournamentData = await tournamentServiceSSR.getTournamentBySlug(slug);
+  } catch (error) {
+    console.error(`❌ Error fetching tournament data for ${slug}:`, error);
+  }
+
+  // Determine hero background image
+  const getHeroImage = () => {
+    if (tournamentData?.featuredImageUrl) {
+      return tournamentData.featuredImageUrl;
+    }
+    // Fallback to game image or default
+    return game?.image || '/images/Mask Group.png';
+  };
+
   const isActiveRoute = (href: string) => href.includes('/calendar')
 
 
@@ -38,7 +57,7 @@ export default async function CalendarPage({ params }: PageProps) {
       <section className="relative w-full h-[560px] bg-black mt-0">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${game.image})` }}
+          style={{ backgroundImage: `url(${getHeroImage()})` }}
         ></div>
         <div className="absolute inset-0 bg-[#0F0F13] opacity-0"></div>
         <div

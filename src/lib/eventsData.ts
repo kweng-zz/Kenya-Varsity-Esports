@@ -16,7 +16,7 @@ export interface Event {
 export const events: Event[] = [
   {
     id: '1',
-    title: 'KUER SEASON 3: QUALIFIERS',
+    title: 'KVE SEASON 3: QUALIFIERS',
     gameSlug: 'generic', // Represents a general event or use specific game slug
     image: '/images/hero-bg.jpg', // Placeholder, needs replacement or use existing assets
     date: 'OCTOBER 24, 2023',

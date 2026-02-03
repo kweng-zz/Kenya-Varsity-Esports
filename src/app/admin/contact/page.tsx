@@ -270,7 +270,7 @@ export default function AdminContactMessages() {
                                     )}
                                     <Button
                                         variant="outline"
-                                        onClick={() => window.open(`mailto:${selectedMessage.email}?subject=Re: Your inquiry&body=Hi ${selectedMessage.name},%0D%0A%0D%0AThank you for your message.%0D%0A%0D%0ABest regards,%0D%0AKUER Team`)}
+                                        onClick={() => window.open(`mailto:${selectedMessage.email}?subject=Re: Your inquiry&body=Hi ${selectedMessage.name},%0D%0A%0D%0AThank you for your message.%0D%0A%0D%0ABest regards,%0D%0AKVE Team`)}
                                     >
                                         Reply via Email
                                     </Button>

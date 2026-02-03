@@ -14,7 +14,7 @@ const getFallbackRegionsData = () => {
             name: "NAIROBI",
             slug: "nairobi",
             image: "/images/Uganda.png",
-            description: "Nairobi region universities competing in KUER",
+            description: "Nairobi region universities competing in KVE",
             backgroundImage: "/images/Uganda.png",
             isActive: true,
             universities: 15

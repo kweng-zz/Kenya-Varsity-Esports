@@ -4,93 +4,32 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Client, Databases, ID, Query } from 'appwrite';
 import { isAuthorizedTeamCaptain } from '@/lib/teamCaptains';
-import { getGameBySlug, Game } from '@/lib/gamesData';
-
-// Appwrite Setup with lazy initialization
-let client: Client | null = null;
-let databases: Databases | null = null;
-
-const initializeAppwrite = () => {
-  if (!client) {
-    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
-
-    if (!endpoint || !projectId) {
-      console.warn('Appwrite configuration missing for tournament registration');
-      return null;
-    }
-
-    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
-      console.warn('Appwrite endpoint is invalid for tournament registration');
-      return null;
-    }
-
-    try {
-      client = new Client()
-        .setEndpoint(endpoint)
-        .setProject(projectId);
-
-      databases = new Databases(client);
-    } catch (error) {
-      console.error('Failed to initialize Appwrite client for tournament registration:', error);
-      return null;
-    }
-  }
-  return { databases };
-};
+import { TournamentRegistrationForm } from '@/components/tournament-registration/TournamentRegistrationForm';
+import { TournamentRegistrationFormData, PlayerInfo } from '@/components/tournament-registration/schema';
+import { motion } from 'framer-motion';
 
 interface Tournament {
-  $id: string;
+  id: string;
   gameName: string;
-  gameSlug?: string;
   title?: string;
   description?: string;
   tournamentStatus?: 'upcoming' | 'registration_open' | 'registration_closed' | 'ongoing' | 'completed';
   registrationDeadline?: string;
   maxParticipants?: number;
   currentParticipants?: number;
-}
-
-interface PlayerInfo {
-  name: string;
-  studentId: string;
-  university: string;
-  inGameId?: string;
-  additionalInfo?: string;
-}
-
-interface TournamentRegistrationData {
-  tournamentId: string;
-  playerName: string;
-  email: string;
-  studentId: string;
-  university?: string;
-  teamName?: string;
-  players?: string; // JSON string
-  substitutes?: string; // JSON string
-  additionalInfo?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  registrationDate: string;
-  userId: string;
+  category?: string;
 }
 
 export default function TournamentRegistrationPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
-  const [teamName, setTeamName] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loadingTournaments, setLoadingTournaments] = useState(true);
   const [isTeamCaptain, setIsTeamCaptain] = useState<boolean | null>(null);
   const [checkingCaptainStatus, setCheckingCaptainStatus] = useState(true);
-  const [players, setPlayers] = useState<PlayerInfo[]>([]);
-  const [substitutes, setSubstitutes] = useState<PlayerInfo[]>([]);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -112,37 +51,40 @@ export default function TournamentRegistrationPage() {
     }
   }, [profile, loading]);
 
-  // Fetch available tournaments
+  // Fetch available tournaments via API
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const appwrite = initializeAppwrite();
-        if (!appwrite?.databases) {
-          console.warn('Appwrite not configured, skipping tournaments fetch');
-          setLoadingTournaments(false);
-          return;
-        }
-
-        const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID;
-        const tournamentsCollectionId = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID || 'tournaments';
-
-        if (!dbId) {
-          console.warn('Database ID not configured');
-          setLoadingTournaments(false);
-          return;
-        }
-
-        const response = await appwrite.databases.listDocuments(
-          dbId,
-          tournamentsCollectionId
-        );
+        // Fetch both registration_open tournaments AND upcoming ones
+        // This allows showing upcoming tournaments that are available for registration
+        const [regOpenRes, upcomingRes] = await Promise.all([
+          fetch('/api/tournaments?tournamentStatus=registration_open'),
+          fetch('/api/tournaments?tournamentStatus=upcoming')
+        ]);
         
-        // Filter tournaments that are open for registration
-        const openTournaments = (response.documents as unknown as Tournament[]).filter(
-          (tournament) => tournament.tournamentStatus === 'registration_open'
-        );
+        const regOpenResult = await regOpenRes.json();
+        const upcomingResult = await upcomingRes.json();
         
-        setTournaments(openTournaments);
+        // Combine and deduplicate tournaments
+        const allTournaments = [
+          ...(regOpenResult.success ? regOpenResult.data : []),
+          ...(upcomingResult.success ? upcomingResult.data : [])
+        ];
+        
+        // Dedupe by id
+        const uniqueTournaments = allTournaments.reduce((acc: Tournament[], curr: Tournament) => {
+          if (!acc.find(t => t.id === curr.id)) {
+            acc.push(curr);
+          }
+          return acc;
+        }, []);
+        
+        setTournaments(uniqueTournaments);
+
+        if (!regOpenResult.success && !upcomingResult.success) {
+          console.error('Failed to fetch tournaments');
+          setMessage({ type: 'error', text: 'Failed to load tournaments' });
+        }
       } catch (error) {
         console.error('Error fetching tournaments:', error);
         setMessage({ type: 'error', text: 'Failed to load tournaments' });
@@ -156,105 +98,10 @@ export default function TournamentRegistrationPage() {
     }
   }, [user]);
 
-  // Map tournament game names to game slugs
-  const getGameSlugFromName = (gameName: string): string | null => {
-    const gameNameMappings: Record<string, string> = {
-      'PUBG Mobile': 'pubg-mobile',
-      'PUBG': 'pubg-mobile',
-      'Call of Duty Mobile BR': 'call-of-duty-mobile-br',
-      'COD Mobile BR': 'call-of-duty-mobile-br',
-      'CODM BR': 'call-of-duty-mobile-br',
-      'eFootball Mobile': 'efootball-mobile',
-      'eFootball': 'efootball-mobile',
-      'Free Fire': 'free-fire',
-      'Fortnite': 'fortnite',
-      'Bloodstrike': 'bloodstrike',
-      'Chess': 'chess',
-      'EA FC 2V2': 'ea-fc-2v2',
-      'EA FC': 'ea-fc-2v2',
-      'Call of Duty Mobile': 'call-of-duty',
-      'Call of Duty': 'call-of-duty',
-      'COD Mobile': 'call-of-duty',
-      'CODM': 'call-of-duty'
-    };
-    
-    return gameNameMappings[gameName] || null;
-  };
-
-  // Handle tournament selection and initialize team structure
-  const handleTournamentSelection = (tournamentId: string) => {
-    setSelectedTournament(tournamentId);
-    
-    if (tournamentId) {
-      const tournament = tournaments.find(t => t.$id === tournamentId);
-      if (tournament?.gameName) {
-        const gameSlug = getGameSlugFromName(tournament.gameName);
-        const game = gameSlug ? getGameBySlug(gameSlug) : null;
-        setSelectedGame(game || null);
-        
-        if (game) {
-          // Initialize players array based on game rules
-          const requiredPlayers = game.rules.minTeamSize;
-          const maxSubstitutes = game.rules.maxSubstitutes || 0;
-          
-          // Initialize main players (excluding captain who is already registered)
-          const initialPlayers: PlayerInfo[] = [];
-          for (let i = 1; i < requiredPlayers; i++) {
-            initialPlayers.push({
-              name: '',
-              studentId: '',
-              university: profile?.university || '',
-              inGameId: '',
-              additionalInfo: ''
-            });
-          }
-          
-          // Initialize substitutes
-          const initialSubstitutes: PlayerInfo[] = [];
-          for (let i = 0; i < maxSubstitutes; i++) {
-            initialSubstitutes.push({
-              name: '',
-              studentId: '',
-              university: profile?.university || '',
-              inGameId: '',
-              additionalInfo: ''
-            });
-          }
-          
-          setPlayers(initialPlayers);
-          setSubstitutes(initialSubstitutes);
-        }
-      } else {
-        setSelectedGame(null);
-        setPlayers([]);
-        setSubstitutes([]);
-      }
-    } else {
-      setSelectedGame(null);
-      setPlayers([]);
-      setSubstitutes([]);
-    }
-  };
-
-  // Update player information
-  const updatePlayer = (index: number, field: keyof PlayerInfo, value: string) => {
-    const updatedPlayers = [...players];
-    updatedPlayers[index] = { ...updatedPlayers[index], [field]: value };
-    setPlayers(updatedPlayers);
-  };
-
-  // Update substitute information
-  const updateSubstitute = (index: number, field: keyof PlayerInfo, value: string) => {
-    const updatedSubstitutes = [...substitutes];
-    updatedSubstitutes[index] = { ...updatedSubstitutes[index], [field]: value };
-    setSubstitutes(updatedSubstitutes);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedTournament || !user || !profile) {
-      setMessage({ type: 'error', text: 'Please select a tournament and ensure you are logged in' });
+  // Handle form submission via API
+  const handleFormSubmit = async (formData: TournamentRegistrationFormData) => {
+    if (!user || !profile) {
+      setMessage({ type: 'error', text: 'Please ensure you are logged in' });
       return;
     }
 
@@ -262,164 +109,61 @@ export default function TournamentRegistrationPage() {
     setMessage(null);
 
     try {
-      // Validate required team players for team-based tournaments
-      if (selectedGame && selectedGame.rules.tournamentType !== 'individual') {
-        const requiredPlayerCount = selectedGame.rules.minTeamSize - 1; // Excluding captain
-        const filledPlayers = players.filter(p => p.name.trim() && p.studentId.trim());
-        
-        if (filledPlayers.length < requiredPlayerCount) {
-          setMessage({ 
-            type: 'error', 
-            text: `Please fill in all required team players. You need ${requiredPlayerCount} additional players.` 
-          });
-          setIsSubmitting(false);
-          return;
-        }
+      // Find the tournament to get its ID
+      const tournament = tournaments.find(t => 
+        t.gameName.toLowerCase().includes(formData.tournamentId.toLowerCase()) || 
+        t.id === formData.tournamentId
+      );
+      
+      if (!tournament) {
+        setMessage({ type: 'error', text: 'Selected tournament not found' });
+        return;
       }
 
-      // Filter and prepare team data
-      const filteredPlayers = players.filter(p => p.name.trim() && p.studentId.trim());
-      const filteredSubstitutes = substitutes.filter(s => s.name.trim() && s.studentId.trim());
-
-      // Combine players and substitutes into a single structure
+      // Prepare API payload - combine players and substitutes into expected format
       const teamData = {
-        players: filteredPlayers,
-        substitutes: filteredSubstitutes
+        players: formData.players || [],
+        substitutes: formData.substitutes || []
       };
-
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        setMessage({ type: 'error', text: 'Database not configured. Please try again later.' });
-        setIsSubmitting(false);
-        return;
-      }
-
-      const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID;
-      const registrationsCollectionId = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID || 'tournament_registrations';
-
-      if (!dbId) {
-        setMessage({ type: 'error', text: 'Database configuration missing. Please try again later.' });
-        setIsSubmitting(false);
-        return;
-      }
-
-        // Check if any team member (including captain) is already registered for THIS tournament
-        try {
-          // Collect all student IDs from this registration
-          const allTeamStudentIds = [
-            profile.student_id || '',
-            ...filteredPlayers.map(p => p.studentId),
-            ...filteredSubstitutes.map(s => s.studentId)
-          ].filter(id => id.trim() !== '');
-
-          // Fetch all existing registrations for this tournament
-          const existingRegistrations = await appwrite.databases.listDocuments(
-            dbId,
-            registrationsCollectionId,
-            [
-              Query.equal('tournamentId', selectedTournament),
-              Query.limit(100) // Get all registrations
-            ]
-          );
-
-          // Build a set of all registered student IDs
-          const registeredStudentIds = new Set<string>();
-          
-          for (const reg of existingRegistrations.documents) {
-            // Add the captain's student ID
-            if ((reg as any).studentId) {
-              registeredStudentIds.add((reg as any).studentId);
-            }
-            
-            // Parse and add team members' student IDs
-            if ((reg as any).players) {
-              try {
-                const teamData = JSON.parse((reg as any).players);
-                
-                // Add main players
-                if (teamData.players && Array.isArray(teamData.players)) {
-                  for (const player of teamData.players) {
-                    if (player.studentId) {
-                      registeredStudentIds.add(player.studentId);
-                    }
-                  }
-                }
-                
-                // Add substitutes
-                if (teamData.substitutes && Array.isArray(teamData.substitutes)) {
-                  for (const sub of teamData.substitutes) {
-                    if (sub.studentId) {
-                      registeredStudentIds.add(sub.studentId);
-                    }
-                  }
-                }
-              } catch (parseError) {
-                console.error('Error parsing players JSON:', parseError);
-              }
-            }
-          }
-
-          // Find conflicts - student IDs that are already registered
-          const conflicts = allTeamStudentIds.filter(id => registeredStudentIds.has(id));
-          
-          if (conflicts.length > 0) {
-            const conflictMessage = conflicts.length === 1
-              ? `Student ID "${conflicts[0]}" is already registered for this tournament.`
-              : `The following student IDs are already registered for this tournament: ${conflicts.join(', ')}`;
-            
-            setMessage({ 
-              type: 'error', 
-              text: `${conflictMessage} Each student can only be part of one team per tournament.`
-            });
-            setIsSubmitting(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking existing registrations:', error);
-          // Continue with registration even if check fails
-        }
-
-      const registrationData: Omit<TournamentRegistrationData, '$id' | '$createdAt' | '$updatedAt' | '$collectionId' | '$permissions'> = {
-        tournamentId: selectedTournament,
+      
+      const apiPayload = {
+        tournamentId: tournament.id,
         playerName: profile.fullname,
         email: user.email,
         studentId: profile.student_id || '',
         university: profile.university || '',
-        teamName: teamName.trim() || undefined,
-        players: (filteredPlayers.length > 0 || filteredSubstitutes.length > 0) ? JSON.stringify(teamData) : undefined,
-        additionalInfo: additionalInfo.trim() || undefined,
-        status: 'pending',
-        registrationDate: new Date().toISOString(),
-        userId: user.$id
+        teamName: formData.teamName || undefined,
+        players: JSON.stringify(teamData), // Combined players + substitutes
+        additionalInfo: formData.additionalInfo || undefined,
       };
 
-      await appwrite.databases.createDocument(
-        dbId,
-        registrationsCollectionId,
-        ID.unique(),
-        registrationData
-      );
+      const response = await fetch(`/api/tournaments/${tournament.id}/participants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiPayload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.error === 'ALREADY_REGISTERED') {
+          setMessage({ type: 'error', text: 'You have already registered for this tournament' });
+        } else {
+          setMessage({ type: 'error', text: result.message || 'Failed to submit registration' });
+        }
+        return;
+      }
 
       setMessage({ 
         type: 'success', 
         text: 'Registration submitted successfully! Your registration is pending approval.' 
       });
-      
-      // Reset form
-      setSelectedTournament('');
-      setTeamName('');
-      setAdditionalInfo('');
-      setPlayers([]);
-      setSubstitutes([]);
-      setSelectedGame(null);
-      
-    } catch (error: unknown) {
+
+    } catch (error) {
       console.error('Registration error:', error);
-      if (error && typeof error === 'object' && 'code' in error && error.code === 409) {
-        setMessage({ type: 'error', text: 'You have already registered for this tournament' });
-      } else {
-        setMessage({ type: 'error', text: 'Failed to submit registration. Please try again.' });
-      }
+      setMessage({ type: 'error', text: 'Failed to submit registration. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -427,10 +171,14 @@ export default function TournamentRegistrationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#961c18] mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-[#961c18] border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-lg">Loading...</p>
         </div>
       </div>
     );
@@ -440,363 +188,197 @@ export default function TournamentRegistrationPage() {
     return null; // Will redirect to login
   }
 
-
-
   return (
-   <div 
-  className="min-h-screen bg-black text-white py-8"
-  style={{ 
-    backgroundImage: "url('/images/Mask Group.png')",
-    backgroundSize: "500px 700px", // width height
-    backgroundPosition: "left",
-    backgroundRepeat: "no-repeat"
-  }}
->
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-transparent rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center mb-8 text-[#961c18]">
+    <div 
+      className="min-h-screen bg-black text-white py-8"
+      style={{ 
+        backgroundImage: "url('/images/Mask Group.png')",
+        backgroundSize: "500px 700px",
+        backgroundPosition: "left",
+        backgroundRepeat: "no-repeat"
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#961c18] to-red-600 bg-clip-text text-transparent">
             Tournament Registration
           </h1>
+          <p className="text-gray-300 text-lg">
+            Join the competition and showcase your gaming skills
+          </p>
+        </div>
 
-          {/* User Info Display */}
-          <div className="bg-gray-700 rounded-lg p-4 mb-6">
-            <h2 className="text-lg font-semibold mb-2">Your Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-400">Name:</span>
-                <p className="font-medium">{profile?.fullname}</p>
-              </div>
-              <div>
-                <span className="text-gray-400">Student ID:</span>
-                <p className="font-medium">{profile?.student_id || 'Not provided'}</p>
-              </div>
-              {profile?.university && (
-                <div>
-                  <span className="text-gray-400">University:</span>
-                  <p className="font-medium">{profile.university}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-gray-400">Email:</span>
-                <p className="font-medium text-xs">{user.email}</p>
-              </div>
+        {/* User Info Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="bg-black bg-opacity-50 backdrop-blur-sm rounded-none p-6 mb-8 border border-gray-800"
+        >
+          <h2 className="text-xl font-semibold mb-4 text-white">Your Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <p className="text-gray-400 text-sm mb-1">Name</p>
+              <p className="font-medium text-white">{profile?.fullname}</p>
             </div>
-          </div>
-
-          {message && (
-            <div className={`p-4 rounded-lg mb-6 ${
-              message.type === 'success' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-red-600 text-white'
-            }`}>
-              {message.text}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <p className="text-gray-400 text-sm mb-1">Student ID</p>
+              <p className="font-medium text-white">{profile?.student_id || 'Not provided'}</p>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Tournament Selection */}
-            <div>
-              <label htmlFor="tournament" className="block text-sm font-medium mb-2">
-                Select Tournament *
-              </label>
-              {loadingTournaments ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#961c18] mx-auto"></div>
-                </div>
-              ) : tournaments.length === 0 ? (
-                <div className="bg-gray-700 rounded-lg p-4 text-center">
-                  <p className="text-gray-400">No tournaments are currently open for registration.</p>
-                </div>
-              ) : (
-                <select
-                  id="tournament"
-                  value={selectedTournament}
-                  onChange={(e) => handleTournamentSelection(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white"
-                  required
-                >
-                  <option value="">Choose a tournament...</option>
-                  {tournaments.map((tournament) => (
-                    <option key={tournament.$id} value={tournament.$id}>
-                      {tournament.title || tournament.gameName}
-                      {tournament.registrationDeadline && (
-                        ` (Deadline: ${new Date(tournament.registrationDeadline).toLocaleDateString()})`
-                      )}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Dynamic Team Registration Section */}
-            {selectedGame && (
-              <div className="bg-gray-700 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4 text-[#961c18]">
-                  Team Registration - {selectedGame.name}
-                </h3>
-                
-                {/* Game Format Info */}
-                <div className="bg-gray-600 rounded-lg p-4 mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">Format:</span>
-                      <p className="font-medium capitalize">{selectedGame.rules.tournamentType}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Team Size:</span>
-                      <p className="font-medium">
-                        {selectedGame.rules.minTeamSize === selectedGame.rules.maxTeamSize 
-                          ? selectedGame.rules.minTeamSize 
-                          : `${selectedGame.rules.minTeamSize}-${selectedGame.rules.maxTeamSize}`} players
-                      </p>
-                    </div>
-                    {selectedGame.rules.allowSubstitutes && (
-                      <div>
-                        <span className="text-gray-400">Substitutes:</span>
-                        <p className="font-medium">{selectedGame.rules.maxSubstitutes || 0} allowed</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Team Captain (Current User) */}
-                <div className="mb-6">
-                  <h4 className="font-semibold mb-3 text-green-400">Team Captain (You)</h4>
-                  <div className="bg-gray-600 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-400">Name:</span>
-                        <p className="font-medium">{profile?.fullname}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Email:</span>
-                        <p className="font-medium">{user.email}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">University:</span>
-                        <p className="font-medium">{profile?.university}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Main Team Players */}
-                {players.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="font-semibold mb-3">Team Players</h4>
-                    <div className="space-y-4">
-                      {players.map((player, index) => (
-                        <div key={index} className="bg-gray-600 rounded-lg p-4">
-                          <h5 className="font-medium mb-3">Player {index + 2}</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                Full Name *
-                              </label>
-                              <input
-                                type="text"
-                                value={player.name}
-                                onChange={(e) => updatePlayer(index, 'name', e.target.value)}
-                                placeholder="Enter player's full name"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                Student ID *
-                              </label>
-                              <input
-                                type="text"
-                                value={player.studentId}
-                                onChange={(e) => updatePlayer(index, 'studentId', e.target.value)}
-                                placeholder="Enter player's student ID"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                University *
-                              </label>
-                              <input
-                                type="text"
-                                value={player.university}
-                                onChange={(e) => updatePlayer(index, 'university', e.target.value)}
-                                placeholder="Enter player's university"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                In-Game ID
-                              </label>
-                              <input
-                                type="text"
-                                value={player.inGameId || ''}
-                                onChange={(e) => updatePlayer(index, 'inGameId', e.target.value)}
-                                placeholder="Enter in-game username/ID"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Substitute Players */}
-                {substitutes.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="font-semibold mb-3">Substitute Players</h4>
-                    <div className="space-y-4">
-                      {substitutes.map((substitute, index) => (
-                        <div key={index} className="bg-gray-600 rounded-lg p-4">
-                          <h5 className="font-medium mb-3">Substitute {index + 1}</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                Full Name
-                              </label>
-                              <input
-                                type="text"
-                                value={substitute.name}
-                                onChange={(e) => updateSubstitute(index, 'name', e.target.value)}
-                                placeholder="Enter substitute's full name"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                Student ID
-                              </label>
-                              <input
-                                type="text"
-                                value={substitute.studentId}
-                                onChange={(e) => updateSubstitute(index, 'studentId', e.target.value)}
-                                placeholder="Enter substitute's student ID"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                University
-                              </label>
-                              <input
-                                type="text"
-                                value={substitute.university}
-                                onChange={(e) => updateSubstitute(index, 'university', e.target.value)}
-                                placeholder="Enter substitute's university"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-1">
-                                In-Game ID
-                              </label>
-                              <input
-                                type="text"
-                                value={substitute.inGameId || ''}
-                                onChange={(e) => updateSubstitute(index, 'inGameId', e.target.value)}
-                                placeholder="Enter in-game username/ID"
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Individual Player Note */}
-                {selectedGame.rules.tournamentType === 'individual' && (
-                  <div className="bg-blue-600 bg-opacity-20 border border-blue-500 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-blue-300 text-sm">
-                        This is an individual tournament. You will compete as a solo player.
-                      </p>
-                    </div>
-                  </div>
-                )}
+            {profile?.university && (
+              <div className="bg-gray-800 rounded-lg p-4">
+                <p className="text-gray-400 text-sm mb-1">University</p>
+                <p className="font-medium text-white">{profile.university}</p>
               </div>
             )}
-
-            {/* Team Name */}
-            <div>
-              <label htmlFor="teamName" className="block text-sm font-medium mb-2">
-                Team Name (Optional)
-              </label>
-              <input
-                type="text"
-                id="teamName"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="Enter your team name if applicable"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Leave blank if you're registering as an individual player
-              </p>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <p className="text-gray-400 text-sm mb-1">Email</p>
+              <p className="font-medium text-white text-sm truncate">{user.email}</p>
             </div>
-
-            {/* Additional Information */}
-            <div>
-              <label htmlFor="additionalInfo" className="block text-sm font-medium mb-2">
-                Additional Information (Optional)
-              </label>
-              <textarea
-                id="additionalInfo"
-                value={additionalInfo}
-                onChange={(e) => setAdditionalInfo(e.target.value)}
-                placeholder="Any additional information you'd like to provide..."
-                rows={4}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#961c18] text-white placeholder-gray-400 resize-vertical"
-              />
+          </div>
+          
+          {isTeamCaptain !== null && (
+            <div className="mt-4">
+              <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                isTeamCaptain 
+                  ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500' 
+                  : 'bg-yellow-500 bg-opacity-20 text-yellow-400 border border-yellow-500'
+              }`}>
+                {isTeamCaptain ? '✓ Team Captain' : 'Player'}
+              </div>
             </div>
+          )}
+        </motion.div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting || tournaments.length === 0}
-              className="w-full py-3 px-4 bg-[#961c18] hover:bg-black disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+        {/* Message Display */}
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-8 p-4 rounded-xl border ${
+              message.type === 'success' 
+                ? 'bg-green-500 bg-opacity-20 border-green-500 text-green-300' 
+                : 'bg-red-500 bg-opacity-20 border-red-500 text-red-300'
+            }`}
+          >
+            <p className="font-medium">{message.text}</p>
+          </motion.div>
+        )}
+
+        {/* Tournament Registration Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          {loadingTournaments ? (
+            <div className="text-center py-16">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 border-4 border-[#961c18] border-t-transparent rounded-full mx-auto mb-4"
+              />
+              <p className="text-xl text-gray-300">Loading available tournaments...</p>
+            </div>
+          ) : tournaments.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-black bg-opacity-50 backdrop-blur-sm rounded-none p-12 text-center border border-gray-800"
             >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Submitting...
+              <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold text-white mb-2">No Tournaments Available</h3>
+              <p className="text-gray-400 mb-6">There are no tournaments currently open for registration.</p>
+              <Link
+                href="/"
+                className="inline-flex items-center px-6 py-3 bg-[#961c18] hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Return to Homepage
+              </Link>
+            </motion.div>
+          ) : (
+            <div className="relative">
+              <div className="bg-transparent rounded-3xl shadow-2xl overflow-hidden">
+                <TournamentRegistrationForm
+                  onSubmit={handleFormSubmit}
+                  tournaments={tournaments}
+                  initialData={{
+                    tournamentId: '',
+                    teamName: '',
+                    additionalInfo: '',
+                    players: [],
+                    substitutes: [],
+                  }}
+                />
+              </div>
+              
+              {/* Submit Loading Overlay */}
+              {isSubmitting && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 rounded-3xl">
+                  <div className="text-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-12 h-12 border-4 border-white border-t-transparent rounded-full mx-auto mb-4"
+                    />
+                    <p className="text-white text-lg">Submitting registration...</p>
+                  </div>
                 </div>
-              ) : (
-                'Submit Registration'
               )}
-            </button>
-          </form>
+            </div>
+          )}
+        </motion.div>
 
-          {/* Return to Homepage Button */}
-          <div className="mt-6">
-            <Link
-              href="/"
-              className="w-full py-3 px-4 bg-red-900 hover:bg-black text-white font-medium rounded-lg transition-colors text-center block"
-            >
-              Return to Homepage
-            </Link>
-          </div>
-
-          <div className="mt-6 p-4 bg-gray-700 rounded-lg">
-            <h3 className="font-semibold mb-2">Important Notes:</h3>
-            <ul className="text-sm text-gray-300 space-y-1">
-              <li>• Your registration will be reviewed by administrators</li>
-              <li>• You will be notified via email about your registration status</li>
-              <li>• Make sure your profile information is up to date</li>
-              <li>• Registration deadlines are strictly enforced</li>
-            </ul>
-          </div>
-        </div>
+        {/* Important Notes */}
+        {!loadingTournaments && tournaments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-8 bg-gray-900 bg-opacity-50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800"
+          >
+            <h3 className="font-semibold mb-4 text-white">Important Notes:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-[#961c18] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 text-sm">Your registration will be reviewed by administrators</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-[#961c18] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 text-sm">You will be notified via email about your registration status</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-[#961c18] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 text-sm">Make sure your profile information is up to date</p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-[#961c18] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-gray-300 text-sm">Registration deadlines are strictly enforced</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

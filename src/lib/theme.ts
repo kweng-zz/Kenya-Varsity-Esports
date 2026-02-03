@@ -1,4 +1,4 @@
-// Theme configuration for the KUER esports platform
+// Theme configuration for the KVE esports platform
 export const theme = {
   colors: {
     primary: '#8c110d',

@@ -219,6 +219,43 @@ export default function AdminRegistrationsPage() {
     }
   };
 
+  // Handle deletion of a registration
+  const handleDelete = async (registrationId: string) => {
+    if (!confirm('Are you sure you want to delete this registration? This action cannot be undone.')) {
+      return;
+    }
+    
+    setProcessingIds(prev => new Set(prev).add(registrationId));
+
+    try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) {
+        alert('Appwrite not configured');
+        return;
+      }
+      
+      await appwrite.databases.deleteDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        registrationId
+      );
+
+      // Remove from local state
+      setRegistrations(prev => prev.filter(reg => reg.$id !== registrationId));
+      console.log(`✅ Successfully deleted registration ${registrationId}`);
+
+    } catch (error) {
+      console.error('Error deleting registration:', error);
+      alert('Failed to delete registration. Check console for details.');
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(registrationId);
+        return newSet;
+      });
+    }
+  };
+
   const filteredRegistrations = registrations.filter(reg => {
     if (filter === 'all') return true;
     return reg.status === filter;
@@ -429,24 +466,37 @@ export default function AdminRegistrationsPage() {
                     )}
                   </div>
                   
-                  {registration.status === 'pending' && (
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() => handleStatusUpdate(registration.$id, 'approved')}
-                        disabled={processingIds.has(registration.$id)}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                      >
-                        {processingIds.has(registration.$id) ? 'Processing...' : 'Approve'}
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(registration.$id, 'rejected')}
-                        disabled={processingIds.has(registration.$id)}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
-                      >
-                        {processingIds.has(registration.$id) ? 'Processing...' : 'Reject'}
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-2 ml-4">
+                    {/* Status actions for pending registrations */}
+                    {registration.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleStatusUpdate(registration.$id, 'approved')}
+                          disabled={processingIds.has(registration.$id)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                        >
+                          {processingIds.has(registration.$id) ? 'Processing...' : 'Approve'}
+                        </button>
+                        <button
+                          onClick={() => handleStatusUpdate(registration.$id, 'rejected')}
+                          disabled={processingIds.has(registration.$id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm rounded transition-colors"
+                        >
+                          {processingIds.has(registration.$id) ? 'Processing...' : 'Reject'}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Delete button for all registrations */}
+                    <button
+                      onClick={() => handleDelete(registration.$id)}
+                      disabled={processingIds.has(registration.$id)}
+                      className="px-4 py-2 bg-gray-700 hover:bg-red-700 disabled:bg-gray-600 text-gray-300 hover:text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🗑️</span>
+                      {processingIds.has(registration.$id) ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

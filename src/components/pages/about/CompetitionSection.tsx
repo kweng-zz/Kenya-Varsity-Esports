@@ -14,7 +14,7 @@ export const CompetitionSection = () => {
     {
       title: "1,000+ Participants",
       description:
-        "KUER is open to all university students, regardless of skill level. Whether you're a casual player, competitive athlete, or content creator, there's a place for you in the KUER community.",
+        "KVE is open to all university students, regardless of skill level. Whether you're a casual player, competitive athlete, or content creator, there's a place for you in the KVE community.",
       image:
         "https://c.animaapp.com/mdczve1hcUQk59/img/chatgpt-image-jul-20--2025--10-58-56-pm-1.png",
       alt: "Chatgpt image jul",
@@ -22,7 +22,7 @@ export const CompetitionSection = () => {
     {
       title: "National & Future International Competitions",
       description:
-        "Per Semester tournaments feed into our national rankings and finals, with top-performing students earning national MVP. KUER aims to scale to regional and continental competitions, putting Kenyan university gamers on the global stage.",
+        "Per Semester tournaments feed into our national rankings and finals, with top-performing students earning national MVP. KVE aims to scale to regional and continental competitions, putting Kenyan university gamers on the global stage.",
       image:
         "https://c.animaapp.com/mdczve1hcUQk59/img/chatgpt-image-jul-20--2025--11-11-17-pm-1.png",
       alt: "Chatgpt image jul",
@@ -40,9 +40,9 @@ export const CompetitionSection = () => {
     <section className="relative w-full py-16 bg-[url(https://c.animaapp.com/mdczve1hcUQk59/img/group-421.png)] bg-cover">
       <p className="font-['Hind',Helvetica] font-normal text-[#bcc6c9] text-lg text-center max-w-3xl mx-auto mb-12 px-6">
           We are the premier university esports platform in Kenya, delivering competitive, social,
-          and educational experiences to students across the country. KUER creates opportunitites for University
+          and educational experiences to students across the country. KVE creates opportunitites for University
           gamers to thrive through regular tournaments, rankings, content creation and esports
-          education-all while pursuing their studies. </p> <p className="font-['Hind',Helvetica] font-normal text-[#bcc6c9] text-lg text-center max-w-3xl mx-auto mt-12 px-6"> If you are interested in joining KUER 
+          education-all while pursuing their studies. </p> <p className="font-['Hind',Helvetica] font-normal text-[#bcc6c9] text-lg text-center max-w-3xl mx-auto mt-12 px-6"> If you are interested in joining KVE 
           or partnering with us, please contact us at <span className="text-red-800">info@kuer.co.ke</span>
         </p>
       <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -91,7 +91,7 @@ export const CompetitionSection = () => {
                 A LOCAL MOVEMENT WITH A NATIONAL VISION
               </h2>
               <p className="font-['Hind',Helvetica] font-normal text-[#bcc6c9] text-lg">
-                Kenya University Esports Rankings (KUER) was founded by gamers,
+                Kenya University Esports Rankings (KVE) was founded by gamers,
                 for gamers—with the mission to build a thriving esports
                 ecosystem in Kenyan universities. We believe every student
                 deserves a platform to compete, learn, and grow within the world

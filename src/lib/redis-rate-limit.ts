@@ -21,7 +21,7 @@ class RedisRateLimiter {
 
   private async initializeRedis() {
     // Check if Redis is available
-    const redisUrl = process.env.REDIS_URL || process.env.REDIS_HOST;
+    const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_HOST;
     
     if (!redisUrl) {
       console.warn('Redis not configured, falling back to in-memory rate limiting');

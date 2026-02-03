@@ -447,7 +447,7 @@ export const transformStrapiArticle = (article: any): TransformedArticle => {
     featured: Boolean(attributes.featured),
     category: String(attributes.category || 'General'),
     game: String(attributes.game || ''),
-    author: String(attributes.author || 'KUER Team'),
+    author: String(attributes.author || 'KVE Team'),
     tags: Array.isArray(attributes.tags) ? attributes.tags : [],
     imageUrl: getStrapiMedia(attributes.image) || null,
     image: attributes.image || null

@@ -161,7 +161,7 @@ export default function AdminVideoHighlightsPage() {
           isFeatured: true
         },
         {
-          title: 'KUER DAY 1 HIGHLIGHTS',
+          title: 'KVE DAY 1 HIGHLIGHTS',
           description: 'Season 2 was held at KCA University and here is the highlight for day 1',
           youtubeUrl: 'https://youtu.be/bkP_yfEXW6o?si=oICSj8b72G7UVCtS',
           badge: 'DAY 1 FINALS',
@@ -170,7 +170,7 @@ export default function AdminVideoHighlightsPage() {
           isFeatured: false
         },
         {
-          title: 'KUER DAY 2 HIGHLIGHTS',
+          title: 'KVE DAY 2 HIGHLIGHTS',
           description: 'Season 2 was held at KCA University and here is the highlight for day 2',
           youtubeUrl: 'https://youtu.be/Yk-kScaNlbU?si=D8Lyafe88Km7vzzG',
           badge: 'DAY 2 FINALS',

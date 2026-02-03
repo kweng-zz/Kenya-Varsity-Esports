@@ -18,6 +18,12 @@ const normalizeTeam = (team: Participant) => {
   // Parse members if it's a string, otherwise use as array
   let parsedMembers: TeamMember[] = [];
   
+  // Debug logging
+  console.log(`🔍 normalizeTeam: Processing team "${team.teamName}", members data:`, 
+    typeof team.members === 'string' ? team.members : JSON.stringify(team.members)
+  );
+  
+  
   try {
     if (typeof team.members === 'string') {
       const parsed = JSON.parse(team.members);
@@ -57,9 +63,9 @@ const normalizeTeam = (team: Participant) => {
       } else {
         // Fallback: create captain entry
         parsedMembers = [{
-          name: team.teamLeader,
-          ign: team.teamLeader,
-          email: team.teamLeaderEmail,
+          name: team.teamLeader || 'Unknown Captain',
+          ign: team.teamLeader || 'Unknown Captain',
+          email: team.teamLeaderEmail || '',
           phone: team.teamLeaderPhone || '',
           role: 'captain'
         }];
@@ -100,9 +106,9 @@ const normalizeTeam = (team: Participant) => {
     } else {
       // Fallback: create captain entry
       parsedMembers = [{
-        name: team.teamLeader,
-        ign: team.teamLeader,
-        email: team.teamLeaderEmail,
+        name: team.teamLeader || 'Unknown Captain',
+        ign: team.teamLeader || 'Unknown Captain',
+        email: team.teamLeaderEmail || '',
         phone: team.teamLeaderPhone || '',
         role: 'captain'
       }];
@@ -110,9 +116,9 @@ const normalizeTeam = (team: Participant) => {
   } catch (error) {
     console.error(`Error parsing team members for ${team.teamName}:`, error);
     parsedMembers = [{
-      name: team.teamLeader,
-      ign: team.teamLeader,
-      email: team.teamLeaderEmail,
+      name: team.teamLeader || 'Unknown Captain',
+      ign: team.teamLeader || 'Unknown Captain',
+      email: team.teamLeaderEmail || '',
       phone: team.teamLeaderPhone || '',
       role: 'captain'
     }];
@@ -120,17 +126,17 @@ const normalizeTeam = (team: Participant) => {
 
   return {
     id: team.$id || '',
-    teamName: team.teamName,
+    teamName: team.teamName || 'Unknown Team',
     universityName: team.university || 'Unknown University',
     universityLogo: '', // We don't have logos in our current data structure
-    captain: team.teamLeader,
+    captain: team.teamLeader || 'Unknown Captain',
     members: parsedMembers.map(m => m.name || m.ign || 'Unknown'),
     memberDetails: parsedMembers,
-    status: team.status === 'approved' ? 'confirmed' : team.status === 'rejected' ? 'incomplete' : 'pending',
+    status: team.status === 'approved' ? 'confirmed' : team.status === 'rejected' ? 'incomplete' : (team.status === 'registered' ? 'pending' : 'pending'),
     registrationDate: team.registrationDate,
     contactInfo: {
-      email: team.teamLeaderEmail,
-      phone: team.teamLeaderPhone
+      email: team.teamLeaderEmail || '',
+      phone: team.teamLeaderPhone || ''
     },
     totalMembers: team.totalMembers,
     paymentStatus: team.paymentStatus
@@ -155,7 +161,7 @@ export const ParticipantsTable: React.FC<ParticipantsTableProps> = ({
   const filteredTeams = normalizedTeams.filter(team => {
     const matchesSearch = team.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          team.universityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         team.captain.toLowerCase().includes(searchTerm.toLowerCase());
+                         (team.captain && team.captain.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus = statusFilter === 'all' || team.status === statusFilter;
     const matchesUniversity = universityFilter === 'all' || team.universityName === universityFilter;

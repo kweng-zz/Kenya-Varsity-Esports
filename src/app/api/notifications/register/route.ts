@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Create transporter
     const transporter = createTransporter();
 
-    // Email to KUER Admin
+    // Email to KVE Admin
     const mailOptions = {
       from: process.env.SMTP_FROM_EMAIL,
       to: 'events@tunzaesports.com', // Admin email

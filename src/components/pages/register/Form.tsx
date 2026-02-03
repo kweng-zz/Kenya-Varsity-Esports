@@ -14,7 +14,7 @@ import {
 } from '@/types/universities';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { mailchimpClientService } from "@/lib/mailchimp-client";
+import { listmonkClientService } from "@/lib/listmonk-client";
 
 export const RegistrationFormSection = () => {
   const { signUp, user, resendVerificationEmail } = useAuth();
@@ -186,23 +186,21 @@ export const RegistrationFormSection = () => {
           }
         }
 
-        // Sync to Mailchimp only if user subscribed to newsletter
+        // Sync to Listmonk only if user subscribed to newsletter
         if (formData.subscribeNewsletter) {
           try {
-            // console.log('🐒 Syncing new user to Mailchimp...');
             const university = formData.university === 'Other / Not Listed' ? formData.institution : formData.university;
             
-            await mailchimpClientService.addContact({
+            await listmonkClientService.addContact({
               email: formData.email,
-              fullname: formData.fullName, // Use full name for Mailchimp
+              fullname: formData.fullName,
               university: university || 'Not specified',
               student_id: formData.studentId,
               phone_number: formData.phoneNumber,
               subscribeNewsletter: true
             });
-            // console.log('✅ User synced to Mailchimp with newsletter subscription');
-          } catch (mailchimpError) {
-            console.error('⚠️ Failed to sync to Mailchimp:', mailchimpError);
+          } catch (newsletterError) {
+            console.error('⚠️ Failed to sync to newsletter:', newsletterError);
             // Don't result in error for user, just log it
           }
         } else {

@@ -10,9 +10,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Helper function to get KUER placement points table headers
+// Helper function to get KVE placement points table headers
 const getGameHeaders = (gameSlug: string) => {
-  // All games use the same KUER placement points system
+  // All games use the same KVE placement points system
   return {
     col1: "PLACEMENT PTS",
     col2: "PARTICIPATION PTS", 

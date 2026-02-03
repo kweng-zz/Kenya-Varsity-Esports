@@ -2,10 +2,64 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { participantsService, Participant, ParticipantsData } from '@/lib/services/participantsService';
 import { ParticipantsTable } from '@/components/ParticipantsTable';
-import { getActiveSeasonGames, GameInfo } from '@/lib/pagedata/tournaments';
 import Link from 'next/link';
+import { Client, Databases, Query } from 'appwrite';
+
+// Types
+interface Tournament {
+  $id: string;
+  gameName: string;
+  title?: string;
+  slug?: string;
+  status?: string;
+}
+
+interface Registration {
+  $id: string;
+  tournamentId: string;
+  teamName?: string;
+  playerName: string;
+  email: string;
+  university?: string;
+  players?: string;
+  status: string;
+  registrationDate?: string;
+  $createdAt?: string;
+}
+
+interface ParticipantsData {
+  teams: any[];
+  totalTeams: number;
+  totalParticipants: number;
+  approvedTeams: number;
+  pendingTeams: number;
+}
+
+// Appwrite client singleton
+let client: Client | null = null;
+let databases: Databases | null = null;
+
+const initializeAppwrite = () => {
+  if (!client) {
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+
+    if (!endpoint || !projectId) {
+      console.warn('Appwrite configuration missing');
+      return null;
+    }
+
+    try {
+      client = new Client().setEndpoint(endpoint).setProject(projectId);
+      databases = new Databases(client);
+    } catch (error) {
+      console.error('Failed to initialize Appwrite:', error);
+      return null;
+    }
+  }
+  return databases;
+};
 
 export default function ParticipantsAdminPage() {
   const { user, profile } = useAuth();
@@ -16,13 +70,176 @@ export default function ParticipantsAdminPage() {
     approvedTeams: 0,
     pendingTeams: 0
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [tournaments, setTournaments] = useState<GameInfo[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournamentsLoading, setTournamentsLoading] = useState(true);
 
-  // Check if user is admin
+  // Fetch tournaments from Appwrite
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        const db = initializeAppwrite();
+        if (!db) {
+          console.warn('Appwrite not initialized');
+          setTournamentsLoading(false);
+          return;
+        }
+
+        const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+        const TOURNAMENTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID!;
+
+        console.log('🔍 [Admin Participants] Fetching tournaments from Appwrite...');
+        const response = await db.listDocuments(
+          DB_ID,
+          TOURNAMENTS_COLLECTION_ID,
+          [Query.orderDesc('$createdAt'), Query.limit(50)]
+        );
+
+        console.log(`✅ [Admin Participants] Found ${response.documents.length} tournaments`);
+        setTournaments(response.documents as unknown as Tournament[]);
+      } catch (err) {
+        console.error('❌ [Admin Participants] Error fetching tournaments:', err);
+      } finally {
+        setTournamentsLoading(false);
+      }
+    };
+
+    fetchTournaments();
+  }, []);
+
+  // Fetch registrations when tournament is selected
+  const fetchParticipants = async (tournamentId: string) => {
+    if (!tournamentId) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const db = initializeAppwrite();
+      if (!db) {
+        setError('Appwrite not initialized');
+        return;
+      }
+
+      const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+      const REGISTRATIONS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!;
+
+      console.log(`🔍 [Admin Participants] Fetching registrations for tournament ID: ${tournamentId}`);
+      
+      const response = await db.listDocuments(
+        DB_ID,
+        REGISTRATIONS_COLLECTION_ID,
+        [
+          Query.equal('tournamentId', tournamentId),
+          Query.orderDesc('$createdAt'),
+          Query.limit(100)
+        ]
+      );
+
+      console.log(`✅ [Admin Participants] Found ${response.documents.length} registrations`);
+
+      // Transform registrations to participant format for ParticipantsTable
+      const teams = response.documents.map((doc: any) => ({
+        $id: doc.$id,
+        id: doc.$id,
+        tournamentId: doc.tournamentId,
+        teamName: doc.teamName || doc.playerName,
+        playerName: doc.playerName,
+        teamLeader: doc.playerName,
+        email: doc.email,
+        teamLeaderEmail: doc.email,
+        university: doc.university,
+        members: doc.players || '{"players":[],"substitutes":[]}',
+        registrationDate: doc.registrationDate || doc.$createdAt,
+        status: doc.status,
+        paymentStatus: doc.paymentStatus || 'pending',
+        totalMembers: 1
+      }));
+
+      const approvedTeams = teams.filter((t: any) => t.status === 'approved').length;
+      const pendingTeams = teams.filter((t: any) => t.status === 'pending' || t.status === 'registered').length;
+
+      setParticipantsData({
+        teams,
+        totalTeams: teams.length,
+        totalParticipants: teams.length,
+        approvedTeams,
+        pendingTeams
+      });
+    } catch (err: any) {
+      console.error('❌ [Admin Participants] Error fetching registrations:', err);
+      setError(err.message || 'Failed to fetch participants');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle tournament selection
+  useEffect(() => {
+    if (selectedTournamentId) {
+      fetchParticipants(selectedTournamentId);
+    }
+  }, [selectedTournamentId]);
+
+  // Handle status update
+  const handleStatusUpdate = async (participantId: string, status: 'pending' | 'approved' | 'rejected') => {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return;
+
+      await db.updateDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        participantId,
+        { status }
+      );
+      await fetchParticipants(selectedTournamentId);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update participant status');
+    }
+  };
+
+  // Handle payment update
+  const handlePaymentUpdate = async (participantId: string, paymentStatus: 'pending' | 'paid' | 'failed') => {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return;
+
+      await db.updateDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        participantId,
+        { paymentStatus }
+      );
+      await fetchParticipants(selectedTournamentId);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update payment status');
+    }
+  };
+
+  // Handle delete
+  const handleDelete = async (participantId: string) => {
+    if (!confirm('Are you sure you want to delete this registration?')) return;
+    
+    try {
+      const db = initializeAppwrite();
+      if (!db) return;
+
+      await db.deleteDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        participantId
+      );
+      await fetchParticipants(selectedTournamentId);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete participant');
+    }
+  };
+
+  // Check if user is admin - AFTER all hooks
   if (!user || !profile?.isAdmin) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -33,77 +250,6 @@ export default function ParticipantsAdminPage() {
       </div>
     );
   }
-
-  // Fetch participants data
-  const fetchParticipants = async (tournamentSlug: string) => {
-    if (!tournamentSlug) return;
-    
-    try {
-      setLoading(true);
-      const data = await participantsService.getParticipantsByTournament(tournamentSlug);
-      setParticipantsData(data);
-      setError(null);
-    } catch (err: any) {
-      console.error('Error fetching participants:', err);
-      setError(err.message || 'Failed to fetch participants');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle status update
-  const handleStatusUpdate = async (participantId: string, status: 'pending' | 'approved' | 'rejected') => {
-    try {
-      const success = await participantsService.updateParticipantStatus(participantId, status);
-      if (success) {
-        await fetchParticipants(selectedTournament);
-      } else {
-        setError('Failed to update participant status');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to update participant status');
-    }
-  };
-
-  // Handle payment update
-  const handlePaymentUpdate = async (participantId: string, paymentStatus: 'pending' | 'paid' | 'failed') => {
-    try {
-      const success = await participantsService.updatePaymentStatus(participantId, paymentStatus);
-      if (success) {
-        await fetchParticipants(selectedTournament);
-      } else {
-        setError('Failed to update payment status');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to update payment status');
-    }
-  };
-
-  // Handle delete
-  const handleDelete = async (participantId: string) => {
-    try {
-      const success = await participantsService.deleteParticipant(participantId);
-      if (success) {
-        await fetchParticipants(selectedTournament);
-      } else {
-        setError('Failed to delete participant');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete participant');
-    }
-  };
-
-  useEffect(() => {
-    if (selectedTournament) {
-      fetchParticipants(selectedTournament);
-    }
-  }, [selectedTournament]);
-
-  // Load actual tournament list from September season
-  useEffect(() => {
-    const septemberGames = getActiveSeasonGames('september');
-    setTournaments(septemberGames);
-  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
@@ -136,22 +282,26 @@ export default function ParticipantsAdminPage() {
         <div className="bg-gray-900 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-bold mb-4">Select Tournament</h2>
           <div className="flex gap-4 items-center">
-            <select
-              value={selectedTournament}
-              onChange={(e) => setSelectedTournament(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white"
-            >
-              <option value="">Select a tournament...</option>
-              {tournaments.map((tournament) => (
-                <option key={tournament.slug} value={tournament.slug}>
-                  {tournament.name} ({tournament.category === 'main' ? 'Main' : 'Added'})
-                </option>
-              ))}
-            </select>
+            {tournamentsLoading ? (
+              <p className="text-gray-400">Loading tournaments...</p>
+            ) : (
+              <select
+                value={selectedTournamentId}
+                onChange={(e) => setSelectedTournamentId(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white min-w-[300px]"
+              >
+                <option value="">Select a tournament...</option>
+                {tournaments.map((tournament) => (
+                  <option key={tournament.$id} value={tournament.$id}>
+                    {tournament.title || tournament.gameName} {tournament.status === 'published' ? '(Live)' : '(Draft)'}
+                  </option>
+                ))}
+              </select>
+            )}
             
-            {selectedTournament && (
+            {selectedTournamentId && (
               <button
-                onClick={() => fetchParticipants(selectedTournament)}
+                onClick={() => fetchParticipants(selectedTournamentId)}
                 className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold"
               >
                 Refresh
@@ -161,7 +311,7 @@ export default function ParticipantsAdminPage() {
         </div>
 
         {/* Statistics */}
-        {selectedTournament && (
+        {selectedTournamentId && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-gray-900 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-300 mb-2">Total Teams</h3>
@@ -183,7 +333,7 @@ export default function ParticipantsAdminPage() {
         )}
 
         {/* Participants Table */}
-        {selectedTournament && (
+        {selectedTournamentId && (
           <div className="bg-gray-900 rounded-lg p-6">
             {loading ? (
               <div className="text-center py-12">
@@ -193,7 +343,7 @@ export default function ParticipantsAdminPage() {
             ) : (
               <ParticipantsTable
                 teams={participantsData.teams}
-                gameSlug={selectedTournament}
+                gameSlug={selectedTournamentId}
                 showAdminActions={true}
                 onStatusUpdate={handleStatusUpdate}
                 onPaymentUpdate={handlePaymentUpdate}
@@ -203,20 +353,21 @@ export default function ParticipantsAdminPage() {
           </div>
         )}
 
-        {!selectedTournament && (
+        {!selectedTournamentId && (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">Select a tournament to view participants</p>
           </div>
         )}
 
         {/* Add Participant Modal */}
-        {showAddForm && (
+        {showAddForm && selectedTournamentId && (
           <AddParticipantModal
-            tournamentSlug={selectedTournament}
+            tournamentId={selectedTournamentId}
+            tournamentSlug={selectedTournamentId}
             onClose={() => setShowAddForm(false)}
             onSuccess={() => {
               setShowAddForm(false);
-              fetchParticipants(selectedTournament);
+              fetchParticipants(selectedTournamentId);
             }}
           />
         )}
@@ -227,12 +378,13 @@ export default function ParticipantsAdminPage() {
 
 // Add Participant Modal Component
 interface AddParticipantModalProps {
+  tournamentId: string;
   tournamentSlug: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function AddParticipantModal({ tournamentSlug, onClose, onSuccess }: AddParticipantModalProps) {
+function AddParticipantModal({ tournamentId, tournamentSlug, onClose, onSuccess }: AddParticipantModalProps) {
   const [formData, setFormData] = useState({
     teamName: '',
     teamLeader: '',
@@ -273,27 +425,38 @@ function AddParticipantModal({ tournamentSlug, onClose, onSuccess }: AddParticip
     setError(null);
 
     try {
+      const db = initializeAppwrite();
+      if (!db) {
+        setError('Appwrite not initialized');
+        setLoading(false);
+        return;
+      }
+
       const participantData = {
-        tournamentSlug,
+        tournamentId,
         teamName: formData.teamName,
-        teamLeader: formData.teamLeader,
-        teamLeaderEmail: formData.teamLeaderEmail,
-        teamLeaderPhone: formData.teamLeaderPhone,
+        playerName: formData.teamLeader,
+        email: formData.teamLeaderEmail,
         university: formData.university,
-        members: formData.members.filter(member => member.name && member.ign),
+        players: JSON.stringify({
+          players: formData.members.filter(member => member.name && member.ign),
+          substitutes: []
+        }),
         registrationDate: new Date().toISOString(),
-        status: 'approved' as const,
-        paymentStatus: 'paid' as const,
-        totalMembers: formData.members.filter(member => member.name && member.ign).length
+        status: 'approved',
+        paymentStatus: 'paid',
       };
 
-      const result = await participantsService.createParticipant(participantData);
-      if (result) {
-        onSuccess();
-      } else {
-        setError('Failed to create participant');
-      }
+      await db.createDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
+        'unique()',
+        participantData
+      );
+      
+      onSuccess();
     } catch (err: any) {
+      console.error('Error creating participant:', err);
       setError(err.message || 'Failed to create participant');
     } finally {
       setLoading(false);

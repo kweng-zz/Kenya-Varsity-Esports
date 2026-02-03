@@ -572,7 +572,7 @@ export function RadialNavigation() {
                 <div className="logo-container">
                     <img 
                         src="/images/KVE white no words.png" 
-                        alt="KUER Logo"
+                        alt="KVE Logo"
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';
                         }}

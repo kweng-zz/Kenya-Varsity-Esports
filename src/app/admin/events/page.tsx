@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { storageService } from '@/lib/services/storageService';
+import { gamesData } from '@/lib/gamesData';
 
 interface Event {
   $id: string;
@@ -14,7 +15,6 @@ interface Event {
   date: string;
   time: string;
   prizePool: string;
-  entryFee: string;
   status: 'OPEN' | 'LEAGUE' | 'PRO';
   tags: string[];
   registrationLink?: string;
@@ -38,7 +38,6 @@ export default function AdminEventsPage() {
     date: '',
     time: '',
     prizePool: '',
-    entryFee: '',
     status: 'OPEN' as 'OPEN' | 'LEAGUE' | 'PRO',
     tags: '',
     registrationLink: '',
@@ -108,7 +107,6 @@ export default function AdminEventsPage() {
       date: event.date,
       time: event.time,
       prizePool: event.prizePool,
-      entryFee: event.entryFee,
       status: event.status,
       tags: event.tags.join(', '),
       registrationLink: event.registrationLink || '',
@@ -167,7 +165,6 @@ export default function AdminEventsPage() {
       date: '',
       time: '',
       prizePool: '',
-      entryFee: '',
       status: 'OPEN',
       tags: '',
       registrationLink: '',
@@ -203,13 +200,19 @@ export default function AdminEventsPage() {
                 required
                 className="bg-[#0F0F0F] border-gray-700 text-white"
               />
-              <Input
-                placeholder="Game Slug (e.g., valorant)"
+              <select
                 value={formData.gameSlug}
                 onChange={(e) => setFormData({ ...formData, gameSlug: e.target.value })}
                 required
-                className="bg-[#0F0F0F] border-gray-700 text-white"
-              />
+                className="bg-[#0F0F0F] border border-gray-700 text-white rounded px-3 py-2 w-full"
+              >
+                <option value="">Select a Game</option>
+                {Object.values(gamesData).map((game) => (
+                  <option key={game.slug} value={game.slug}>
+                    {game.name}
+                  </option>
+                ))}
+              </select>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-400">Event Image</label>
                 <div className="flex items-center gap-4">
@@ -275,13 +278,7 @@ export default function AdminEventsPage() {
                 required
                 className="bg-[#0F0F0F] border-gray-700 text-white"
               />
-              <Input
-                placeholder="Entry Fee"
-                value={formData.entryFee}
-                onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
-                required
-                className="bg-[#0F0F0F] border-gray-700 text-white"
-              />
+             
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}

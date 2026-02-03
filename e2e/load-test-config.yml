@@ -1,0 +1,98 @@
+# Artillery Load Test Configuration
+# Run with: npx artillery run e2e/load-test-config.yml
+
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    # Ramp-up phase
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 50
+      name: "Ramp up load"
+    # Sustained load phase  
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    # Spike test
+    - duration: 30
+      arrivalRate: 100
+      name: "Spike test"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  variables:
+    tournamentIds:
+      - "tournament-001"
+      - "tournament-002"
+      - "tournament-003"
+    participantIds:
+      - "player-001"
+      - "player-002"
+      - "player-003"
+
+  plugins:
+    expect: {}
+
+  ensure:
+    thresholds:
+      - http.response_time.p95: 100
+      - http.response_time.p99: 200
+      - http.codes.2xx: 95
+
+scenarios:
+  # Leaderboard viewing (most common operation)
+  - name: "View Leaderboard"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/tournaments/{{ $randomString(tournamentIds) }}/leaderboard"
+          capture:
+            - json: "$.data.entries"
+              as: "entries"
+          expect:
+            - statusCode: 200
+            - hasProperty: "success"
+            - equals:
+                - "{{ success }}"
+                - true
+
+  # Score submission
+  - name: "Submit Score"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/tournaments/{{ $randomString(tournamentIds) }}/scores"
+          json:
+            participantId: "{{ $randomString(participantIds) }}"
+            playerName: "Test Player {{ $randomNumber(1, 100) }}"
+            score: "{{ $randomNumber(100, 5000) }}"
+          expect:
+            - statusCode: 200
+
+  # Tournament status check
+  - name: "Check Tournament Status"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/tournaments/{{ $randomString(tournamentIds) }}/status"
+          expect:
+            - statusCode: 200
+
+  # User notifications
+  - name: "Get Notifications"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/notifications"
+          headers:
+            x-user-id: "user-{{ $randomNumber(1, 100) }}"
+          expect:
+            - statusCode:
+                - 200
+                - 401

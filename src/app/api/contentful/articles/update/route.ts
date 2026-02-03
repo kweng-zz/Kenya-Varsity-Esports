@@ -176,7 +176,7 @@ export async function PUT(request: NextRequest) {
         slug: finalSlug,
         category,
         game: game?.trim() || 'not set',
-        author: author || 'KUER Team',
+        author: author || 'KVE Team',
         featured,
         tags: tags.length
       });

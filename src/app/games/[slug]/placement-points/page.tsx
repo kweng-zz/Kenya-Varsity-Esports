@@ -199,10 +199,10 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
             </div>
             </div>
 
-            {/* KUER Official Placement Points System */}
+            {/* KVE Official Placement Points System */}
             <div className="mb-8">
               <div className="bg-[#1a1a1a] p-8 rounded-lg border border-[#8c110d]">
-                <h2 className="text-2xl font-bold text-[#8c110d] mb-6">📋 KUER Official Placement Points System</h2>
+                <h2 className="text-2xl font-bold text-[#8c110d] mb-6">📋 KVE Official Placement Points System</h2>
                 <div className="text-white text-lg leading-relaxed space-y-6">
                   <div className="bg-gradient-to-r from-[#8c110d]/20 to-transparent p-6 rounded-lg border-l-4 border-[#8c110d]">
                     <p className="text-xl font-semibold mb-4">
@@ -211,7 +211,7 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
                     </p>
                     <div className="flex items-center space-x-2 text-[#8c110d]">
                       <span className="text-2xl">🏆</span>
-                      <span className="font-bold">Official KUER Scoring System</span>
+                      <span className="font-bold">Official KVE Scoring System</span>
                     </div>
                   </div>
                   
@@ -265,11 +265,11 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
                       <div className="space-y-3 text-sm">
                         <div className="p-3 bg-gradient-to-r from-green-600/20 to-transparent rounded">
                           <p className="font-bold text-green-400 mb-2">University Participation Across Titles:</p>
-                          <p className="text-gray-300">If a university competes in 50% or more of all KUER game titles → <span className="font-bold text-green-400">+50 points</span></p>
+                          <p className="text-gray-300">If a university competes in 50% or more of all KVE game titles → <span className="font-bold text-green-400">+50 points</span></p>
                         </div>
                         <div className="p-3 bg-gradient-to-r from-blue-600/20 to-transparent rounded">
                           <p className="font-bold text-blue-400 mb-2">Tournament Appearances:</p>
-                          <p className="text-gray-300">Each athlete/team representing the university in a KUER tournament → <span className="font-bold text-blue-400">+10 points</span></p>
+                          <p className="text-gray-300">Each athlete/team representing the university in a KVE tournament → <span className="font-bold text-blue-400">+10 points</span></p>
                         </div>
                       </div>
                     </div>
@@ -283,7 +283,8 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
                     </div>
                     <p className="text-sm text-gray-300 mb-4">Bonus points for digital presence and branding:</p>
                     <div className="p-3 bg-gradient-to-r from-pink-600/20 to-transparent rounded">
-                      <p className="text-gray-300"><span className="font-bold text-pink-400">+50 points</span> per verified social media mention by an athlete from that university (must tag KUER official accounts and/or use designated KUER hashtags)</p>
+                      <p className="text-gray-300"><span className="font-bold text-pink-400">+50 points</span> per 
+                      verified social media mention by an athlete from that university (must tag KVE official accounts and/or use designated KVE hashtags)</p>
                     </div>
                   </div>
 
@@ -304,7 +305,7 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
                           </div>
                           <div className="flex items-start space-x-2">
                             <span className="text-blue-400 mt-1">•</span>
-                            <p>KUER reserves the right to verify all participation and social media mentions before awarding points</p>
+                            <p>KVE reserves the right to verify all participation and social media mentions before awarding points</p>
                           </div>
                         </div>
                       </div>

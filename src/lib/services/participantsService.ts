@@ -36,21 +36,28 @@ const initializeAppwrite = () => {
 };
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
-const PARTICIPANTS_COLLECTION_ID = 'participants';
+// Use the same collection as the registration API (participantManagement service)
+const PARTICIPANTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID || 'tournament_registrations';
 
 export interface Participant {
   $id?: string;
-  tournamentSlug: string;
+  tournamentId: string; // Changed from tournamentSlug to match registration data
+  tournamentSlug?: string; // Keep for backwards compatibility
   teamName: string;
-  teamLeader: string;
-  teamLeaderEmail: string;
+  playerName?: string; // Captain name from registration
+  teamLeader?: string; // Alias
+  email?: string; // Captain email
+  teamLeaderEmail?: string; // Alias
   teamLeaderPhone?: string;
   university?: string;
-  members: TeamMember[] | string; // Can be either parsed array or JSON string
+  studentId?: string;
+  members?: TeamMember[] | string; // Can be either parsed array or JSON string
+  players?: string; // JSON string from registration
   registrationDate: string;
-  status: 'pending' | 'approved' | 'rejected';
-  paymentStatus: 'pending' | 'paid' | 'failed';
-  totalMembers: number;
+  status: 'pending' | 'approved' | 'rejected' | 'registered' | 'confirmed';
+  paymentStatus?: 'pending' | 'paid' | 'failed';
+  totalMembers?: number;
+  userId?: string;
 }
 
 export interface TeamMember {
@@ -83,23 +90,32 @@ class ParticipantsService {
           pendingTeams: 0
         };
       }
-
+      console.log(`🔍 participantsService: Querying registrations for tournamentId="${tournamentSlug}"`);
+      
       const response = await db.listDocuments(
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
-          Query.equal('tournamentSlug', tournamentSlug),
+          Query.equal('tournamentId', tournamentSlug), // tournamentSlug param is actually tournamentId now
           Query.orderDesc('registrationDate')
         ]
       );
 
+      console.log(`📊 participantsService: Found ${response.documents.length} registrations`);
+
       const teams = response.documents.map((doc: any) => ({
         ...doc,
-        members: typeof doc.members === 'string' ? JSON.parse(doc.members) : doc.members
+        // Map players field to members for display compatibility
+        members: doc.players || doc.members || '{"players":[],"substitutes":[]}',
+        teamLeader: doc.playerName || doc.teamLeader,
+        teamLeaderEmail: doc.email || doc.teamLeaderEmail,
+        teamName: doc.teamName || doc.playerName,
       })) as Participant[];
-      const totalParticipants = teams.reduce((sum, team) => sum + team.totalMembers, 0);
+      
+      const totalParticipants = teams.reduce((sum, team) => sum + (team.totalMembers || 1), 0);
       const approvedTeams = teams.filter(team => team.status === 'approved').length;
-      const pendingTeams = teams.filter(team => team.status === 'pending').length;
+      // Count both 'pending' and 'registered' as pending teams
+      const pendingTeams = teams.filter(team => team.status === 'pending' || team.status === 'registered').length;
 
       return {
         teams,
@@ -132,7 +148,7 @@ class ParticipantsService {
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
-          Query.equal('tournamentSlug', tournamentSlug),
+          Query.equal('tournamentId', tournamentSlug), // tournamentSlug param is actually tournamentId now
           Query.equal('status', 'approved'),
           Query.orderDesc('registrationDate')
         ]
@@ -298,7 +314,7 @@ class ParticipantsService {
         DB_ID,
         PARTICIPANTS_COLLECTION_ID,
         [
-          Query.equal('tournamentSlug', tournamentSlug),
+          Query.equal('tournamentId', tournamentSlug),
           Query.search('teamName', searchTerm)
         ]
       );

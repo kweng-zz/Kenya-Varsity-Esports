@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         content: { 'en-US': content },
         slug: { 'en-US': finalSlug },
         category: { 'en-US': category },
-        author: { 'en-US': author || 'KUER Team' },
+        author: { 'en-US': author || 'KVE Team' },
         featured: { 'en-US': featured },
         tags: { 'en-US': tags },
         publishedAt: { 'en-US': new Date().toISOString() }

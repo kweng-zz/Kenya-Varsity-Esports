@@ -311,7 +311,7 @@ export const transformContentfulArticle = (article: ContentfulArticle): Transfor
     featured: Boolean(f.featured),
     category: f.category || 'General',
     game: f.game || '',
-    author: f.author || 'KUER Team',
+    author: f.author || 'KVE Team',
     authorAvatar: f.authorAvatar?.fields?.file?.url
       ? `https:${f.authorAvatar.fields.file.url}`
       : undefined,

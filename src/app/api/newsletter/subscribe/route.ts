@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { validateInput, commonSchemas } from '@/lib/validation';
 import { checkRateLimit } from '@/lib/rate-limit';
-
-// @ts-ignore
-import mailchimp from '@mailchimp/mailchimp_marketing';
+import { listmonkService } from '@/lib/listmonk';
 
 export async function POST(request: Request) {
   // Check rate limit
@@ -11,12 +9,12 @@ export async function POST(request: Request) {
   if (rateLimitError) return rateLimitError;
 
   // Check environment variables
-  const apiKey = process.env.MAILCHIMP_API_KEY;
-  const server = process.env.MAILCHIMP_SERVER_PREFIX;
-  const audienceId = process.env.MAILCHIMP_AUDIENCE_ID;
+  const listmonkUrl = process.env.LISTMONK_URL;
+  const listmonkUsername = process.env.LISTMONK_USERNAME;
+  const listmonkPassword = process.env.LISTMONK_PASSWORD;
 
-  if (!apiKey || !server || !audienceId) {
-    console.error('Mailchimp configuration missing');
+  if (!listmonkUrl || !listmonkUsername || !listmonkPassword) {
+    console.error('Listmonk configuration missing');
     return NextResponse.json({
       success: false,
       error: 'SERVICE_UNAVAILABLE',
@@ -39,44 +37,38 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Configure Mailchimp
-    mailchimp.setConfig({
-      apiKey,
-      server,
+    // Add subscriber to Listmonk
+    const result = await listmonkService.addContact({
+      email: email.trim().toLowerCase(),
+      name: email.split('@')[0], // Use email prefix as name if not provided
+      tags: tags || ['website-newsletter', 'kve-updates'],
     });
 
-    // Add subscriber to Mailchimp
-    const response = await mailchimp.lists.addListMember(audienceId, {
-      email_address: email.trim().toLowerCase(),
-      status: 'subscribed',
-      tags: tags || ['website-newsletter'],
-    });
+    if (result.success) {
+      console.log('Newsletter subscription successful:', email);
+      return NextResponse.json({
+        success: true,
+        message: 'Successfully subscribed to newsletter!'
+      });
+    }
 
-    console.log('Newsletter subscription successful:', email);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Successfully subscribed to newsletter!'
-    });
-
-  } catch (error: any) {
-    console.error('Newsletter subscription error:', error);
-
-    // Handle specific Mailchimp errors
-    if (error.response?.body?.title === 'Member Exists') {
+    // Handle "already subscribed" case
+    if (result.error === 'Already subscribed') {
       return NextResponse.json({
         success: true,
         message: 'You are already subscribed to our newsletter!'
       });
     }
 
-    if (error.response?.body?.title === 'Invalid Resource') {
-      return NextResponse.json({
-        success: false,
-        error: 'INVALID_EMAIL',
-        message: 'Please enter a valid email address'
-      }, { status: 400 });
-    }
+    // Handle other errors
+    return NextResponse.json({
+      success: false,
+      error: 'SUBSCRIPTION_FAILED',
+      message: result.error || 'Failed to subscribe. Please try again later.'
+    }, { status: 500 });
+
+  } catch (error: any) {
+    console.error('Newsletter subscription error:', error);
 
     return NextResponse.json({
       success: false,

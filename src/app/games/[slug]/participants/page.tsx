@@ -19,6 +19,8 @@ interface TournamentNavItem {
 
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
 import { participantsServiceSSR } from '@/lib/services/participantsServiceSSR';
+import { tournamentServiceSSR } from '@/lib/services/tournamentServiceSSR';
+import { Tournament } from '@/types/tournament';
 
 
 export default async function TournamentParticipantsPage({ params }: TournamentParticipantsPageProps) {
@@ -35,6 +37,23 @@ export default async function TournamentParticipantsPage({ params }: TournamentP
   // We use the SSR service which handles environment variables correctly for server context
   const teams = await participantsServiceSSR.getTournamentParticipants(slug);
 
+  // Fetch tournament data for hero image
+  let tournamentData: Tournament | null = null;
+  try {
+    tournamentData = await tournamentServiceSSR.getTournamentBySlug(slug);
+  } catch (error) {
+    console.error(`❌ Error fetching tournament data for ${slug}:`, error);
+  }
+
+  // Determine hero background image
+  const getHeroImage = () => {
+    if (tournamentData?.featuredImageUrl) {
+      return tournamentData.featuredImageUrl;
+    }
+    // Fallback to game image or default
+    return game?.image || '/images/Mask Group.png';
+  };
+
   console.log(`🎮 Participants Page: Fetched ${teams.length} teams for ${slug}`);
 
   return (
@@ -45,7 +64,7 @@ export default async function TournamentParticipantsPage({ params }: TournamentP
       <section className="relative w-full h-[560px] bg-black mt-0">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${game.image})` }}
+          style={{ backgroundImage: `url(${getHeroImage()})` }}
         ></div>
 
         <div className="absolute inset-0 bg-[#0F0F13] opacity-0"></div>

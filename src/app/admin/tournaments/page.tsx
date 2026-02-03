@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, Databases, ID, Permission, Role, Query } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import { gamesData } from '@/lib/gamesData';
 
 // Appwrite Setup with lazy initialization
 let client: Client | null = null;
@@ -53,6 +54,8 @@ interface TournamentFormData {
   status: string;
   tournamentStatus: string;
   registrationDeadline: string;
+  startDate: string;
+  endDate: string;
   currency: string;
   // Awards for top 4 positions
   firstPrize: number;
@@ -91,12 +94,26 @@ export default function TournamentsAdminPage() {
     status: 'draft',
     tournamentStatus: 'upcoming',
     registrationDeadline: '',
+    startDate: '',
+    endDate: '',
     currency: 'KES',
     firstPrize: 0,
     secondPrize: 0,
     thirdPrize: 0,
     fourthPrize: 0
   });
+
+  // Game selection handler
+  const handleGameSelection = (gameSlug: string) => {
+    const selectedGame = gamesData[gameSlug];
+    if (selectedGame) {
+      setFormData(prev => ({
+        ...prev,
+        gameName: selectedGame.name,
+        slug: selectedGame.slug
+      }));
+    }
+  };
 
   const [awardFormData, setAwardFormData] = useState<AwardFormData>({
     position: 1,
@@ -179,20 +196,37 @@ export default function TournamentsAdminPage() {
       // Calculate total prize pool
       const totalPrizePool = formData.firstPrize + formData.secondPrize + formData.thirdPrize + formData.fourthPrize;
       
-      const tournamentData = {
+      // Helper to check if string is valid URL
+      const isValidUrl = (str: string) => {
+        if (!str || str.trim() === '') return false;
+        try {
+          new URL(str);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      
+      const tournamentData: Record<string, any> = {
         slug: formData.slug,
         gameName: formData.gameName,
         title: formData.title,
         description: formData.description,
         detailedDescription: formData.detailedDescription,
         category: formData.category,
-        featuredImageUrl: formData.featuredImageUrl,
         status: formData.status,
         tournamentStatus: formData.tournamentStatus,
         registrationDeadline: formData.registrationDeadline ? new Date(formData.registrationDeadline).toISOString() : null,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         currency: formData.currency,
         prizePool: totalPrizePool
       };
+      
+      // Only include featuredImageUrl if it's a valid URL
+      if (isValidUrl(formData.featuredImageUrl)) {
+        tournamentData.featuredImageUrl = formData.featuredImageUrl;
+      }
 
       let tournamentId;
 
@@ -331,6 +365,8 @@ export default function TournamentsAdminPage() {
       status: 'draft',
       tournamentStatus: 'upcoming',
       registrationDeadline: '',
+      startDate: '',
+      endDate: '',
       currency: 'KES',
       firstPrize: 0,
       secondPrize: 0,
@@ -383,6 +419,8 @@ export default function TournamentsAdminPage() {
       status: tournament.status || 'draft',
       tournamentStatus: tournament.tournamentStatus || 'upcoming',
       registrationDeadline: tournament.registrationDeadline ? tournament.registrationDeadline.split('T')[0] : '',
+      startDate: tournament.startDate ? tournament.startDate.split('T')[0] : '',
+      endDate: tournament.endDate ? tournament.endDate.split('T')[0] : '',
       currency: tournament.currency || 'KES',
       firstPrize,
       secondPrize,
@@ -503,16 +541,23 @@ export default function TournamentsAdminPage() {
             <form onSubmit={handleTournamentSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Slug *</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium mb-2">Select Game *</label>
+                  <select
                     value={formData.slug}
-                    onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
-                    placeholder="e.g., pubg-mobile"
+                    onChange={(e) => handleGameSelection(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
                     required
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Used in URL: /games/{formData.slug}/information</p>
+                  >
+                    <option value="">Select a game...</option>
+                    {Object.entries(gamesData).map(([slug, game]) => (
+                      <option key={slug} value={slug}>
+                        {game.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Game: {formData.gameName || 'None selected'} | Slug: {formData.slug || 'None'}
+                  </p>
                 </div>
                 
                 <div>
@@ -583,6 +628,26 @@ export default function TournamentsAdminPage() {
                     type="date"
                     value={formData.registrationDeadline}
                     onChange={(e) => setFormData(prev => ({ ...prev, registrationDeadline: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
                   />
                 </div>

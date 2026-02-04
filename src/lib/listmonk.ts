@@ -81,12 +81,19 @@ class ListmonkService {
       return { success: false, error: 'Listmonk not configured' };
     }
 
+    const auth = this.getAuthHeader();
+    // DEBUG: Log credentials (safely)
+    console.log(`[Listmonk] Connecting to: ${this.baseUrl}`);
+    console.log(`[Listmonk] User: '${this.username}' (Length: ${this.username.length})`);
+    console.log(`[Listmonk] Pass: '${this.password.substring(0, 1)}***' (Length: ${this.password.length})`);
+    console.log(`[Listmonk] Auth Header: ${auth.substring(0, 20)}...`);
+
     try {
       const url = `${this.baseUrl}${endpoint}`;
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Authorization': this.getAuthHeader(),
+          'Authorization': auth,
           'Content-Type': 'application/json',
           ...options.headers,
         },

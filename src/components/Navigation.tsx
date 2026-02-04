@@ -208,7 +208,7 @@ export function Navigation() {
           <Link href="/">
             <img
               src="/images/KVE white no words.png"
-              alt="Kuer Logo"
+              alt="KVE Logo"
               className="w-12 h-12 object-cover"
             />
           </Link>

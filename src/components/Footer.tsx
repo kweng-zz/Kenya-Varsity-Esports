@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button"; // Assuming you have this Button component
 import { Separator } from "@/components/ui/separator";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 export const FooterSection = () => {
 

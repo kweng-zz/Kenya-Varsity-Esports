@@ -414,7 +414,7 @@ export const RegistrationFormSection = () => {
             <div className="flex items-start space-x-2">
               <Checkbox id="newsletter" className="mt-1 border-[#961c18]" checked={formData.subscribeNewsletter} onCheckedChange={(checked) => handleInputChange('subscribeNewsletter', checked as boolean)} />
               <Label htmlFor="newsletter" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">
-                I would like to receive esports news, tournament updates, and exclusive offers via email (optional)
+                I would like to receive Tunza esports news, tournament updates, and exclusive offers via email (optional)
               </Label>
             </div>
             

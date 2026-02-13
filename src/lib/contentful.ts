@@ -39,6 +39,13 @@ export interface ContentfulArticleFields {
   game?: string;
   author: string;
   authorAvatar?: Asset;
+  authorBio?: string;
+  authorTwitter?: string;
+  authorLinkedIn?: string;
+  authorInstagram?: string;
+  authorTikTok?: string;
+  authorYouTube?: string;
+  authorFacebook?: string;
   tags: string[];
   image?: Asset;
 }
@@ -292,6 +299,9 @@ export interface TransformedArticle {
   authorTwitter?: string;
   authorLinkedIn?: string;
   authorInstagram?: string;
+  authorTikTok?: string;
+  authorYouTube?: string;
+  authorFacebook?: string;
   tags: string[];
   imageUrl: string | null;
   image: any;
@@ -319,6 +329,9 @@ export const transformContentfulArticle = (article: ContentfulArticle): Transfor
     authorTwitter: f.authorTwitter,
     authorLinkedIn: f.authorLinkedIn,
     authorInstagram: f.authorInstagram,
+    authorTikTok: f.authorTiktok || f.authorTikTok,
+    authorYouTube: f.authorYouTube,
+    authorFacebook: f.authorFacebook,
     tags: Array.isArray(f.tags) ? f.tags : [],
     imageUrl: getContentfulImageUrl(f.image, 800, 600) ?? '/images/Join our tournaments.png',
     image: f.image || null,

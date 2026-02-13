@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kenya Varsity Esports</title>
+    <style>
+        /* Base Resets */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            -webkit-text-size-adjust: 100%; 
+            -ms-text-size-adjust: 100%; 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%);
+            color: #ffffff; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        table { border-spacing: 0; border-collapse: collapse; }
+        img { border: 0; display: block; max-width: 100%; height: auto; }
+        
+        /* Typography */
+        h1 { 
+            font-size: 32px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            margin: 0 0 20px 0; 
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(150, 28, 24, 0.8);
+            background: linear-gradient(45deg, #ffffff, #961c18);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 { 
+            font-size: 22px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin: 0 0 15px 0; 
+            color: #ffffff;
+            position: relative;
+            padding-left: 15px;
+        }
+        
+        h2::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(to bottom, #961c18, #ff4444);
+            border-radius: 2px;
+        }
+        
+        p { 
+            font-size: 16px; 
+            line-height: 1.8; 
+            margin: 0 0 20px 0; 
+            color: #e0e0e0;
+        }
+        
+        /* Modern Components */
+        .btn { 
+            display: inline-block; 
+            padding: 18px 40px; 
+            background: linear-gradient(135deg, #961c18 0%, #d62828 100%);
+            color: #ffffff; 
+            text-decoration: none; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(150, 28, 24, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover { 
+            background: linear-gradient(135deg, #d62828 0%, #ff4444 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(150, 28, 24, 0.6);
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .divider { 
+            height: 3px; 
+            background: linear-gradient(90deg, #961c18, #ff4444, #961c18); 
+            width: 80px; 
+            margin: 25px 0; 
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 7px;
+            background: #ff4444;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
+        }
+        
+        /* Layout */
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+        
+        .padding { padding: 50px 40px; }
+        .header { 
+            background: linear-gradient(135deg, rgba(10, 10, 10, 0.9) 0%, rgba(26, 0, 51, 0.9) 100%); 
+            padding: 40px; 
+            text-align: center; 
+            position: relative;
+            border-bottom: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #961c18, #ff4444, #961c18, transparent);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { opacity: 0.6; filter: blur(2px); }
+            to { opacity: 1; filter: blur(0); }
+        }
+        
+        .footer { 
+            background: linear-gradient(135deg, rgba(10, 10, 10, 0.95) 0%, rgba(26, 0, 51, 0.95) 100%); 
+            padding: 40px; 
+            text-align: center; 
+            font-size: 13px; 
+            color: #999999;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer a { 
+            color: #961c18; 
+            text-decoration: none; 
+            margin: 0 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .footer a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #961c18, #ff4444);
+            transition: width 0.3s ease;
+        }
+        
+        .footer a:hover::after {
+            width: 100%;
+        }
+        
+        .footer a:hover {
+            color: #ff4444;
+            transform: translateY(-1px);
+        }
+        
+        /* Tournament Cards */
+        .tournament-item {
+            background: linear-gradient(135deg, rgba(150, 28, 24, 0.1) 0%, rgba(26, 0, 51, 0.1) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .tournament-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(150, 28, 24, 0.2), transparent);
+            transition: left 0.8s ease;
+        }
+        
+        .tournament-item:hover::before {
+            left: 100%;
+        }
+        
+        .tournament-item:hover {
+            transform: translateX(5px);
+            border-color: rgba(150, 28, 24, 0.3);
+            box-shadow: 0 5px 20px rgba(150, 28, 24, 0.2);
+        }
+        
+        .tournament-name {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tournament-status {
+            color: #666666; 
+            font-size: 14px; 
+            float: right;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .status-open {
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .status-soon {
+            color: #ff9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            background: rgba(255, 152, 0, 0.1);
+        }
+        
+        .status-updated {
+            color: #2196f3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            background: rgba(33, 150, 243, 0.1);
+        }
+        
+        /* Mobile */
+        @media only screen and (max-width: 600px) {
+            .padding { padding: 30px 25px; }
+            .header { padding: 30px 25px; }
+            .footer { padding: 30px 25px; }
+            h1 { font-size: 26px; letter-spacing: 2px; }
+            h2 { font-size: 18px; }
+            .btn { padding: 15px 30px; font-size: 14px; }
+            .tournament-status { float: none; display: inline-block; margin-top: 8px; }
+        }
+        
+        /* Hero Section Enhancement */
+        .hero-container {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d082d 100%);
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(150, 28, 24, 0.3) 0%, rgba(26, 0, 51, 0.3) 100%);
+            z-index: 1;
+        }
+        
+        .hero-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            opacity: 0.9;
+            transition: transform 0.5s ease;
+        }
+        
+        .hero-container:hover .hero-image {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div style="background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%); padding: 30px 0;">
+        <table class="container" width="100%" align="center">
+            <!-- Header / Logo -->
+            <tr>
+                <td class="header">
+                    <img src="https://kve.co.ke/images/KVE%20white%20no%20words.png" alt="KVE Logo" width="120" style="margin: 0 auto; display: block; filter: drop-shadow(0 0 20px rgba(150, 28, 24, 0.6)); transition: all 0.3s ease;">
+                </td>
+            </tr>
+            <!-- Hero Section -->
+            <tr>
+                <td class="hero-container">
+                    <div class="hero-overlay"></div>
+                    <img src="https://kve.co.ke/images/eFOOTBALL-CTA-Rankings.png" alt="Welcome to the Arena" class="hero-image">
+                </td>
+            </tr>
+            <!-- Main Content -->
+            <tr>
+                <td class="padding">
+                    <div class="divider"></div>
+                    <h1>Welcome to the Arena</h1>
+                    
+                    <p>Gamers, welcome to the official <strong style="color: #961c18;">Kenya Varsity Esports</strong> newsletter. You are now plugged into the pulse of collegiate competitive gaming.</p>
+                    
+                    <p>We are building more than just a league; we are building a legacy. Get ready for elite tournaments, university rankings, and a community that plays to win.</p>
+                    
+                    <br>
+                    <h2>🏆 Upcoming Drops</h2>
+                    
+                    <!-- Tournament Cards -->
+                    <table width="100%">
+                        <tr>
+                            <td>
+                                <div class="tournament-item">
+                                    <table width="100%">
+                                        <tr>
+                                            <td class="tournament-name">
+                                                <span style="font-size: 20px;">⚽</span>
+                                                FIFA 24 League
+                                            </td>
+                                            <td class="tournament-status status-open">Registration Open</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="tournament-item">
+                                    <table width="100%">
+                                        <tr>
+                                            <td class="tournament-name">
+                                                <span style="font-size: 20px;">🥋</span>
+                                                Tekken Dojo
+                                            </td>
+                                            <td class="tournament-status status-soon">Coming Soon</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="tournament-item">
+                                    <table width="100%">
+                                        <tr>
+                                            <td class="tournament-name">
+                                                <span style="font-size: 20px;">📊</span>
+                                                Monthly Rankings
+                                            </td>
+                                            <td class="tournament-status status-updated">Updated</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <br><br>
+                    
+                    <div style="text-align: center;">
+                        <a href="https://kve.co.ke" class="btn">View Full Rankings</a>
+                    </div>
+                </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+                <td class="footer">
+                    <p style="color: #cccccc; font-weight: 600; letter-spacing: 2px; margin-bottom: 25px;">CONNECT WITH US</p>
+                    <div style="margin-bottom: 30px;">
+                        <a href="https://www.instagram.com/keuniesportsrankings/?igsh=MXRmNHZtOTVqZDh5dQ%3D%3D&utm_source=qr">INSTAGRAM</a> 
+                        <a href="https://www.youtube.com/@kenyauniversityesportsrankings">YOUTUBE</a> 
+                        <a href="https://www.tiktok.com/@kenyauniesportsrankings">TIKTOK</a>
+                        <a href="https://www.whatsapp.com/channel/0029VafLdwE96H4XI1gb3X3Z">WHATSAPP</a>
+                    </div>
+                    <p style="margin-top: 25px; font-size: 12px; color: #666666;">
+                        &copy; 2026 Kenya Varsity Esports. All rights reserved.<br>
+                        <a href="{{unsubscribe_url}}" style="color: #666; font-size: 11px; letter-spacing: 0;">Unsubscribe</a>
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

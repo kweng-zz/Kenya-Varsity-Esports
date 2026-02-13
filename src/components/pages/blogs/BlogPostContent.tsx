@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, User, Tag, Gamepad2, Clock, Share2, Heart, MessageCircle, ChevronUp, Facebook, Twitter, Linkedin, Copy, Check, ChevronRight, ChevronLeft, Menu, X, Instagram, Mail, UserCircle, Bookmark, TrendingUp, Hash, Link2, Quote, Code, List, ListOrdered, Image, Table } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Tag, Gamepad2, Clock, Share2, Heart, MessageCircle, ChevronUp, Facebook, Twitter, Linkedin, Copy, Check, ChevronRight, ChevronLeft, Menu, X, Instagram, Mail, UserCircle, Bookmark, TrendingUp, Hash, Link2, Quote, Code, List, ListOrdered, Image, Table, Youtube } from 'lucide-react';
+
+// TikTok icon (not available in lucide-react)
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.75a8.18 8.18 0 0 0 4.76 1.52V6.84a4.83 4.83 0 0 1-1-.15z" />
+  </svg>
+);
 import { TransformedArticle } from '@/lib/contentful';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuth } from '@/contexts/AuthContext';
@@ -883,11 +890,11 @@ const handleLikeToggle = async () => {
                     </p>
                     
                     {/* Social Links - only show if available */}
-                    {(post.authorTwitter || post.authorLinkedIn || post.authorInstagram) && (
+                    {(post.authorTwitter || post.authorLinkedIn || post.authorInstagram || post.authorTikTok || post.authorYouTube || post.authorFacebook) && (
                       <div className="flex items-center gap-4 mb-6">
                         {post.authorTwitter && (
                           <a 
-                            href={`https://twitter.com/${post.authorTwitter.replace('@', '')}`} 
+                            href={post.authorTwitter.startsWith('http') ? post.authorTwitter : `https://twitter.com/${post.authorTwitter.replace('@', '')}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
@@ -907,12 +914,46 @@ const handleLikeToggle = async () => {
                         )}
                         {post.authorInstagram && (
                           <a 
-                            href={`https://instagram.com/${post.authorInstagram.replace('@', '')}`} 
+                            href={post.authorInstagram.startsWith('http') ? post.authorInstagram : `https://instagram.com/${post.authorInstagram.replace('@', '')}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                            title="Instagram"
                           >
                             <Instagram className="w-4 h-4 text-white" />
+                          </a>
+                        )}
+                        {post.authorTikTok && (
+                          <a 
+                            href={post.authorTikTok.startsWith('http') ? post.authorTikTok : `https://tiktok.com/@${post.authorTikTok.replace('@', '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                            title="TikTok"
+                          >
+                            <TikTokIcon className="w-4 h-4 text-white" />
+                          </a>
+                        )}
+                        {post.authorYouTube && (
+                          <a 
+                            href={post.authorYouTube.startsWith('http') ? post.authorYouTube : `https://youtube.com/@${post.authorYouTube.replace('@', '')}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                            title="YouTube"
+                          >
+                            <Youtube className="w-4 h-4 text-white" />
+                          </a>
+                        )}
+                        {post.authorFacebook && (
+                          <a 
+                            href={post.authorFacebook.startsWith('http') ? post.authorFacebook : `https://facebook.com/${post.authorFacebook}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                            title="Facebook"
+                          >
+                            <Facebook className="w-4 h-4 text-white" />
                           </a>
                         )}
                       </div>
@@ -1193,6 +1234,41 @@ const handleLikeToggle = async () => {
                     <p className="text-sm text-gray-400">Esports Analyst</p>
                   </div>
                 </div>
+                {/* Sidebar Social Links */}
+                {(post.authorTwitter || post.authorLinkedIn || post.authorInstagram || post.authorTikTok || post.authorYouTube || post.authorFacebook) && (
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/10">
+                    {post.authorTwitter && (
+                      <a href={post.authorTwitter.startsWith('http') ? post.authorTwitter : `https://twitter.com/${post.authorTwitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="Twitter">
+                        <Twitter className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                    {post.authorLinkedIn && (
+                      <a href={post.authorLinkedIn.startsWith('http') ? post.authorLinkedIn : `https://linkedin.com/in/${post.authorLinkedIn}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="LinkedIn">
+                        <Linkedin className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                    {post.authorInstagram && (
+                      <a href={post.authorInstagram.startsWith('http') ? post.authorInstagram : `https://instagram.com/${post.authorInstagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="Instagram">
+                        <Instagram className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                    {post.authorTikTok && (
+                      <a href={post.authorTikTok.startsWith('http') ? post.authorTikTok : `https://tiktok.com/@${post.authorTikTok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="TikTok">
+                        <TikTokIcon className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                    {post.authorYouTube && (
+                      <a href={post.authorYouTube.startsWith('http') ? post.authorYouTube : `https://youtube.com/@${post.authorYouTube.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="YouTube">
+                        <Youtube className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                    {post.authorFacebook && (
+                      <a href={post.authorFacebook.startsWith('http') ? post.authorFacebook : `https://facebook.com/${post.authorFacebook}`} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors" title="Facebook">
+                        <Facebook className="w-3.5 h-3.5 text-white" />
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Vertical Share Buttons */}

@@ -62,6 +62,9 @@ interface TournamentFormData {
   secondPrize: number;
   thirdPrize: number;
   fourthPrize: number;
+  // Events page visibility
+  showInEvents: boolean;
+  isFeatured: boolean;
 }
 
 interface AwardFormData {
@@ -100,7 +103,9 @@ export default function TournamentsAdminPage() {
     firstPrize: 0,
     secondPrize: 0,
     thirdPrize: 0,
-    fourthPrize: 0
+    fourthPrize: 0,
+    showInEvents: false,
+    isFeatured: false
   });
 
   // Game selection handler
@@ -220,7 +225,9 @@ export default function TournamentsAdminPage() {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         currency: formData.currency,
-        prizePool: totalPrizePool
+        prizePool: totalPrizePool,
+        showInEvents: formData.showInEvents,
+        isFeatured: formData.isFeatured
       };
       
       // Only include featuredImageUrl if it's a valid URL
@@ -371,7 +378,9 @@ export default function TournamentsAdminPage() {
       firstPrize: 0,
       secondPrize: 0,
       thirdPrize: 0,
-      fourthPrize: 0
+      fourthPrize: 0,
+      showInEvents: false,
+      isFeatured: false
     });
     if (hideForm) {
       setShowForm(false);
@@ -425,7 +434,9 @@ export default function TournamentsAdminPage() {
       firstPrize,
       secondPrize,
       thirdPrize,
-      fourthPrize
+      fourthPrize,
+      showInEvents: tournament.showInEvents || false,
+      isFeatured: tournament.isFeatured || false
     });
     setShowForm(true);
   };
@@ -761,6 +772,38 @@ export default function TournamentsAdminPage() {
                   placeholder="Detailed tournament description displayed on the information page..."
                 />
               </div>
+
+              {/* Events Page Visibility */}
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4 text-white">Events Page Visibility</h3>
+                <p className="text-sm text-gray-400 mb-4">Control whether this tournament appears on the public Events page.</p>
+                <div className="flex flex-wrap gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showInEvents}
+                      onChange={(e) => setFormData(prev => ({ ...prev, showInEvents: e.target.checked }))}
+                      className="w-5 h-5 rounded border-gray-600 text-[#8c110d] focus:ring-[#8c110d] bg-gray-700"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-white">Show in Events Page</span>
+                      <p className="text-xs text-gray-400">Display this tournament as an event card</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isFeatured}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked, showInEvents: e.target.checked ? true : prev.showInEvents }))}
+                      className="w-5 h-5 rounded border-gray-600 text-[#8c110d] focus:ring-[#8c110d] bg-gray-700"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-white">Featured (Hero)</span>
+                      <p className="text-xs text-gray-400">Show in the Events page hero section</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
               
               <div className="flex gap-4">
                 <button
@@ -925,6 +968,9 @@ export default function TournamentsAdminPage() {
                     Prize Pool
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Events
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -956,6 +1002,16 @@ export default function TournamentsAdminPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                       {tournament.prizePool ? `${tournament.currency || 'KES'} ${tournament.prizePool.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {tournament.showInEvents ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-green-400">✓</span>
+                          {tournament.isFeatured && <span className="text-yellow-400 ml-1">★</span>}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button

@@ -1,7 +1,7 @@
  'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Client, Databases, ID, Permission, Role, Query } from 'appwrite';
+import React, { useState, useEffect, useRef } from 'react';
+import { Client, Databases, ID, Permission, Role, Query, Storage } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { gamesData } from '@/lib/gamesData';
@@ -9,6 +9,7 @@ import { gamesData } from '@/lib/gamesData';
 // Appwrite Setup with lazy initialization
 let client: Client | null = null;
 let databases: Databases | null = null;
+let storage: Storage | null = null;
 
 const initializeAppwrite = () => {
   if (!client) {
@@ -31,17 +32,32 @@ const initializeAppwrite = () => {
         .setProject(projectId);
 
       databases = new Databases(client);
+      storage = new Storage(client);
     } catch (error) {
       console.error('Failed to initialize Appwrite client for admin tournaments:', error);
       return null;
     }
   }
-  return { databases };
+  return { databases, storage };
 };
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const TOURNAMENTS_COLLECTION_ID = 'tournaments';
 const AWARDS_COLLECTION_ID = 'tournament_awards';
+const EXTERNAL_EVENTS_COLLECTION_ID = 'external_events';
+const BUCKET_ID = 'season-images';
+
+interface ExternalEventFormData {
+  title: string;
+  description: string;
+  imageUrl: string;
+  externalUrl: string;
+  eventDate: string;
+  venue: string;
+  status: string;
+  tags: string;
+  isFeatured: boolean;
+}
 
 interface TournamentFormData {
   slug: string;
@@ -85,6 +101,27 @@ export default function TournamentsAdminPage() {
   const [showAwardsForm, setShowAwardsForm] = useState(false);
   const [editingTournament, setEditingTournament] = useState<any | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'tournaments' | 'external'>('tournaments');
+
+  // External events state
+  const [externalEvents, setExternalEvents] = useState<any[]>([]);
+  const [showExternalForm, setShowExternalForm] = useState(false);
+  const [editingExternalEvent, setEditingExternalEvent] = useState<any | null>(null);
+  const [externalFormData, setExternalFormData] = useState<ExternalEventFormData>({
+    title: '',
+    description: '',
+    imageUrl: '',
+    externalUrl: '',
+    eventDate: '',
+    venue: '',
+    status: 'draft',
+    tags: '',
+    isFeatured: false,
+  });
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const externalFileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<TournamentFormData>({
     slug: '',
@@ -185,7 +222,159 @@ export default function TournamentsAdminPage() {
 
   useEffect(() => {
     fetchTournaments();
+    fetchExternalEvents();
   }, []);
+
+  // --- External Events Handlers ---
+  const fetchExternalEvents = async () => {
+    try {
+      const res = await fetch('/api/external-events');
+      const data = await res.json();
+      if (data.success) {
+        setExternalEvents(data.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching external events:', err);
+    }
+  };
+
+  const handleImageFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      setSelectedImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreviewUrl(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleExternalEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsUploading(true);
+      let imageUrl = externalFormData.imageUrl;
+
+      // Upload file to Appwrite Storage if a file was selected
+      if (selectedImageFile) {
+        const appwrite = initializeAppwrite();
+        if (!appwrite?.storage) {
+          setError('Storage not configured. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+        try {
+          const fileResponse = await appwrite.storage.createFile(
+            BUCKET_ID,
+            ID.unique(),
+            selectedImageFile
+          );
+          imageUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileResponse.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+        } catch (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          setError('Failed to upload image. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      if (!imageUrl && !selectedImageFile) {
+        setError('Please select an image file');
+        setIsUploading(false);
+        return;
+      }
+
+      const payload = {
+        ...externalFormData,
+        imageUrl,
+        tags: externalFormData.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+      };
+
+      if (editingExternalEvent) {
+        const res = await fetch(`/api/external-events/${editingExternalEvent.$id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+      } else {
+        const res = await fetch('/api/external-events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+      }
+
+      resetExternalForm();
+      await fetchExternalEvents();
+    } catch (err: any) {
+      console.error('Error saving external event:', err);
+      setError(err.message || 'Failed to save external event');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const resetExternalForm = () => {
+    setExternalFormData({
+      title: '',
+      description: '',
+      imageUrl: '',
+      externalUrl: '',
+      eventDate: '',
+      venue: '',
+      status: 'draft',
+      tags: '',
+      isFeatured: false,
+    });
+    setSelectedImageFile(null);
+    setImagePreviewUrl('');
+    if (externalFileInputRef.current) externalFileInputRef.current.value = '';
+    setShowExternalForm(false);
+    setEditingExternalEvent(null);
+  };
+
+  const handleEditExternalEvent = (event: any) => {
+    setEditingExternalEvent(event);
+    setExternalFormData({
+      title: event.title || '',
+      description: event.description || '',
+      imageUrl: event.imageUrl || '',
+      externalUrl: event.externalUrl || '',
+      eventDate: event.eventDate ? event.eventDate.split('T')[0] : '',
+      venue: event.venue || '',
+      status: event.status || 'draft',
+      tags: (event.tags || []).join(', '),
+      isFeatured: event.isFeatured || false,
+    });
+    setSelectedImageFile(null);
+    setImagePreviewUrl(event.imageUrl || '');
+    if (externalFileInputRef.current) externalFileInputRef.current.value = '';
+    setShowExternalForm(true);
+  };
+
+  const handleDeleteExternalEvent = async (eventId: string) => {
+    if (!confirm('Are you sure you want to delete this external event?')) return;
+    try {
+      const res = await fetch(`/api/external-events/${eventId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      await fetchExternalEvents();
+    } catch (err: any) {
+      console.error('Error deleting external event:', err);
+      setError(err.message || 'Failed to delete external event');
+    }
+  };
 
   // Handle tournament form submission
   const handleTournamentSubmit = async (e: React.FormEvent) => {
@@ -514,33 +703,90 @@ export default function TournamentsAdminPage() {
   return (
     <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Tournament Management</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Event & Tournament Management</h1>
           <div className="flex gap-4">
-            <Link
-              href="/admin/tournaments/rules"
-              className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition-colors"
-            >
-              Manage Rules
-            </Link>
-            <button
-              onClick={() => {
-                setShowForm(true);
-                setEditingTournament(null);
-                resetTournamentForm(false);
-              }}
-              className="bg-[#8c110d] hover:bg-[#7a0f0b] px-6 py-2 rounded-lg font-semibold"
-            >
-              Create Tournament
-            </button>
+            {activeTab === 'tournaments' && (
+              <>
+                <Link
+                  href="/admin/tournaments/rules"
+                  className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Manage Rules
+                </Link>
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setEditingTournament(null);
+                    resetTournamentForm(false);
+                  }}
+                  className="bg-[#8c110d] hover:bg-[#7a0f0b] px-6 py-2 rounded-lg font-semibold"
+                >
+                  Create Tournament
+                </button>
+              </>
+            )}
+            {activeTab === 'external' && (
+              <button
+                onClick={() => {
+                  setEditingExternalEvent(null);
+                  setExternalFormData({
+                    title: '',
+                    description: '',
+                    imageUrl: '',
+                    externalUrl: '',
+                    eventDate: '',
+                    venue: '',
+                    status: 'draft',
+                    tags: '',
+                    isFeatured: false,
+                  });
+                  setSelectedImageFile(null);
+                  setImagePreviewUrl('');
+                  if (externalFileInputRef.current) externalFileInputRef.current.value = '';
+                  setShowExternalForm(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
+              >
+                Create External Event
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8">
+          <button
+            onClick={() => setActiveTab('tournaments')}
+            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'tournaments'
+                ? 'bg-[#8c110d] text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            🎮 Tournaments
+          </button>
+          <button
+            onClick={() => setActiveTab('external')}
+            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+              activeTab === 'external'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            🔗 External Events
+          </button>
         </div>
 
         {error && (
           <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded mb-6">
             {error}
+            <button onClick={() => setError(null)} className="ml-4 text-red-300 hover:text-white">✕</button>
           </div>
         )}
+
+        {/* ===== TOURNAMENTS TAB ===== */}
+        {activeTab === 'tournaments' && (<>
 
         {/* Tournament Form */}
         {showForm && (
@@ -1048,6 +1294,235 @@ export default function TournamentsAdminPage() {
             </div>
           )}
         </div>
+        </>)}
+
+        {/* ===== EXTERNAL EVENTS TAB ===== */}
+        {activeTab === 'external' && (
+          <>
+            {/* External Event Form */}
+            {showExternalForm && (
+              <div className="bg-gray-900 rounded-lg p-6 mb-8">
+                <h2 className="text-2xl font-bold mb-6">
+                  {editingExternalEvent ? 'Edit External Event' : 'Create External Event'}
+                </h2>
+                <form onSubmit={handleExternalEventSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Title *</label>
+                      <input
+                        type="text"
+                        value={externalFormData.title}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, title: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                        placeholder="e.g., Nairobi Gaming Meetup"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">External URL *</label>
+                      <input
+                        type="url"
+                        value={externalFormData.externalUrl}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, externalUrl: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                        placeholder="https://www.sherehe.co.ke/events/..."
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Event Image *</label>
+                      <input
+                        ref={externalFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFileSelect}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                      />
+                      {editingExternalEvent && externalFormData.imageUrl && !selectedImageFile && (
+                        <p className="text-xs text-gray-400 mt-1">Current image will be kept unless you choose a new one.</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Venue</label>
+                      <input
+                        type="text"
+                        value={externalFormData.venue}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, venue: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                        placeholder="e.g., KICC, Nairobi"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Event Date</label>
+                      <input
+                        type="date"
+                        value={externalFormData.eventDate}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, eventDate: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Status</label>
+                      <select
+                        value={externalFormData.status}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, status: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Tags</label>
+                      <input
+                        type="text"
+                        value={externalFormData.tags}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, tags: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                        placeholder="COMMUNITY, PARTNER (comma-separated)"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 pt-6">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={externalFormData.isFeatured}
+                          onChange={(e) => setExternalFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                          className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-600 bg-gray-700"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-white">Featured</span>
+                          <p className="text-xs text-gray-400">Highlight this event</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <textarea
+                      value={externalFormData.description}
+                      onChange={(e) => setExternalFormData(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 h-24"
+                      placeholder="Brief event description..."
+                    />
+                  </div>
+
+                  {/* Image Preview */}
+                  {(imagePreviewUrl || externalFormData.imageUrl) && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-400 mb-2">Image Preview:</p>
+                      <div className="w-48 h-32 rounded overflow-hidden border border-gray-700">
+                        <img
+                          src={imagePreviewUrl || externalFormData.imageUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      disabled={isUploading}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-6 py-2 rounded-lg font-semibold"
+                    >
+                      {isUploading ? 'Uploading...' : editingExternalEvent ? 'Update Event' : 'Create Event'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetExternalForm}
+                      className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* External Events Table */}
+            <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-800">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Event</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Venue</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {externalEvents.map((event) => (
+                      <tr key={event.$id} className="hover:bg-gray-800">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            {event.imageUrl && (
+                              <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0 border border-gray-700">
+                                <img src={event.imageUrl} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-white">{event.title}</div>
+                              <div className="text-xs text-gray-400 truncate max-w-[200px]">{event.externalUrl}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {event.venue || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            event.status === 'published'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {event.status}
+                          </span>
+                          {event.isFeatured && <span className="text-yellow-400 ml-2">★</span>}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                          <button
+                            onClick={() => handleEditExternalEvent(event)}
+                            className="text-blue-400 hover:text-blue-300"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExternalEvent(event.$id)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                          <a
+                            href={event.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300"
+                          >
+                            View ↗
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {externalEvents.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-400">No external events found. Create your first external event!</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

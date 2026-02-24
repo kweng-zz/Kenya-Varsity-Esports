@@ -34,6 +34,7 @@
     "health-check": "node health-check.js",
     "deploy:render": "node scripts/deploy-render.js",
     "switch-env": "node scripts/switch-env.js",
+    "setup:external-events": "node scripts/setup-external-events.js",
     "type-check": "tsc --noEmit",
     "lint:fix": "eslint --fix .",
     "test": "bun test",

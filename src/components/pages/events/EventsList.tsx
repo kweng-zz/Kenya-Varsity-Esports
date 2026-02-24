@@ -18,13 +18,15 @@ interface Event {
   registrationLink?: string;
   detailsLink?: string;
   isActive: boolean;
+  isExternal?: boolean;
+  externalUrl?: string;
 }
 
 export default function EventsList() {
   const [activeTab, setActiveTab] = useState("ALL TITLES");
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const categories = ["ALL TITLES", "VALORANT", "FC 24", "CALL OF DUTY", "MOBILE LEGENDS"];
+  const categories = ["ALL TITLES", "EXTERNAL"];
 
   useEffect(() => {
     loadEvents();
@@ -50,6 +52,8 @@ export default function EventsList() {
 
   const filteredEvents = activeTab === "ALL TITLES" 
     ? events 
+    : activeTab === "EXTERNAL"
+    ? events.filter(e => e.isExternal)
     : events.filter(e => e.tags.includes(activeTab));
 
   return (
@@ -153,9 +157,14 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
         {/* Image Container */}
         <div className="relative h-52 overflow-hidden">
           {/* Status Badge — Brutalist */}
-          <div className="absolute top-3 right-3 z-10">
+          <div className="absolute top-3 right-3 z-10 flex gap-2">
+            {event.isExternal && (
+              <span className="inline-block py-1.5 px-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.2em]">
+                External
+              </span>
+            )}
             <span className="inline-block py-1.5 px-4 bg-[#8c110d] text-white text-[10px] font-black uppercase tracking-[0.2em]">
-              {event.status}
+              {event.isExternal ? 'EVENT' : event.status}
             </span>
           </div>
           
@@ -199,7 +208,14 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
 
           {/* Footer Action — Brutalist */}
           <div className="mt-auto">
-            {event.status === 'PRO' ? (
+            {event.isExternal ? (
+              <a href={event.externalUrl || '#'} target="_blank" rel="noopener noreferrer" className="block">
+                <div className="w-full text-center py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-600 text-white text-xs font-black uppercase tracking-wider transition-all duration-300 transform hover:shadow-lg hover:shadow-blue-600/50 cursor-pointer flex items-center justify-center gap-2">
+                  View Event
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </div>
+              </a>
+            ) : event.status === 'PRO' ? (
               <Link href={event.detailsLink || '#'} className="block">
                 <div className="w-full text-center py-4 bg-black border-2 border-gray-700 hover:border-[#8c110d] text-gray-300 hover:text-white text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer">
                   View Details

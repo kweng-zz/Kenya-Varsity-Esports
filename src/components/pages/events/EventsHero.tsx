@@ -11,6 +11,8 @@ interface FeaturedEvent {
   prizePool: string;
   gameSlug: string;
   registrationLink?: string;
+  isExternal?: boolean;
+  externalUrl?: string;
 }
 
 export default function EventsHero() {
@@ -40,8 +42,16 @@ export default function EventsHero() {
     if (!featuredEvent) return;
 
     const calculateTimeLeft = () => {
-      const eventDate = new Date(`${featuredEvent.date} ${featuredEvent.time}`);
+      const eventDateStr = `${featuredEvent.date} ${featuredEvent.time}`;
+      const eventDate = new Date(eventDateStr);
       const now = new Date();
+      
+      // If date parsing fails or date is in the past, don't show negative
+      if (isNaN(eventDate.getTime())) {
+        setTimeLeft({ days: 0, hours: 0, mins: 0 });
+        return;
+      }
+
       const difference = eventDate.getTime() - now.getTime();
 
       if (difference > 0) {
@@ -118,7 +128,7 @@ export default function EventsHero() {
         <div className="mb-8">
           <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#8c110d] text-white text-xs font-black uppercase tracking-[0.3em]">
             <span className="w-2 h-2 bg-white animate-pulse" />
-            Featured Tournament
+            {featuredEvent?.isExternal ? "Featured Event" : "Featured Tournament"}
           </span>
         </div>
 
@@ -131,8 +141,10 @@ export default function EventsHero() {
         <div className="relative max-w-2xl mb-12">
           <div className="absolute -left-4 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8c110d] to-transparent" />
           <p className="text-gray-300 text-lg md:text-xl pl-6 leading-relaxed">
-            Compete in the premier university esports league. Earn your spot among the legends and win from a pool of{' '}
-            <span className="font-black text-white">{displayPrize}</span>.
+            {featuredEvent?.isExternal 
+              ? `Check out this premier external event. Join the wider community and experience the excitement!`
+              : `Compete in the premier university esports league. Earn your spot among the legends and win from a pool of `}
+            {!featuredEvent?.isExternal && <span className="font-black text-white">{displayPrize}</span>}
           </p>
         </div>
 
@@ -145,19 +157,33 @@ export default function EventsHero() {
 
         {/* Buttons — Brutalist Style */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Link href={featuredEvent?.registrationLink || "/tournament-registration"}>
-            <button className="group inline-flex items-center px-10 py-5 bg-gradient-to-r from-[#8c110d] to-[#b91c17] hover:from-[#b91c17] hover:to-[#8c110d] text-white font-black text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-[#8c110d]/50">
-              <span>Register Now</span>
-              <svg className="w-5 h-5 ml-3 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
-          </Link>
-          <Link href={featuredEvent ? `/games/${featuredEvent.gameSlug}/information` : "#"}>
-            <button className="inline-flex items-center px-10 py-5 bg-black border-2 border-gray-600 hover:border-[#8c110d] text-white font-black text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105">
-              View Details
-            </button>
-          </Link>
+          {featuredEvent?.isExternal ? (
+            <a href={featuredEvent.externalUrl} target="_blank" rel="noopener noreferrer">
+              <button className="group inline-flex items-center px-10 py-5 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-black text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-600/50">
+                <span>View Event</span>
+                <svg className="w-5 h-5 ml-3 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
+            </a>
+          ) : (
+            <Link href={featuredEvent?.registrationLink || "/tournament-registration"}>
+              <button className="group inline-flex items-center px-10 py-5 bg-gradient-to-r from-[#8c110d] to-[#b91c17] hover:from-[#b91c17] hover:to-[#8c110d] text-white font-black text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-[#8c110d]/50">
+                <span>Register Now</span>
+                <svg className="w-5 h-5 ml-3 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </Link>
+          )}
+          
+          {!featuredEvent?.isExternal && (
+            <Link href={featuredEvent ? `/games/${featuredEvent.gameSlug}/information` : "#"}>
+              <button className="inline-flex items-center px-10 py-5 bg-black border-2 border-gray-600 hover:border-[#8c110d] text-white font-black text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105">
+                View Details
+              </button>
+            </Link>
+          )}
         </div>
       </div>
     </section>

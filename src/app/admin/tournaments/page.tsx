@@ -746,7 +746,7 @@ export default function TournamentsAdminPage() {
                   if (externalFileInputRef.current) externalFileInputRef.current.value = '';
                   setShowExternalForm(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold"
+                className="bg-[#8c110d] hover:bg-[#7a0f0b] px-6 py-2 rounded-lg font-semibold transition-all hover:scale-105"
               >
                 Create External Event
               </button>
@@ -770,7 +770,7 @@ export default function TournamentsAdminPage() {
             onClick={() => setActiveTab('external')}
             className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${
               activeTab === 'external'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-[#8c110d] text-white shadow-lg shadow-[#8c110d]/20'
                 : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
           >
@@ -1336,7 +1336,7 @@ export default function TournamentsAdminPage() {
                         type="file"
                         accept="image/*"
                         onChange={handleImageFileSelect}
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white file:mr-4 file:py-1 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-[#8c110d] file:text-white hover:file:bg-[#7a0f0b]"
                       />
                       {editingExternalEvent && externalFormData.imageUrl && !selectedImageFile && (
                         <p className="text-xs text-gray-400 mt-1">Current image will be kept unless you choose a new one.</p>
@@ -1388,7 +1388,7 @@ export default function TournamentsAdminPage() {
                           type="checkbox"
                           checked={externalFormData.isFeatured}
                           onChange={(e) => setExternalFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                          className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-600 bg-gray-700"
+                          className="w-5 h-5 rounded border-gray-600 text-[#8c110d] focus:ring-[#8c110d] bg-gray-700"
                         />
                         <div>
                           <span className="text-sm font-medium text-white">Featured</span>
@@ -1426,7 +1426,7 @@ export default function TournamentsAdminPage() {
                     <button
                       type="submit"
                       disabled={isUploading}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-6 py-2 rounded-lg font-semibold"
+                      className="bg-[#8c110d] hover:bg-[#7a0f0b] disabled:bg-gray-600 px-6 py-2 rounded-lg font-semibold transition-all"
                     >
                       {isUploading ? 'Uploading...' : editingExternalEvent ? 'Update Event' : 'Create Event'}
                     </button>
@@ -1490,7 +1490,7 @@ export default function TournamentsAdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                           <button
                             onClick={() => handleEditExternalEvent(event)}
-                            className="text-blue-400 hover:text-blue-300"
+                            className="text-red-400 hover:text-red-300"
                           >
                             Edit
                           </button>

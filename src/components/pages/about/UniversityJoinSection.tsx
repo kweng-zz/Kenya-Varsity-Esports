@@ -41,14 +41,9 @@ const steps: Step[] = [
 ];
 
 const featuredUniversitiesData = [
-  { name: 'University of Nairobi', shortName: 'UoN' },
-  { name: 'Kenyatta University', shortName: 'KU' },
-  { name: 'Technical University of Kenya', shortName: 'TUK' },
-  { name: 'Jomo Kenyatta University of Agriculture and Technology', shortName: 'JKUAT' },
-  { name: 'Masinde Muliro University of Science and Technology', shortName: 'MMUST' },
-  { name: 'Strathmore University', shortName: 'SU' },
-  { name: 'Daystar University', shortName: 'DU' },
-  { name: 'Multimedia University of Kenya', shortName: 'MMU' },
+  { name: 'University of Embu', shortName: 'UE' },
+  { name: 'NIBS College', shortName: 'NIBS' },
+  
 ];
 
 export const UniversityJoinSection = () => {

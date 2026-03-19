@@ -249,7 +249,7 @@ export const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ events, 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               { type: 'registration', label: 'Registration', icon: '📝' },
-              { type: 'match', label: 'Matches', icon: '⚽' },
+              { type: 'match', label: 'Matches', icon: '🎮' },
               { type: 'tournament', label: 'Tournament', icon: '🏆' },
               { type: 'deadline', label: 'Deadlines', icon: '⏰' },
               { type: 'announcement', label: 'Announcements', icon: '📢' }

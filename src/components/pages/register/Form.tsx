@@ -230,7 +230,7 @@ export const RegistrationFormSection = () => {
     return (
       <section className="w-full py-12 relative bg-black">
         <div className="max-w-[577px] mx-auto">
-          <h2 className="text-center [font-family:'Hind',Helvetica] font-bold text-[#961c18] text-[32px] mb-8">
+          <h2 className="text-center font-['Hind',Helvetica] font-bold text-[#961c18] text-[32px] mb-8">
             Loading...
           </h2>
         </div>
@@ -246,7 +246,7 @@ export const RegistrationFormSection = () => {
       </div>
 
       <div className="max-w-[577px] mx-auto px-4 md:px-0 relative z-10">
-        <h2 className="text-center [font-family:'Hind',Helvetica] font-bold text-[#961c18] text-2xl md:text-[32px] mb-6 md:mb-8">
+        <h2 className="text-center font-['Hind',Helvetica] font-bold text-[#961c18] text-2xl md:text-[32px] mb-6 md:mb-8">
           CREATE A NEW ACCOUNT
         </h2>
 
@@ -259,7 +259,7 @@ export const RegistrationFormSection = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor="fullName" className="[font-family:'Hind',Helvetica] font-medium text-[#961c18] text-base">Full Name</Label>
+            <Label htmlFor="fullName" className="font-['Hind',Helvetica] font-medium text-[#961c18] text-base">Full Name</Label>
             <input id="fullName" type="text" value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.fullName ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="Enter your full name" disabled={isLoading} />
             {errors.fullName && (<p className="text-red-400 text-sm">{errors.fullName}</p>)}
           </div>
@@ -267,7 +267,7 @@ export const RegistrationFormSection = () => {
           {/* D.O.B and Gender */}
           <div className="flex gap-4">
             <div className="space-y-2 flex-1">
-              <Label htmlFor="dob" className="[font-family:'Hind',Helvetica] font-medium text-[#961c18] text-base">D.O.B</Label>
+              <Label htmlFor="dob" className="font-['Hind',Helvetica] font-medium text-[#961c18] text-base">D.O.B</Label>
                 <DatePicker
                         id="dob"
                         selected={formData.dob ? new Date(formData.dob) : null}
@@ -288,7 +288,7 @@ export const RegistrationFormSection = () => {
               {errors.dob && (<p className="text-red-400 text-sm">{errors.dob}</p>)}
             </div>
             <div className="space-y-2 flex-1">
-              <Label htmlFor="gender" className="[font-family:'Hind',Helvetica] font-medium text-[#961c18] text-base">Gender</Label>
+              <Label htmlFor="gender" className="font-['Hind',Helvetica] font-medium text-[#961c18] text-base">Gender</Label>
               <select id="gender" value={formData.gender} onChange={(e) => handleInputChange('gender', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: '2px solid #961c18', backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }}>
                 <option value="">Select gender</option>
                 {genderOptions.map((option) => (<option key={option} value={option.toLowerCase()}>{option}</option>))}
@@ -298,32 +298,32 @@ export const RegistrationFormSection = () => {
 
           {/* Username/Gamertag */}
           <div className="space-y-1">
-            <Label htmlFor="username" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Username/Gamertag*</Label>
+            <Label htmlFor="username" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Username/Gamertag*</Label>
             <input id="username" type="text" value={formData.username} onChange={(e) => handleInputChange('username', e.target.value)} maxLength={12} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.username ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="Enter username" disabled={isLoading} />
-            <p className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xs">(Max. 12 characters) - {formData.username.length}/12</p>
+            <p className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xs">(Max. 12 characters) - {formData.username.length}/12</p>
             {errors.username && (<p className="text-red-400 text-sm">{errors.username}</p>)}
           </div>
 
           {/* Email, Password, Repeat Password... */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Email Address*</Label>
+            <Label htmlFor="email" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Email Address*</Label>
             <input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.email ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="you@email.com" disabled={isLoading} />
             {errors.email && (<p className="text-red-400 text-sm">{errors.email}</p>)}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Password*</Label>
+            <Label htmlFor="password" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Password*</Label>
             <input id="password" type="password" value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.password ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="Enter password" disabled={isLoading} />
             {errors.password && (<p className="text-red-400 text-sm">{errors.password}</p>)}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="repeatPassword" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Repeat Password*</Label>
+            <Label htmlFor="repeatPassword" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Repeat Password*</Label>
             <input id="repeatPassword" type="password" value={formData.repeatPassword} onChange={(e) => handleInputChange('repeatPassword', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.repeatPassword ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="Repeat password" disabled={isLoading} />
             {errors.repeatPassword && (<p className="text-red-400 text-sm">{errors.repeatPassword}</p>)}
           </div>
 
           {/* User Type Selection */}
           <div className="space-y-4 pt-2">
-            <Label className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">I am registering as a:</Label>
+            <Label className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">I am registering as a:</Label>
             <div className="flex gap-6">
               <div className="flex items-center space-x-2">
                 <Checkbox 
@@ -360,7 +360,7 @@ export const RegistrationFormSection = () => {
             <div className="space-y-4 border-l-2 border-[#961c18] pl-4 my-4">
               {/* Institution Input for Participant */}
                <div className="space-y-2">
-                <Label htmlFor="university" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Institution Name*</Label>
+                <Label htmlFor="university" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Institution Name*</Label>
                 <input 
                   id="university" // reusing university field ID for state mapping
                   type="text" 
@@ -375,7 +375,7 @@ export const RegistrationFormSection = () => {
 
               {/* Student ID */}
               <div className="space-y-2">
-                <Label htmlFor="studentId" className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xl">Student ID*</Label>
+                <Label htmlFor="studentId" className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xl">Student ID*</Label>
                 <input 
                   id="studentId" 
                   type="text" 
@@ -394,7 +394,7 @@ export const RegistrationFormSection = () => {
                   placeholder="Enter your student ID"
                   disabled={isLoading}
                 />
-                <p className="[font-family:'Hind',Helvetica] font-normal text-[#961c18] text-xs">
+                <p className="font-['Hind',Helvetica] font-normal text-[#961c18] text-xs">
                   Your ID will be verified by admins before tournament participation is granted.
                 </p>
                 {errors.studentId && (<p className="text-red-400 text-sm">{errors.studentId}</p>)}
@@ -406,27 +406,27 @@ export const RegistrationFormSection = () => {
           <div className="space-y-2 pt-4">
             <div className="flex items-start space-x-2">
               <Checkbox id="terms" className="mt-1 border-[#961c18]" checked={formData.acceptTerms} onCheckedChange={(checked) => handleInputChange('acceptTerms', checked as boolean)} />
-              <Label htmlFor="terms" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">When you register you confirm that you have read and accept the terms of the terms and conditions, privacy policy and cookie policy.</Label>
+              <Label htmlFor="terms" className="font-['Hind',Helvetica] font-normal text-white text-sm">When you register you confirm that you have read and accept the terms of the terms and conditions, privacy policy and cookie policy.</Label>
             </div>
             {errors.acceptTerms && (<p className="text-red-400 text-sm">{errors.acceptTerms}</p>)}
             
             {/* Newsletter Subscription */}
             <div className="flex items-start space-x-2">
               <Checkbox id="newsletter" className="mt-1 border-[#961c18]" checked={formData.subscribeNewsletter} onCheckedChange={(checked) => handleInputChange('subscribeNewsletter', checked as boolean)} />
-              <Label htmlFor="newsletter" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">
-                I would like to receive Tunza esports news, tournament updates, and exclusive offers via email (optional)
+              <Label htmlFor="newsletter" className="font-['Hind',Helvetica] font-normal text-white text-sm">
+                I would like to receive esports news, tournament updates, and exclusive offers via email (optional)
               </Label>
             </div>
             
             <div className="flex items-start space-x-2">
               <Checkbox id="marketing" className="mt-1 border-[#961c18]" checked={formData.acceptMarketing} onCheckedChange={(checked) => handleInputChange('acceptMarketing', checked as boolean)} />
-              <Label htmlFor="marketing" className="[font-family:'Hind',Helvetica] font-normal text-white text-sm">Would you like to receive information of interest and commercial information?</Label>
+              <Label htmlFor="marketing" className="font-['Hind',Helvetica] font-normal text-white text-sm">Would you like to receive information of interest and commercial information?</Label>
             </div>
           </div>
 
           {/* Register Button */}
           <div className="flex justify-center pt-6">
-            <Button type="submit" disabled={isLoading} className="w-full max-w-[574px] h-12 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 rounded text-white font-bold text-2xl [font-family:'Hind',Helvetica]">
+            <Button type="submit" disabled={isLoading} className="w-full max-w-[574px] h-12 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 rounded text-white font-bold text-2xl font-['Hind',Helvetica]">
               {isLoading ? 'CREATING ACCOUNT...' : 'REGISTER'}
             </Button>
           </div>

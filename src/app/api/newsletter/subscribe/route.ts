@@ -2,35 +2,52 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, name, tags } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.RESEND_API_KEY;
-    const audienceId = process.env.RESEND_AUDIENCE_ID;
+    const listmonkUrl = process.env.LISTMONK_URL;
+    const listmonkUsername = process.env.LISTMONK_USERNAME;
+    const listmonkPassword = process.env.LISTMONK_PASSWORD;
+    const listmonkListId = process.env.LISTMONK_LIST_ID;
 
-    if (!apiKey || !audienceId) {
-      console.error('RESEND_API_KEY or RESEND_AUDIENCE_ID is missing');
+    if (!listmonkUrl || !listmonkUsername || !listmonkPassword || !listmonkListId) {
+      console.error('Listmonk configuration is missing');
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
-    const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+    const basicAuth = Buffer.from(`${listmonkUsername}:${listmonkPassword}`).toString('base64');
+    
+    // Parse list IDs. Handle comma-separated list IDs if provided
+    const listIds = listmonkListId.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+
+    const res = await fetch(`${listmonkUrl}/api/subscribers`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Basic ${basicAuth}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         email: email,
-        unsubscribed: false,
+        name: name || email.split('@')[0],
+        status: 'enabled',
+        lists: listIds,
+        attribs: tags ? { tags } : {},
+        preconfirm_subscriptions: true
       }),
     });
 
     if (!res.ok) {
-        const errorData = await res.json();
-        console.error('Resend API Error:', errorData);
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Listmonk API Error:', errorData);
+        
+        // If subscriber already exists, Listmonk might return 409
+        if (res.status === 409) {
+           return NextResponse.json({ success: true, message: 'Already subscribed!' });
+        }
+        
         return NextResponse.json({ success: false, error: errorData.message || 'Failed to subscribe' }, { status: res.status });
     }
 

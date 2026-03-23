@@ -55,9 +55,11 @@ export const LoginSection = () => {
     setErrors({});
     setMessage('');
     
-    const { error } = await signIn(email, password);
+    const { error, user: signedInUser } = await signIn(email, password);
     if (error) {
       setErrors({ general: (error as { message?: string }).message || 'Invalid login credentials.' });
+    } else if (signedInUser && !signedInUser.emailVerification) {
+      router.push('/verify-email');
     } else {
       router.push('/');
     }

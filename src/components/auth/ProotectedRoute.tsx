@@ -27,6 +27,11 @@ export default function ProtectedRoute({
         return;
       }
 
+      if (user && user.emailVerification === false) {
+        router.push('/verify-email');
+        return;
+      }
+
       if (adminOnly && !profile?.isAdmin) {
         router.push('/');
         return;
@@ -38,7 +43,7 @@ export default function ProtectedRoute({
     return null;
   }
 
-  if (!user || (adminOnly && !profile?.isAdmin)) {
+  if (!user || (adminOnly && !profile?.isAdmin) || user.emailVerification === false) {
     if (fallback) {
       return <>{fallback}</>;
     }

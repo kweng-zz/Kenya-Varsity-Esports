@@ -170,6 +170,14 @@ export function Navigation() {
 
   return (
     <header className="relative w-full bg-black z-50">
+      {/* Verification Banner */}
+      {user && user.emailVerification === false && (
+        <div className="w-full bg-red-900 border-b border-red-700 text-white text-sm font-medium py-2 text-center animate-pulse">
+          Please verify your email address to access all features and tournaments. 
+          <Link href="/verify-email" className="underline font-bold ml-2 hover:text-red-200">Verify Now</Link>
+        </div>
+      )}
+
       {/* Top social bar (desktop only) */}
       <div className="hidden md:flex justify-between items-center px-6 h-[70px] border-b border-white">
         <div className="flex items-center space-x-4">

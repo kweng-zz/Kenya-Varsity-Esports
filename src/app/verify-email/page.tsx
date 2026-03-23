@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 
 
 export default function VerifyEmailPage() {
-    const { resendVerificationEmail, verifyEmail } = useAuth();
+    const { resendVerificationEmail, verifyEmail, user, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const userId = searchParams.get('userId');
@@ -20,6 +20,13 @@ export default function VerifyEmailPage() {
     const [status, setStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Redirect already verified users away from this page
+    useEffect(() => {
+        if (!loading && user?.emailVerification && !userId && !secret) {
+            router.push('/');
+        }
+    }, [user, loading, userId, secret, router]);
 
     useEffect(() => {
         // If we have userId and secret, attempt verification

@@ -154,48 +154,11 @@ export default async function TournamentInformationPage({ params }: TournamentIn
         </div>
       </section>
 
-      {/* Tournament Navigation Section */}
-      <section className="relative bg-black h-[100px]">
-        <img
-          className="absolute w-full h-full object-cover opacity-20"
-          alt="Background"
-          src="https://c.animaapp.com/md6ebassseX7AK/img/group-44.png"
-        />
-
-        <div className="absolute bottom-1 left-0 w-full h-[0.5px] bg-white/50 z-5"></div>
-
-        <div className="relative z-10 h-full">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex space-x-12">
-            {tournamentNavItems.map((item, index) => {
-              const itemHref = item.href.replace('[slug]', slug);
-              const isActive = currentPath === itemHref;
-              
-              return (
-                <div key={`tournament-nav-${index}`} className="relative">
-                  <Link
-                    href={itemHref}
-                    className={`text-xl font-bold font-hind tracking-wide transition-colors ${
-                      isActive
-                        ? 'text-[#8c110d]' 
-                        : 'text-[#8c110d] hover:text-[#b91c17]'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                  {isActive && (
-                    <div className="absolute -bottom-2 left-0 w-full h-[3px] bg-[#8e130e]" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Tournament Information Content */}
       <TournamentInformationContent 
         tournamentData={tournamentData} 
         slug={slug}
+        currentPath={currentPath}
       />
 
       <FooterSection />

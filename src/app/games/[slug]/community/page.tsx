@@ -1,17 +1,11 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getGameBySlug } from '@/lib/gamesData';
-import Link from 'next/link';
 import { Navigation } from '@/components/Navigation';
 import { FooterSection } from '@/components/Footer';
+import { TournamentHeader } from '@/components/tournaments/TournamentHeader';
 import { UniversitySelector } from '@/components/UniversitySelector';
 import { universities, SUPPORT_EMAIL, SUPPORT_WHATSAPP } from '@/lib/universitiesData';
-import { tournamentNavItems } from '@/lib/tournamentNavigation';
-
-interface TournamentNavItem {
-  name: string;
-  href: string;
-}
 
 interface GameCommunityPageProps {
   params: Promise<{
@@ -27,109 +21,23 @@ export default async function GameCommunityPage({ params }: GameCommunityPagePro
   if (!game) {
     notFound();
   }
-  
-  // Function to check if a nav item is active - for community page, check if current path matches
-  const isActiveRoute = (href: string) => {
-    return href.includes('/community');
-  };
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
       <Navigation />
-      {/* Hero Section */}
-      <section className="relative w-full h-[560px] bg-black mt-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${game.image})` }}
-        ></div>
-
-        <div className="absolute inset-0 bg-[#0F0F13] opacity-0"></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(182.1deg, #0F0F13 22.17%, rgba(12, 14, 17, 0) 74.51%)',
-          }}
-        ></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(0deg, rgba(15, 15, 19, 0.9) 22.17%, rgba(12, 14, 17, 0) 74.51%)',
-          }}
-        ></div>
-
-        <div className="absolute inset-0 overflow-hidden">
-          <img
-            className="absolute top-105 left-19 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2"
-            alt="Background Left"
-            src="/images/Mask Group.png"
-          />
-          
-          <img
-            className="absolute top-105 right-19 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1]"
-            alt="Background Right"
-            src="/images/Mask Group.png"
-          />
-        </div>
-      </section>
-
-      {/* Tournament Navigation Section */}
-      <section className="relative bg-black h-[100px]">
-        {/* Background image */}
-        <img
-          className="absolute w-full h-full object-cover opacity-20"
-          alt="Background"
-          src="https://c.animaapp.com/md6ebassseX7AK/img/group-44.png"
-        />
-
-        {/* White line at bottom */}
-        <div className="absolute bottom-1 left-0 w-full h-[0.5px] bg-white/50 z-5"></div>
-
-        {/* Navigation content */}
-        <div className="relative z-10 h-full">
-          {/* Centered navigation items */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex space-x-12">
-            {tournamentNavItems.map((item, index) => {
-              const itemHref = item.href.replace('[slug]', game.slug);
-              return (
-                <div key={`tournament-nav-${index}`} className="relative">
-                  <Link
-                    href={itemHref}
-                    className={`text-xl font-bold font-hind tracking-wide transition-colors ${
-                      isActiveRoute(item.href)
-                        ? 'text-[#8c110d]' 
-                        : 'text-[#8c110d] hover:text-[#b91c17]'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                  {isActiveRoute(item.href) && (
-                    <div className="absolute -bottom-1 left-0 w-full h-[3px] bg-[#8e130e]" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Hero Section with Integrated Command Center Navigation */}
+      <TournamentHeader 
+        slug={slug}
+        gameName={game.name}
+        subtitle="COMMUNITY"
+        currentPath={`/games/${slug}/community`}
+        featuredImageUrl={game.image}
+      />
 
       {/* Tournament Community Section */}
       <section id="tournament-community" className="relative w-full bg-black py-16">
         <div className="absolute inset-0 overflow-hidden">
-          {/* Left background image */}
-          <img
-            className="absolute top-105 left-20 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2"
-            alt="Background Left"
-            src="/images/Mask Group.png"
-          />
-          
-          {/* Right background image - inverted */}
-          <img
-            className="absolute top-105 right-20 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1]"
-            alt="Background Right"
-            src="/images/Mask Group.png"
-          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#080808] to-black" />
         </div>
 
         {/* Content Container - Tournament Community */}

@@ -54,25 +54,15 @@ export const HeroSection = () => {
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#080808] via-black to-[#080808]" />
         
-        {/* Accent line elements */}
-        <div className="absolute top-20 left-10 w-2 h-32 bg-[#8c110d] opacity-80 transform rotate-12" />
-        <div className="absolute top-24 left-20 w-32 h-2 bg-[#8c110d] opacity-60 transform -rotate-12" />
-        <div className="absolute bottom-20 right-16 w-2 h-24 bg-[#8c110d] opacity-70 transform -rotate-6" />
-        <div className="absolute bottom-28 right-8 w-24 h-2 bg-[#8c110d] opacity-50 transform rotate-12" />
-        
-        {/* Glow corners */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-[#8c110d] opacity-10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#8c110d] opacity-[0.08] blur-3xl" />
-        
-        {/* Background mask images */}
+        {/* Stylized background images in corners */}
         <img
-          className="absolute top-1/2 left-20 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2 sm:opacity-10 opacity-5"
-          alt=""
+          className="absolute -top-20 -left-20 w-96 h-96 object-contain opacity-20 pointer-events-none"
+          alt="Top Left Background"
           src="/images/Mask Group.png"
         />
         <img
-          className="absolute top-1/2 right-20 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1] sm:opacity-10 opacity-5"
-          alt=""
+          className="absolute -bottom-32 -right-32 w-[600px] h-[600px] object-contain opacity-15 translate-x-1/4 translate-y-1/4 scale-x-[-1] pointer-events-none"
+          alt="Bottom Right Background"
           src="/images/Mask Group.png"
         />
       </div>

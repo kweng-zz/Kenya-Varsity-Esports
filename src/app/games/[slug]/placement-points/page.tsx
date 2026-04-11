@@ -9,6 +9,8 @@ import { FooterSection } from '@/components/Footer';
 import { tournamentNavItems } from '@/lib/tournamentNavigation';
 import Link from 'next/link';
 
+import { TournamentHeader } from '@/components/tournaments/TournamentHeader';
+
 interface TournamentPlacementPointsPageProps {
   params: Promise<{
     slug: string;
@@ -77,16 +79,6 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
     console.error(`Error fetching tournament data for ${slug}:`, error);
   }
 
-  const currentPath = `/games/${slug}/placement-points`;
-
-  // Determine hero background image
-  const getHeroImage = () => {
-    if (tournamentData?.featuredImageUrl) {
-      return tournamentData.featuredImageUrl;
-    }
-    return game?.image || '/images/Mask Group.png';
-  };
-
   const gameName = tournamentData?.gameName || game?.name || 'Tournament';
 
   // Placement points data
@@ -104,81 +96,14 @@ export default async function TournamentPlacementPointsPage({ params }: Tourname
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
       <Navigation />
       
-      {/* Hero Section */}
-      <section className="relative w-full h-[560px] bg-black mt-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${getHeroImage()})` }}
-        ></div>
-
-        <div className="absolute inset-0 bg-[#0F0F13] opacity-0"></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(182.1deg, #0F0F13 22.17%, rgba(12, 14, 17, 0) 74.51%)',
-          }}
-        ></div>
-
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(0deg, rgba(15, 15, 19, 0.9) 22.17%, rgba(12, 14, 17, 0) 74.51%)',
-          }}
-        ></div>
-
-        <div className="absolute inset-0 overflow-hidden">
-          <img
-            className="absolute top-105 left-19 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2"
-            alt="Background Left"
-            src="/images/Mask Group.png"
-          />
-          
-          <img
-            className="absolute top-105 right-19 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1]"
-            alt="Background Right"
-            src="/images/Mask Group.png"
-          />
-        </div>
-      </section>
-
-      {/* Tournament Navigation Section */}
-      <section className="relative bg-black h-[100px]">
-        <img
-          className="absolute w-full h-full object-cover opacity-20"
-          alt="Background"
-          src="https://c.animaapp.com/md6ebassseX7AK/img/group-44.png"
-        />
-
-        <div className="absolute bottom-1 left-0 w-full h-[0.5px] bg-white/50 z-5"></div>
-
-        <div className="relative z-10 h-full">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex space-x-12">
-            {tournamentNavItems.map((item, index) => {
-              const itemHref = item.href.replace('[slug]', slug);
-              const isActive = currentPath === itemHref;
-              
-              return (
-                <div key={`tournament-nav-${index}`} className="relative">
-                  <Link
-                    href={itemHref}
-                    className={`text-xl font-bold font-hind tracking-wide transition-colors ${
-                      isActive
-                        ? 'text-[#8c110d]' 
-                        : 'text-[#8c110d] hover:text-[#b91c17]'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                  {isActive && (
-                    <div className="absolute -bottom-2 left-0 w-full h-[3px] bg-[#8e130e]" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Hero Section with Integrated Command Center Navigation */}
+      <TournamentHeader 
+        slug={slug}
+        gameName={gameName}
+        subtitle="PLACEMENT POINTS"
+        currentPath={`/games/${slug}/placement-points`}
+        featuredImageUrl={tournamentData?.featuredImageUrl}
+      />
 
       {/* Neo-Brutalist Placement Points Content */}
       <section className="relative w-full bg-[#080808] min-h-screen py-20 md:py-32">

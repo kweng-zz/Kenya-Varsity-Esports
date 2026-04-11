@@ -53,15 +53,17 @@ export const UniversityJoinSection = () => {
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-[#080808] to-black" />
         
-        {/* Accent elements */}
-        <div className="absolute top-40 right-10 w-2 h-32 bg-[#8c110d] opacity-70 transform rotate-12" />
-        <div className="absolute top-48 right-20 w-32 h-2 bg-[#8c110d] opacity-50 transform -rotate-6" />
-        <div className="absolute bottom-60 left-12 w-2 h-28 bg-[#8c110d] opacity-60 transform -rotate-12" />
-        <div className="absolute bottom-52 left-6 w-28 h-2 bg-[#8c110d] opacity-40 transform rotate-6" />
-        
-        {/* Subtle glow */}
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-[#8c110d] opacity-[0.06] blur-3xl" />
-        <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-[#8c110d] opacity-[0.08] blur-3xl" />
+        {/* Stylized background images in corners */}
+        <img
+          className="absolute -top-20 -left-20 w-96 h-96 object-contain opacity-20 pointer-events-none"
+          alt="Top Left Background"
+          src="/images/Mask Group.png"
+        />
+        <img
+          className="absolute -bottom-32 -right-32 w-[600px] h-[600px] object-contain opacity-15 translate-x-1/4 translate-y-1/4 scale-x-[-1] pointer-events-none"
+          alt="Bottom Right Background"
+          src="/images/Mask Group.png"
+        />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">

@@ -121,7 +121,7 @@ const NewsCard = ({ article }: NewsCardProps) => {
 
   return (
     <Link href={linkHref}>
-      <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-none overflow-hidden shadow-2xl w-full cursor-pointer group transition-all duration-500 ease-in-out hover:shadow-3xl hover:shadow-red-500/30 hover:-translate-y-3 hover:bg-gradient-to-br hover:from-gray-800 hover:to-black">
+      <div className="relative bg-black rounded-none overflow-hidden shadow-2xl w-full cursor-pointer group transition-all duration-500 ease-in-out hover:shadow-3xl hover:shadow-red-500/30 hover:-translate-y-3 hover:bg-gradient-to-br hover:from-gray-800 hover:to-black">
         {/* Image section with enhanced overlays */}
         <div className="w-full h-48 bg-gray-800 relative overflow-hidden">
           {displayImageUrl && displayImageUrl.trim() !== '' ? (
@@ -170,7 +170,7 @@ const NewsCard = ({ article }: NewsCardProps) => {
         <div className="p-6 transition-all duration-300 ease-in-out relative z-10">
           {/* Enhanced category badge */}
           <div className="inline-block mb-3">
-            <span className="px-3 py-1 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg border border-white/20">
+            <span className="px-3 py-1 bg-gradient-to-r from-[#961c18] to-[#c41e3a] text-white text-xs font-bold uppercase tracking-wider rounded-none shadow-lg border border-white/20">
               {category}
             </span>
           </div>

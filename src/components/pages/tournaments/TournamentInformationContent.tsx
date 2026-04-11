@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tournament } from '@/types/tournament';
-import { theme } from '@/lib/theme';
+import { TournamentHeader } from '@/components/tournaments/TournamentHeader';
 
 interface TournamentInformationContentProps {
   tournamentData?: Tournament | null;
   slug: string;
+  currentPath?: string;
 }
 
 // Neo-Brutalist Expandable Section Component
@@ -87,7 +88,8 @@ const StatusBadge: React.FC<{
 
 export const TournamentInformationContent: React.FC<TournamentInformationContentProps> = ({
   tournamentData,
-  slug
+  slug,
+  currentPath
 }) => {
   const [previewData, setPreviewData] = useState<Tournament | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -172,97 +174,48 @@ export const TournamentInformationContent: React.FC<TournamentInformationContent
   };
 
   return (
-    <section className="relative w-full bg-[#080808] min-h-screen py-20 md:py-32">
-      {/* Enhanced Background with animated gradients */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#080808] via-black to-[#080808]" />
-        
-        
-        
-        {/* Neo-brutalist accent elements */}
-        <div className="absolute top-20 left-10 w-2 h-32 bg-[#8c110d] opacity-80 transform rotate-12" />
-        <div className="absolute top-24 left-20 w-32 h-2 bg-[#8c110d] opacity-60 transform -rotate-12" />
-        <div className="absolute bottom-40 right-20 w-2 h-40 bg-[#8c110d] opacity-70 transform -rotate-6" />
-        <div className="absolute bottom-48 right-10 w-40 h-2 bg-[#8c110d] opacity-50 transform rotate-12" />
-        
-        {/* Subtle red glow corners */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-[#8c110d] opacity-10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#8c110d] opacity-8 blur-3xl" />
-        
-        {/* Mobile-friendly background elements */}
-        <div className="sm:hidden absolute top-32 left-4 w-16 h-16 bg-[#8c110d]/20 rotate-45 animate-pulse" />
-        <div className="sm:hidden absolute bottom-20 right-4 w-20 h-20 border-2 border-[#8c110d]/30 rotate-12 animate-spin" style={{ animationDuration: '20s' }} />
-        
-        {/* Original background elements - reduced opacity on mobile */}
-        <img
-          className="absolute top-105 left-20 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2 sm:opacity-10 opacity-5"
-          alt="Background Left"
-          src="/images/Mask Group.png"
+    <div className="bg-black min-h-screen">
+      <TournamentHeader 
+        slug={slug}
+        gameName={displayName}
+        subtitle="INFORMATION"
+        currentPath={currentPath || `/games/${slug}/information`}
+        featuredImageUrl={displayData?.featuredImageUrl}
+        actions={previewData && (
+          <>
+            <button
+              onClick={() => setShowPreview(!showPreview)}
+              className={`group relative px-6 py-3 font-black text-sm uppercase tracking-wider transition-all duration-300 ${
+                showPreview 
+                  ? 'bg-[#8c110d] text-white shadow-lg shadow-[#8c110d]/50 scale-105' 
+                  : 'bg-gray-900 text-gray-300 border-2 border-gray-700 hover:border-[#8c110d] hover:text-[#8c110d]'
+              }`}
+            >
+              <span className="relative z-10">
+                {showPreview ? '👁️ VIEWING DRAFT' : '📝 PREVIEW DRAFT'}
+              </span>
+              {showPreview && (
+                <div className="absolute inset-0 bg-gradient-to-r from-[#8c110d] to-[#b91c17] opacity-75 animate-pulse" />
+              )}
+            </button>
+            <button
+              onClick={handleDiscardDraft}
+              className="group px-4 py-3 bg-red-900 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider border-2 border-red-700 hover:border-red-500 transition-all duration-300 transform hover:scale-105"
+              title="Discard draft"
+            >
+              🗑️ DISCARD
+            </button>
+          </>
+        )}
+      >
+        <StatusBadge 
+          status={statusDisplay.text} 
+          variant={statusDisplay.variant}
+          pulse={statusDisplay.pulse}
         />
-        
-        <img
-          className="absolute top-105 right-20 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1] sm:opacity-10 opacity-5"
-          alt="Background Right"
-          src="/images/Mask Group.png"
-        />
-      </div>
+      </TournamentHeader>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Brutalist Header */}
-        <div className="mb-16 relative">
-          {/* Asymmetrical background shape */}
-          <div className="absolute -top-8 -left-8 w-32 h-32 bg-black opacity-20 rotate-12" />
-          
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div className="relative">
-              {/* Enhanced typography with dramatic styling */}
-              <div className="mb-4">
-                <span className="text-[#8c110d] font-black text-sm tracking-[0.3em] uppercase">TOURNAMENT</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-white leading-none">
-                <span className="block">{displayName}</span>
-                <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#8c110d] mt-2 block">INFORMATION</span>
-              </h1>
-              
-              {/* Status badge */}
-              <div className="mt-6">
-                <StatusBadge 
-                  status={statusDisplay.text} 
-                  variant={statusDisplay.variant}
-                  pulse={statusDisplay.pulse}
-                />
-              </div>
-            </div>
-            
-            {/* Enhanced Draft Preview Controls */}
-            {previewData && (
-              <div className="flex flex-col sm:flex-row gap-3 relative z-20">
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className={`group relative px-6 py-3 font-black text-sm uppercase tracking-wider transition-all duration-300 ${
-                    showPreview 
-                      ? 'bg-[#8c110d] text-white shadow-lg shadow-[#8c110d]/50 scale-105' 
-                      : 'bg-gray-900 text-gray-300 border-2 border-gray-700 hover:border-[#8c110d] hover:text-[#8c110d]'
-                  }`}
-                >
-                  <span className="relative z-10">
-                    {showPreview ? '👁️ VIEWING DRAFT' : '📝 PREVIEW DRAFT'}
-                  </span>
-                  {showPreview && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#8c110d] to-[#b91c17] opacity-75 animate-pulse" />
-                  )}
-                </button>
-                <button
-                  onClick={handleDiscardDraft}
-                  className="group px-4 py-3 bg-red-900 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider border-2 border-red-700 hover:border-red-500 transition-all duration-300 transform hover:scale-105"
-                  title="Discard draft"
-                >
-                  🗑️ DISCARD
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-12">
         
         {/* Enhanced No Tournament Data Message */}
         {!hasTournamentData && (
@@ -599,6 +552,6 @@ export const TournamentInformationContent: React.FC<TournamentInformationContent
           }
         }
       `}</style>
-    </section>
+    </div>
   );
 };

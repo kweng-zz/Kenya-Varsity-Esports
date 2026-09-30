@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
           quantity: purchase.quantity,
           ticketCodes,
           purchaseId: purchase.purchaseId,
-          confirmationCode: purchase.confirmationCode,
+          confirmationCode: purchase.confirmationCode || `CONF-${purchase.purchaseId}`,
           totalAmount: purchase.totalAmount,
           currency: purchase.currency,
         });

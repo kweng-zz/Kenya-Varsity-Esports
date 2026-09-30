@@ -25,6 +25,84 @@ const initializeAppwrite = () => {
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const TOURNAMENTS_COLLECTION = 'tournaments';
 const EXTERNAL_EVENTS_COLLECTION = 'external_events';
+const EVENT_TICKETS_COLLECTION = 'event_tickets';
+const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
+
+// Check if event has active tickets
+async function checkEventTickets(eventId: string, eventSlug: string): Promise<{
+  hasTickets: boolean;
+  startingPrice?: number;
+  currency?: string;
+}> {
+  try {
+    const db = initializeAppwrite();
+    if (!db) return { hasTickets: false };
+
+    const response = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+      Query.equal('eventId', eventId),
+      Query.equal('isActive', true),
+      Query.limit(1),
+    ]);
+
+    if (response.documents.length === 0) {
+      // Try by slug
+      const slugResponse = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+        Query.equal('eventSlug', eventSlug),
+        Query.equal('isActive', true),
+        Query.limit(1),
+      ]);
+      if (slugResponse.documents.length === 0) {
+        return { hasTickets: false };
+      }
+      return checkTicketTypes(slugResponse.documents[0].$id);
+    }
+
+    return checkTicketTypes(response.documents[0].$id);
+  } catch {
+    return { hasTickets: false };
+  }
+}
+
+async function checkTicketTypes(eventTicketId: string): Promise<{
+  hasTickets: boolean;
+  startingPrice?: number;
+  currency?: string;
+}> {
+  try {
+    const db = initializeAppwrite();
+    if (!db) return { hasTickets: false };
+
+    const response = await db.listDocuments(DB_ID, EVENT_TICKET_TYPES_COLLECTION, [
+      Query.equal('eventTicketId', eventTicketId),
+      Query.equal('isActive', true),
+      Query.orderAsc('price'),
+      Query.limit(1),
+    ]);
+
+    if (response.documents.length === 0) {
+      return { hasTickets: false };
+    }
+
+    const ticketType = response.documents[0];
+    const available = ticketType.quantityTotal - ticketType.quantitySold - ticketType.quantityReserved;
+    
+    if (available <= 0) {
+      return { hasTickets: false };
+    }
+
+    // Get event ticket for currency
+    const eventTicketResponse = await db.getDocument(DB_ID, EVENT_TICKETS_COLLECTION, eventTicketId);
+    const eventTicket = eventTicketResponse as unknown as { currency: string };
+
+    return {
+      hasTickets: true,
+      startingPrice: ticketType.price,
+      currency: eventTicket.currency,
+    };
+  } catch {
+    return { hasTickets: false };
+  }
+}
 
 export async function GET() {
   try {
@@ -33,21 +111,26 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'No featured event found' }, { status: 404 });
     }
 
-    // 1. Fetch latest featured tournament
+    const now = new Date().toISOString();
+
+    // 1. Fetch latest featured tournament (exclude completed and past events)
     const tournamentResponse = await db.listDocuments(DB_ID, TOURNAMENTS_COLLECTION, [
       Query.equal('showInEvents', true),
       Query.equal('isFeatured', true),
       Query.equal('status', 'published'),
+      Query.notEqual('tournamentStatus', 'completed'),
+      Query.greaterThanEqual('startDate', now),
       Query.orderDesc('$updatedAt'),
       Query.limit(1),
     ]);
 
-    // 2. Fetch latest featured external event
+    // 2. Fetch latest featured external event (exclude past events)
     let externalEvent: any = null;
     try {
       const externalResponse = await db.listDocuments(DB_ID, EXTERNAL_EVENTS_COLLECTION, [
         Query.equal('isFeatured', true),
         Query.equal('status', 'published'),
+        Query.greaterThanEqual('eventDate', now),
         Query.orderDesc('$updatedAt'),
         Query.limit(1),
       ]);
@@ -126,6 +209,9 @@ export async function GET() {
         timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
       }
 
+      // Check for tickets
+      const ticketInfo = await checkEventTickets(t.$id, t.slug);
+
       featuredEvent = {
         $id: t.$id,
         title: t.title || t.gameName,
@@ -136,6 +222,7 @@ export async function GET() {
         prizePool: prizeStr,
         registrationLink: `/tournament-registration`,
         isExternal: false,
+        ...ticketInfo,
       };
     }
 

@@ -57,6 +57,25 @@ interface ExternalEventFormData {
   status: string;
   tags: string;
   isFeatured: boolean;
+  enableTickets: boolean;
+  ticketCurrency: string;
+  maxTicketsPerUser: string;
+  platformFee: string;
+  platformFeeType: 'fixed' | 'percentage';
+  ticketTypes: TicketTypeConfig[];
+}
+
+interface TicketTypeConfig {
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string;
+  quantityTotal: string;
+  maxPerOrder: string;
+  minPerOrder: string;
+  benefits: string;
+  color: string;
+  isFeatured: boolean;
 }
 
 interface TournamentFormData {
@@ -93,6 +112,7 @@ interface AwardFormData {
 
 export default function TournamentsAdminPage() {
   const { user, profile } = useAuth();
+
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [awards, setAwards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,10 +123,159 @@ export default function TournamentsAdminPage() {
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'tournaments' | 'external'>('tournaments');
 
+const initialTicketType: TicketTypeConfig = {
+  name: '',
+  description: '',
+  price: '',
+  originalPrice: '',
+  quantityTotal: '',
+  maxPerOrder: '5',
+  minPerOrder: '1',
+  benefits: '',
+  color: '#8c110d',
+  isFeatured: false
+};
+
+  // External Event Ticket Configuration Functions
+  const addExternalTicketType = () => {
+    setExternalFormData(prev => ({ ...prev, ticketTypes: [...prev.ticketTypes, { ...initialTicketType }] }));
+  };
+
+  const removeExternalTicketType = (index: number) => {
+    setExternalFormData(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateExternalTicketType = (index: number, field: keyof TicketTypeConfig, value: string | boolean) => {
+    setExternalFormData(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.map((t, i) => i === index ? { ...t, [field]: value } : t)
+    }));
+  };
+
+  const updateExternalPricePreview = () => {
+    if (typeof window === 'undefined') return;
+    
+    const basePrice = 200;
+    const platformFee = parseFloat(externalFormData.platformFee) || 0;
+    const feeType = externalFormData.platformFeeType;
+    const currency = externalFormData.ticketCurrency;
+    const vatRate = 16;
+
+    const vatAmount = basePrice * (vatRate / 100);
+    const platformFeeAmount = feeType === 'percentage' ? basePrice * (platformFee / 100) : platformFee;
+    const subtotal = basePrice + vatAmount + platformFeeAmount;
+    
+    const paystackRate = 0.025;
+    const paystackFixedFee = 10;
+    const paystackFee = subtotal * paystackRate + paystackFixedFee;
+    const total = subtotal + paystackFee;
+    const net = basePrice - (total * 0.025 + 10);
+
+    const fmt = (n: number) => new Intl.NumberFormat('en-KE', { style: 'currency', currency, minimumFractionDigits: 0 }).format(n);
+
+    const baseEl = document.getElementById('calc-base-ext');
+    const vatEl = document.getElementById('calc-vat-ext');
+    const feeEl = document.getElementById('calc-fee-ext');
+    const paystackEl = document.getElementById('calc-paystack-ext');
+    const totalEl = document.getElementById('calc-total-ext');
+    const netEl = document.getElementById('calc-net-ext');
+
+    if (baseEl) baseEl.textContent = fmt(basePrice);
+    if (vatEl) vatEl.textContent = fmt(vatAmount);
+    if (feeEl) feeEl.textContent = fmt(platformFeeAmount);
+    if (paystackEl) paystackEl.textContent = fmt(paystackFee);
+    if (totalEl) totalEl.textContent = fmt(total);
+    if (netEl) netEl.textContent = fmt(Math.max(0, net));
+  };
+
+  const createExternalTicketConfiguration = async (eventId: string, formData: ExternalEventFormData) => {
+    try {
+      const appwrite = initializeAppwrite();
+      if (!appwrite?.databases) return;
+
+      const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+      const EVENT_TICKETS_COLLECTION = 'event_tickets';
+      const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
+
+      const eventSlug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      const eventTicketResponse = await appwrite.databases.createDocument(
+        DB_ID,
+        'event_tickets',
+        ID.unique(),
+        {
+          eventId: eventId,
+          eventTitle: formData.title,
+          eventSlug: eventSlug,
+          isActive: true,
+          maxTicketsPerUser: parseInt(formData.maxTicketsPerUser) || 5,
+          currency: formData.ticketCurrency,
+          taxRate: 16,
+          serviceFee: parseFloat(formData.platformFee) || 0,
+          serviceFeeType: formData.platformFeeType,
+          description: formData.description,
+          totalSold: 0,
+          totalRevenue: 0,
+        },
+        [
+          Permission.read(Role.any()),
+          Permission.create(Role.team('admins')),
+          Permission.update(Role.team('admins')),
+          Permission.delete(Role.team('admins'))
+        ]
+      );
+
+      const eventTicketId = eventTicketResponse.$id;
+
+      for (let i = 0; i < formData.ticketTypes.length; i++) {
+        const tt = formData.ticketTypes[i];
+        const price = parseFloat(tt.price);
+        const originalPrice = parseFloat(tt.originalPrice) || price;
+        
+        await appwrite.databases.createDocument(
+          DB_ID,
+          'event_ticket_types',
+          ID.unique(),
+          {
+            eventTicketId: eventTicketId,
+            name: tt.name,
+            description: tt.description,
+            price: price,
+            originalPrice: originalPrice,
+            quantityTotal: parseInt(tt.quantityTotal) || 0,
+            quantitySold: 0,
+            quantityReserved: 0,
+            maxPerOrder: parseInt(tt.maxPerOrder) || 5,
+            minPerOrder: parseInt(tt.minPerOrder) || 1,
+            sortOrder: i,
+            isActive: true,
+            benefits: tt.benefits.split('\n').filter(b => b.trim()),
+            color: tt.color,
+            isFeatured: tt.isFeatured,
+          },
+          [
+            Permission.read(Role.any()),
+            Permission.create(Role.team('admins')),
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.team('admins'))
+          ]
+        );
+      }
+
+      console.log('✅ Ticket configuration created successfully for external event:', eventId);
+    } catch (error) {
+      console.error('Error creating ticket configuration:', error);
+    }
+  };
+
   // External events state
   const [externalEvents, setExternalEvents] = useState<any[]>([]);
   const [showExternalForm, setShowExternalForm] = useState(false);
   const [editingExternalEvent, setEditingExternalEvent] = useState<any | null>(null);
+  const [showTicketConfig, setShowTicketConfig] = useState(false);
   const [externalFormData, setExternalFormData] = useState<ExternalEventFormData>({
     title: '',
     description: '',
@@ -117,6 +286,12 @@ export default function TournamentsAdminPage() {
     status: 'draft',
     tags: '',
     isFeatured: false,
+    enableTickets: false,
+    ticketCurrency: 'KES',
+    maxTicketsPerUser: '5',
+    platformFee: '0',
+    platformFeeType: 'fixed',
+    ticketTypes: []
   });
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
@@ -164,18 +339,6 @@ export default function TournamentsAdminPage() {
     prize: 0,
     currency: 'KES'
   });
-
-  // Check if user is admin
-  if (!user || !profile?.isAdmin) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p>You need admin privileges to access this page.</p>
-        </div>
-      </div>
-    );
-  }
 
   // Fetch tournaments
   const fetchTournaments = async () => {
@@ -297,13 +460,14 @@ export default function TournamentsAdminPage() {
         tags: externalFormData.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
       };
 
+      let data;
       if (editingExternalEvent) {
         const res = await fetch(`/api/external-events/${editingExternalEvent.$id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
+        data = await res.json();
         if (!data.success) throw new Error(data.error);
       } else {
         const res = await fetch('/api/external-events', {
@@ -311,8 +475,20 @@ export default function TournamentsAdminPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
+        data = await res.json();
         if (!data.success) throw new Error(data.error);
+      }
+
+      let eventId;
+      if (editingExternalEvent) {
+        eventId = editingExternalEvent.$id;
+      } else {
+        eventId = data.data.$id;
+      }
+
+      // Create ticket configuration if enabled
+      if (externalFormData.enableTickets && externalFormData.ticketTypes.length > 0) {
+        await createExternalTicketConfiguration(eventId, externalFormData);
       }
 
       resetExternalForm();
@@ -336,6 +512,12 @@ export default function TournamentsAdminPage() {
       status: 'draft',
       tags: '',
       isFeatured: false,
+      enableTickets: false,
+      ticketCurrency: 'KES',
+      maxTicketsPerUser: '5',
+      platformFee: '0',
+      platformFeeType: 'fixed',
+      ticketTypes: []
     });
     setSelectedImageFile(null);
     setImagePreviewUrl('');
@@ -344,8 +526,36 @@ export default function TournamentsAdminPage() {
     setEditingExternalEvent(null);
   };
 
-  const handleEditExternalEvent = (event: any) => {
+  const handleEditExternalEvent = async (event: any) => {
     setEditingExternalEvent(event);
+    
+    // Load existing ticket configuration if any
+    let ticketConfig = null;
+    const appwrite = initializeAppwrite();
+    if (appwrite?.databases) {
+      try {
+        const response = await appwrite.databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+          'event_tickets',
+          [Query.equal('eventId', event.$id), Query.limit(1)]
+        );
+        if (response.documents.length > 0) {
+          const et = response.documents[0];
+          const typesResponse = await appwrite.databases.listDocuments(
+            process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+            'event_ticket_types',
+            [Query.equal('eventTicketId', et.$id), Query.orderAsc('sortOrder')]
+          );
+          ticketConfig = {
+            eventTicket: et,
+            ticketTypes: typesResponse.documents
+          };
+        }
+      } catch (error) {
+        console.error('Error loading ticket config:', error);
+      }
+    }
+
     setExternalFormData({
       title: event.title || '',
       description: event.description || '',
@@ -356,7 +566,28 @@ export default function TournamentsAdminPage() {
       status: event.status || 'draft',
       tags: (event.tags || []).join(', '),
       isFeatured: event.isFeatured || false,
+      enableTickets: !!ticketConfig,
+      ticketCurrency: ticketConfig?.eventTicket?.currency || 'KES',
+      maxTicketsPerUser: ticketConfig?.eventTicket?.maxTicketsPerUser?.toString() || '5',
+      platformFee: ticketConfig?.eventTicket?.serviceFee?.toString() || '0',
+      platformFeeType: ticketConfig?.eventTicket?.serviceFeeType || 'fixed',
+      ticketTypes: ticketConfig?.ticketTypes?.map((tt: any) => ({
+        name: tt.name,
+        description: tt.description || '',
+        price: tt.price?.toString() || '',
+        originalPrice: tt.originalPrice?.toString() || '',
+        quantityTotal: tt.quantityTotal?.toString() || '',
+        maxPerOrder: tt.maxPerOrder?.toString() || '5',
+        minPerOrder: tt.minPerOrder?.toString() || '1',
+        benefits: Array.isArray(tt.benefits) ? tt.benefits.join('\n') : (tt.benefits || ''),
+        color: tt.color || '#8c110d',
+        isFeatured: tt.isFeatured || false
+      })) || []
     });
+    
+    if (ticketConfig) {
+      setShowTicketConfig(true);
+    }
     setSelectedImageFile(null);
     setImagePreviewUrl(event.imageUrl || '');
     if (externalFileInputRef.current) externalFileInputRef.current.value = '';
@@ -700,6 +931,18 @@ export default function TournamentsAdminPage() {
     );
   }
 
+  // Check if user is admin
+  if (!user || !profile?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p>You need admin privileges to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -740,11 +983,18 @@ export default function TournamentsAdminPage() {
                     status: 'draft',
                     tags: '',
                     isFeatured: false,
+                    enableTickets: false,
+                    ticketCurrency: 'KES',
+                    maxTicketsPerUser: '5',
+                    platformFee: '0',
+                    platformFeeType: 'fixed',
+                    ticketTypes: []
                   });
                   setSelectedImageFile(null);
                   setImagePreviewUrl('');
                   if (externalFileInputRef.current) externalFileInputRef.current.value = '';
                   setShowExternalForm(true);
+                  setShowTicketConfig(false);
                 }}
                 className="bg-[#8c110d] hover:bg-[#7a0f0b] px-6 py-2 rounded-lg font-semibold transition-all hover:scale-105"
               >
@@ -1406,6 +1656,268 @@ export default function TournamentsAdminPage() {
                       placeholder="Brief event description..."
                     />
                   </div>
+
+                  {/* Ticket Payment Configuration */}
+                  <div className="border-t border-gray-700 pt-6 mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-white">Ticket Payment Configuration</h3>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={externalFormData.enableTickets}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setExternalFormData(prev => {
+                              const next = { ...prev, enableTickets: checked };
+                              if (checked && prev.ticketTypes.length === 0) {
+                                next.ticketTypes = [{ ...initialTicketType }];
+                              }
+                              return next;
+                            });
+                            setShowTicketConfig(checked);
+                          }}
+                          className="w-5 h-5 text-[#8c110d] bg-gray-700 border-gray-600 rounded focus:ring-[#8c110d]"
+                        />
+                        <span className="text-sm font-medium">Enable Ticket Sales</span>
+                      </label>
+                    </div>
+
+                    {externalFormData.enableTickets && (
+                      <div className="space-y-6">
+                        <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-blue-400 font-bold">💡 Simple Pricing</span>
+                          </div>
+                          <p className="text-blue-300 text-sm">
+                            Set the <strong>base price</strong> per ticket type below. At checkout, the system automatically adds:
+                          </p>
+                          <ul className="text-blue-300 text-sm mt-2 space-y-1 list-disc list-inside">
+                            <li>VAT (16% for Kenya)</li>
+                            <li>Paystack transaction fee (~2.5% + KES 10)</li>
+                            <li>Any platform fee you configure</li>
+                          </ul>
+                          <p className="text-blue-300 text-sm mt-2">
+                            Attendees see the full breakdown before paying. You receive the base price minus Paystack fees.
+                          </p>
+                        </div>
+
+                        <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 mb-6">
+                          <h4 className="font-medium text-white mb-3">💰 Price Calculator Preview (per ticket)</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+                            <div className="bg-gray-700 p-3 rounded">
+                              <div className="text-gray-400 text-xs">Base Price</div>
+                              <div className="text-white font-bold" id="calc-base-ext">KES 0</div>
+                            </div>
+                            <div className="bg-gray-700 p-3 rounded">
+                              <div className="text-gray-400 text-xs">+ VAT (16%)</div>
+                              <div className="text-white font-bold" id="calc-vat-ext">KES 0</div>
+                            </div>
+                            <div className="bg-gray-700 p-3 rounded">
+                              <div className="text-gray-400 text-xs">+ Platform Fee</div>
+                              <div className="text-white font-bold" id="calc-fee-ext">KES 0</div>
+                            </div>
+                            <div className="bg-yellow-900/30 p-3 rounded border border-yellow-700">
+                              <div className="text-yellow-300 text-xs">+ Paystack Fee</div>
+                              <div className="text-white font-bold" id="calc-paystack-ext">KES 0</div>
+                            </div>
+                            <div className="bg-[#8c110d]/20 p-3 rounded border border-[#8c110d]">
+                              <div className="text-yellow-300 text-xs">Attendee Pays</div>
+                              <div className="text-white font-bold text-lg" id="calc-total-ext">KES 0</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 p-3 bg-gray-900/50 rounded border border-gray-700 text-xs text-gray-400">
+                            You receive approximately: <span className="text-green-400" id="calc-net-ext">KES 0</span> per ticket (after Paystack fees).
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Currency</label>
+                            <select
+                              value={externalFormData.ticketCurrency}
+                              onChange={(e) => setExternalFormData(prev => ({ ...prev, ticketCurrency: e.target.value }))}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value="KES">KES (Kenyan Shilling)</option>
+                              <option value="USD">USD (US Dollar)</option>
+                              <option value="EUR">EUR (Euro)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Max Tickets Per User</label>
+                            <input
+                              type="number"
+                              value={externalFormData.maxTicketsPerUser}
+                              onChange={(e) => { setExternalFormData(prev => ({ ...prev, maxTicketsPerUser: e.target.value })); updateExternalPricePreview(); }}
+                              placeholder="e.g., 5"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Platform Fee (Optional)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={externalFormData.platformFee}
+                              onChange={(e) => { setExternalFormData(prev => ({ ...prev, platformFee: e.target.value })); updateExternalPricePreview(); }}
+                              placeholder="e.g., 50"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Fee Type</label>
+                            <select
+                              value={externalFormData.platformFeeType}
+                              onChange={(e) => { setExternalFormData(prev => ({ ...prev, platformFeeType: e.target.value as 'fixed' | 'percentage' })); updateExternalPricePreview(); }}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value="fixed">Fixed KES per ticket</option>
+                              <option value="percentage">Percentage of base price</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <fieldset className="border border-gray-700 rounded-lg p-4">
+                      <legend className="text-sm font-medium text-gray-300 mb-4">Ticket Types</legend>
+                      {externalFormData.ticketTypes.map((ticketType, index) => (
+                        <div key={index} className="bg-gray-700/50 border border-gray-600 rounded-lg p-4 mb-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-medium text-white">Ticket Type #{index + 1}</h4>
+                            {externalFormData.ticketTypes.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeExternalTicketType(index)}
+                                className="text-red-400 hover:text-red-300 text-sm"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Name *</label>
+                              <input
+                                type="text"
+                                value={ticketType.name}
+                                onChange={(e) => updateExternalTicketType(index, "name", e.target.value)}
+                                placeholder="e.g., Standard Entry, VIP Pass"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Color</label>
+                              <input
+                                type="color"
+                                value={ticketType.color}
+                                onChange={(e) => updateExternalTicketType(index, "color", e.target.value)}
+                                className="w-full h-10 bg-gray-700 border border-gray-600 rounded cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Price *</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={ticketType.price}
+                                onChange={(e) => { updateExternalTicketType(index, "price", e.target.value); updateExternalPricePreview(); }}
+                                placeholder="e.g., 200"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Original Price</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={ticketType.originalPrice}
+                                onChange={(e) => updateExternalTicketType(index, "originalPrice", e.target.value)}
+                                placeholder="e.g., 200 (for showing discount)"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Total Quantity *</label>
+                              <input
+                                type="number"
+                                value={ticketType.quantityTotal}
+                                onChange={(e) => updateExternalTicketType(index, "quantityTotal", e.target.value)}
+                                placeholder="e.g., 32"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Max Per Order</label>
+                              <input
+                                type="number"
+                                value={ticketType.maxPerOrder}
+                                onChange={(e) => updateExternalTicketType(index, "maxPerOrder", e.target.value)}
+                                placeholder="e.g., 1"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Min Per Order</label>
+                              <input
+                                type="number"
+                                value={ticketType.minPerOrder}
+                                onChange={(e) => updateExternalTicketType(index, "minPerOrder", e.target.value)}
+                                placeholder="e.g., 1"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Benefits (one per line)</label>
+                            <textarea
+                              value={ticketType.benefits}
+                              onChange={(e) => updateExternalTicketType(index, "benefits", e.target.value)}
+                              rows={3}
+                              placeholder="Event entry&#10;Live streaming access&#10;Discord access"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Description</label>
+                              <input
+                                type="text"
+                                value={ticketType.description}
+                                onChange={(e) => updateExternalTicketType(index, "description", e.target.value)}
+                                placeholder="Brief description of this ticket type"
+                                className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                              />
+                            </div>
+                            <div className="flex items-end">
+                              <label className="flex items-center space-x-2 w-full">
+                                <input
+                                  type="checkbox"
+                                  checked={ticketType.isFeatured}
+                                  onChange={(e) => updateExternalTicketType(index, "isFeatured", e.target.checked)}
+                                  className="w-4 h-4 text-[#8c110d] bg-gray-700 border-gray-600 rounded focus:ring-[#8c110d]"
+                                />
+                                <span className="text-sm font-medium">Featured (highlight in UI)</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {externalFormData.ticketTypes.length < 5 && (
+                        <button
+                          type="button"
+                          onClick={addExternalTicketType}
+                          className="w-full py-3 border-2 border-dashed border-gray-600 hover:border-[#8c110d] text-gray-400 hover:text-white font-medium rounded-lg transition-colors"
+                        >
+                          + Add Another Ticket Type
+                        </button>
+                      )}
+                    </fieldset>
+              </div>
 
                   {/* Image Preview */}
                   {(imagePreviewUrl || externalFormData.imageUrl) && (

@@ -6,10 +6,11 @@
       "dom.iterable",
       "esnext"
     ],
-    "types": ["bun-types"],
+    "types": [
+      "bun-types"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
-    "downlevelIteration": true,
     "strict": true,
     "noEmit": false,
     "esModuleInterop": true,
@@ -35,7 +36,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     ".next/types/**/*.ts",
-    ".next\\dev/types/**/*.ts"
+    ".next\\dev/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

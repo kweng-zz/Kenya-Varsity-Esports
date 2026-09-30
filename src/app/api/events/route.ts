@@ -25,6 +25,84 @@ const initializeAppwrite = () => {
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
 const TOURNAMENTS_COLLECTION = 'tournaments';
 const EXTERNAL_EVENTS_COLLECTION = 'external_events';
+const EVENT_TICKETS_COLLECTION = 'event_tickets';
+const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
+
+// Check if event has active tickets
+async function checkEventTickets(eventId: string, eventSlug: string): Promise<{
+  hasTickets: boolean;
+  startingPrice?: number;
+  currency?: string;
+}> {
+  try {
+    const db = initializeAppwrite();
+    if (!db) return { hasTickets: false };
+
+    const response = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+      Query.equal('eventId', eventId),
+      Query.equal('isActive', true),
+      Query.limit(1),
+    ]);
+
+    if (response.documents.length === 0) {
+      // Try by slug
+      const slugResponse = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+        Query.equal('eventSlug', eventSlug),
+        Query.equal('isActive', true),
+        Query.limit(1),
+      ]);
+      if (slugResponse.documents.length === 0) {
+        return { hasTickets: false };
+      }
+      return checkTicketTypes(slugResponse.documents[0].$id);
+    }
+
+    return checkTicketTypes(response.documents[0].$id);
+  } catch {
+    return { hasTickets: false };
+  }
+}
+
+async function checkTicketTypes(eventTicketId: string): Promise<{
+  hasTickets: boolean;
+  startingPrice?: number;
+  currency?: string;
+}> {
+  try {
+    const db = initializeAppwrite();
+    if (!db) return { hasTickets: false };
+
+    const response = await db.listDocuments(DB_ID, EVENT_TICKET_TYPES_COLLECTION, [
+      Query.equal('eventTicketId', eventTicketId),
+      Query.equal('isActive', true),
+      Query.orderAsc('price'),
+      Query.limit(1),
+    ]);
+
+    if (response.documents.length === 0) {
+      return { hasTickets: false };
+    }
+
+    const ticketType = response.documents[0];
+    const available = ticketType.quantityTotal - ticketType.quantitySold - ticketType.quantityReserved;
+    
+    if (available <= 0) {
+      return { hasTickets: false };
+    }
+
+    // Get event ticket for currency
+    const eventTicketResponse = await db.getDocument(DB_ID, EVENT_TICKETS_COLLECTION, eventTicketId);
+    const eventTicket = eventTicketResponse as unknown as { currency: string };
+
+    return {
+      hasTickets: true,
+      startingPrice: ticketType.price,
+      currency: eventTicket.currency,
+    };
+  } catch {
+    return { hasTickets: false };
+  }
+}
 
 // Map a tournament document to the event shape expected by the frontend
 function toEvent(t: any) {
@@ -87,18 +165,41 @@ function toExternalEvent(e: any) {
     image: e.imageUrl || '/images/hero-bg.jpg',
     date: dateStr,
     time: timeStr,
-    prizePool: e.venue || '',
+    prizePool: e.prizePool || e.venue || '',
     entryFee: '',
     status: 'OPEN' as const,
     tags: (e.tags || []).map((t: string) => t.toUpperCase()),
-    registrationLink: e.externalUrl,
-    detailsLink: e.externalUrl,
+    registrationLink: `/shop`,
+    detailsLink: `/events/${e.$id}`,
     isActive: true,
     isFeatured: e.isFeatured || false,
     isExternal: true,
-    externalUrl: e.externalUrl,
+    venue: e.venue,
+    description: e.description,
     _sortDate: e.eventDate || e.$createdAt,
   };
+}
+
+// Helper to check if event has ended
+function isEventEnded(event: any): boolean {
+  const now = new Date();
+  
+  // Check tournament status
+  if (event.tournamentStatus === 'completed') return true;
+  
+  // Check start date
+  if (event.startDate) {
+    const startDate = new Date(event.startDate);
+    if (startDate < now) return true;
+  }
+  
+  // Check external event date
+  if (event.eventDate) {
+    const eventDate = new Date(event.eventDate);
+    if (eventDate < now) return true;
+  }
+  
+  return false;
 }
 
 export async function GET(request: Request) {
@@ -108,28 +209,48 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Fetch tournament-based events
+    const now = new Date().toISOString();
+
+    // Fetch tournament-based events (exclude completed and past events)
     const tournamentResponse = await db.listDocuments(DB_ID, TOURNAMENTS_COLLECTION, [
       Query.equal('showInEvents', true),
       Query.equal('status', 'published'),
+      Query.notEqual('tournamentStatus', 'completed'),
+      Query.greaterThanEqual('startDate', now),
       Query.orderDesc('startDate'),
       Query.limit(50),
     ]);
 
-    const tournamentEvents = tournamentResponse.documents.map((t) => ({
-      ...toEvent(t),
-      _sortDate: t.startDate || t.$createdAt,
-    }));
+    // Map events with ticket info
+    const tournamentEvents = await Promise.all(
+      tournamentResponse.documents.map(async (t) => {
+        const ticketInfo = await checkEventTickets(t.$id, t.slug);
+        return {
+          ...toEvent(t),
+          ...ticketInfo,
+          _sortDate: t.startDate || t.$createdAt,
+        };
+      })
+    );
 
-    // Fetch external events
+    // Fetch external events (exclude past events)
     let externalEvents: any[] = [];
     try {
       const externalResponse = await db.listDocuments(DB_ID, EXTERNAL_EVENTS_COLLECTION, [
         Query.equal('status', 'published'),
+        Query.greaterThanEqual('eventDate', now),
         Query.orderDesc('eventDate'),
         Query.limit(50),
       ]);
-      externalEvents = externalResponse.documents.map(toExternalEvent);
+      externalEvents = await Promise.all(
+        externalResponse.documents.map(async (e) => {
+          const ticketInfo = await checkEventTickets(e.$id, "");
+          return {
+            ...toExternalEvent(e),
+            ...ticketInfo,
+          };
+        })
+      );
     } catch (err) {
       // Collection may not exist yet — silently skip
       console.warn('External events collection not found or error:', err);

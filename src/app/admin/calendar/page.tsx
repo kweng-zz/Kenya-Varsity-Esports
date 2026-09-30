@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { CalendarEvent } from '@/lib/services/calendarService';
 import { tournamentService } from '@/lib/services/tournamentService';
+import { gamesData, GameRules } from '@/lib/gamesData';
 
 // Client-side calendar service for admin operations
-import { Client, Databases, Query, ID } from 'appwrite';
+import { Client, Databases, Query, ID, Permission, Role } from 'appwrite';
 
 // Lazy initialization to avoid build-time issues
 let client: Client | null = null;
@@ -42,6 +43,19 @@ const initializeAppwrite = () => {
   return databases;
 };
 
+interface TicketTypeConfig {
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string;
+  quantityTotal: string;
+  maxPerOrder: string;
+  minPerOrder: string;
+  benefits: string;
+  color: string;
+  isFeatured: boolean;
+}
+
 interface CalendarEventForm {
   title: string;
   description: string;
@@ -57,7 +71,33 @@ interface CalendarEventForm {
   prizePool: string;
   teams: string;
   isImportant: boolean;
+  // Ticket configuration
+  enableTickets: boolean;
+  ticketCurrency: string;
+  taxRate: string;
+  serviceFee: string;
+  serviceFeeType: 'fixed' | 'percentage';
+  maxTicketsPerUser: string;
+  requiresApproval: boolean;
+  salesStartDate: string;
+  salesEndDate: string;
+  ticketTypes: TicketTypeConfig[];
+  refundPolicy: string;
+  contactEmail: string;
 }
+
+const initialTicketType: TicketTypeConfig = {
+  name: '',
+  description: '',
+  price: '',
+  originalPrice: '',
+  quantityTotal: '',
+  maxPerOrder: '5',
+  minPerOrder: '1',
+  benefits: '',
+  color: '#8c110d',
+  isFeatured: false
+};
 
 const initialFormData: CalendarEventForm = {
   title: '',
@@ -73,7 +113,19 @@ const initialFormData: CalendarEventForm = {
   maxParticipants: '',
   prizePool: '',
   teams: '',
-  isImportant: false
+  isImportant: false,
+  enableTickets: false,
+  ticketCurrency: 'KES',
+  taxRate: '0',
+  serviceFee: '0',
+  serviceFeeType: 'fixed',
+  maxTicketsPerUser: '5',
+  requiresApproval: false,
+  salesStartDate: '',
+  salesEndDate: '',
+  ticketTypes: [],
+  refundPolicy: '',
+  contactEmail: ''
 };
 
 export default function AdminCalendarPage() {
@@ -88,6 +140,10 @@ export default function AdminCalendarPage() {
 
   // Game options for the dropdown - dynamically loaded from tournaments data
   const [gameOptions, setGameOptions] = useState<{ value: string; label: string }[]>([]);
+  
+  // Selected game's format info
+  const [selectedGameFormat, setSelectedGameFormat] = useState<GameRules | null>(null);
+  const [showTicketConfig, setShowTicketConfig] = useState(false);
 
   // Load game options from tournaments data
   useEffect(() => {
@@ -121,6 +177,109 @@ export default function AdminCalendarPage() {
 
     loadGameOptions();
   }, []);
+
+  // Detect game format when gameSlug changes
+  useEffect(() => {
+    if (formData.gameSlug) {
+      const game = gamesData[formData.gameSlug];
+      if (game && game.rules) {
+        setSelectedGameFormat(game.rules);
+        // Auto-enable tickets for tournaments and events
+        if (formData.type === 'tournament' || formData.type === 'event') {
+          setShowTicketConfig(true);
+        }
+      } else {
+        setSelectedGameFormat(null);
+      }
+    } else {
+      setSelectedGameFormat(null);
+    }
+  }, [formData.gameSlug]);
+
+  // Auto-populate ticket types based on game format
+  useEffect(() => {
+    if (showTicketConfig && selectedGameFormat && formData.ticketTypes.length === 0) {
+      const defaultTypes = getDefaultTicketTypes(selectedGameFormat.tournamentType);
+      setFormData(prev => ({ ...prev, ticketTypes: defaultTypes }));
+    }
+  }, [showTicketConfig, selectedGameFormat]);
+
+  const getDefaultTicketTypes = (tournamentType: GameRules['tournamentType']): TicketTypeConfig[] => {
+    const baseTypes: TicketTypeConfig[] = [];
+    
+    if (tournamentType === 'individual') {
+      // 1v1 games like eFootball - individual pricing
+      baseTypes.push({
+        ...initialTicketType,
+        name: 'Standard Entry',
+        description: 'Single player entry for 1v1 tournament',
+        price: '500',
+        originalPrice: '500',
+        quantityTotal: '64',
+        maxPerOrder: '1',
+        minPerOrder: '1',
+        benefits: 'Tournament entry, Live streaming access, Discord access',
+        color: '#8c110d',
+        isFeatured: true
+      });
+      baseTypes.push({
+        ...initialTicketType,
+        name: 'Early Bird',
+        description: 'Discounted early registration for 1v1 tournament',
+        price: '350',
+        originalPrice: '500',
+        quantityTotal: '16',
+        maxPerOrder: '1',
+        minPerOrder: '1',
+        benefits: 'Tournament entry, Live streaming access, Discord access, Early bird badge',
+        color: '#fbbf24',
+        isFeatured: false
+      });
+    } else {
+      // Squad/team games like PUBG, CODM - team pricing
+      baseTypes.push({
+        ...initialTicketType,
+        name: 'Team Entry (Standard)',
+        description: `Full team entry for ${tournamentType === 'duo' ? '2v2' : '4v4'} tournament`,
+        price: '2000',
+        originalPrice: '2000',
+        quantityTotal: '32',
+        maxPerOrder: '1',
+        minPerOrder: '1',
+        benefits: `Full team (${tournamentType === 'duo' ? '2' : '4'} players) entry, Live streaming access, Discord access, Team profile page`,
+        color: '#8c110d',
+        isFeatured: true
+      });
+      baseTypes.push({
+        ...initialTicketType,
+        name: 'Team Entry (Early Bird)',
+        description: `Discounted early registration for ${tournamentType === 'duo' ? '2v2' : '4v4'} tournament`,
+        price: '1500',
+        originalPrice: '2000',
+        quantityTotal: '8',
+        maxPerOrder: '1',
+        minPerOrder: '1',
+        benefits: `Full team (${tournamentType === 'duo' ? '2' : '4'} players) entry, Live streaming access, Discord access, Team profile page, Early bird badge`,
+        color: '#fbbf24',
+        isFeatured: false
+      });
+      baseTypes.push({
+        ...initialTicketType,
+        name: 'Spectator Pass',
+        description: 'Watch-only access for non-participants',
+        price: '200',
+        originalPrice: '200',
+        quantityTotal: '100',
+        maxPerOrder: '5',
+        minPerOrder: '1',
+        benefits: 'Live streaming access, Discord spectator channel, Event highlights',
+        color: '#6b7280',
+        isFeatured: false
+      });
+    }
+    
+    return baseTypes;
+  };
 
   // Redirect if not admin
   useEffect(() => {
@@ -251,6 +410,24 @@ export default function AdminCalendarPage() {
     }
   };
 
+  const addTicketType = () => {
+    setFormData(prev => ({ ...prev, ticketTypes: [...prev.ticketTypes, { ...initialTicketType }] }));
+  };
+
+  const removeTicketType = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateTicketType = (index: number, field: keyof TicketTypeConfig, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      ticketTypes: prev.ticketTypes.map((t, i) => i === index ? { ...t, [field]: value } : t)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -325,12 +502,24 @@ export default function AdminCalendarPage() {
         };
 
         setEvents(prev => [newEvent, ...prev]);
+
+        // Create ticket configuration if enabled
+        if (formData.enableTickets && formData.ticketTypes.length > 0) {
+          await createTicketConfiguration(db, response.$id, formData, selectedGameFormat);
+        }
+      }
+
+      // If editing and tickets enabled, create/update ticket configuration
+      if (editingEvent && formData.enableTickets && formData.ticketTypes.length > 0) {
+        await createTicketConfiguration(db, editingEvent.id, formData, selectedGameFormat);
       }
 
       // Reset form
       setFormData(initialFormData);
       setShowForm(false);
       setEditingEvent(null);
+      setSelectedGameFormat(null);
+      setShowTicketConfig(false);
     } catch (error) {
       console.error('Error saving event:', error);
     } finally {
@@ -338,8 +527,130 @@ export default function AdminCalendarPage() {
     }
   };
 
-  const handleEdit = (event: CalendarEvent) => {
+  const createTicketConfiguration = async (
+    db: Databases,
+    eventId: string,
+    formData: CalendarEventForm,
+    gameFormat: GameRules | null
+  ) => {
+    try {
+      const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+      const EVENT_TICKETS_COLLECTION = 'event_tickets';
+      const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
+
+      // Generate event slug from title
+      const eventSlug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      // Create event_tickets document
+      const eventTicketResponse = await db.createDocument(
+        DB_ID,
+        EVENT_TICKETS_COLLECTION,
+        ID.unique(),
+        {
+          eventId: eventId,
+          eventTitle: formData.title,
+          eventSlug: eventSlug,
+          isActive: true,
+          salesStartDate: formData.salesStartDate || undefined,
+          salesEndDate: formData.salesEndDate || undefined,
+          maxTicketsPerUser: parseInt(formData.maxTicketsPerUser) || 5,
+          requiresApproval: formData.requiresApproval,
+          currency: formData.ticketCurrency,
+          taxRate: parseFloat(formData.taxRate) || 0,
+          serviceFee: parseFloat(formData.serviceFee) || 0,
+          serviceFeeType: formData.serviceFeeType,
+          description: formData.description,
+          refundPolicy: formData.refundPolicy,
+          contactEmail: formData.contactEmail,
+          totalSold: 0,
+          totalRevenue: 0,
+        },
+        [
+          Permission.read(Role.any()),
+          Permission.write(Role.team('admins')),
+          Permission.update(Role.team('admins')),
+          Permission.delete(Role.team('admins'))
+        ]
+      );
+
+      const eventTicketId = eventTicketResponse.$id;
+
+      // Create ticket types
+      for (let i = 0; i < formData.ticketTypes.length; i++) {
+        const tt = formData.ticketTypes[i];
+        const price = parseFloat(tt.price);
+        const originalPrice = parseFloat(tt.originalPrice) || price;
+        
+        await db.createDocument(
+          DB_ID,
+          EVENT_TICKET_TYPES_COLLECTION,
+          ID.unique(),
+          {
+            eventTicketId: eventTicketId,
+            name: tt.name,
+            description: tt.description,
+            price: price,
+            originalPrice: originalPrice,
+            quantityTotal: parseInt(tt.quantityTotal) || 0,
+            quantitySold: 0,
+            quantityReserved: 0,
+            maxPerOrder: parseInt(tt.maxPerOrder) || 5,
+            minPerOrder: parseInt(tt.minPerOrder) || 1,
+            sortOrder: i,
+            isActive: true,
+            salesStartDate: formData.salesStartDate || undefined,
+            salesEndDate: formData.salesEndDate || undefined,
+            benefits: tt.benefits.split('\n').filter(b => b.trim()),
+            color: tt.color,
+            isFeatured: tt.isFeatured,
+          },
+          [
+            Permission.read(Role.any()),
+            Permission.write(Role.team('admins')),
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.team('admins'))
+          ]
+        );
+      }
+
+      console.log('✅ Ticket configuration created successfully for event:', eventId);
+    } catch (error) {
+      console.error('Error creating ticket configuration:', error);
+      // Don't throw - event was created successfully, just ticket config failed
+    }
+  };
+
+  const handleEdit = async (event: CalendarEvent) => {
     setEditingEvent(event);
+    
+    // Load existing ticket configuration if any
+    const db = initializeAppwrite();
+    let ticketConfig = null;
+    if (db) {
+      try {
+        const response = await db.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+          'event_tickets',
+          [Query.equal('eventId', event.id), Query.limit(1)]
+        );
+        if (response.documents.length > 0) {
+          const et = response.documents[0];
+          // Load ticket types
+          const typesResponse = await db.listDocuments(
+            process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
+            'event_ticket_types',
+            [Query.equal('eventTicketId', et.$id), Query.orderAsc('sortOrder')]
+          );
+          ticketConfig = {
+            eventTicket: et,
+            ticketTypes: typesResponse.documents
+          };
+        }
+      } catch (error) {
+        console.error('Error loading ticket config:', error);
+      }
+    }
+
     setFormData({
       title: event.title,
       description: event.description || '',
@@ -354,8 +665,35 @@ export default function AdminCalendarPage() {
       maxParticipants: event.maxParticipants?.toString() || '',
       prizePool: event.prizePool || '',
       teams: event.teams?.join(', ') || '',
-      isImportant: event.isImportant || false
+      isImportant: event.isImportant || false,
+      enableTickets: !!ticketConfig,
+      ticketCurrency: ticketConfig?.eventTicket?.currency || 'KES',
+      taxRate: ticketConfig?.eventTicket?.taxRate?.toString() || '0',
+      serviceFee: ticketConfig?.eventTicket?.serviceFee?.toString() || '0',
+      serviceFeeType: ticketConfig?.eventTicket?.serviceFeeType || 'fixed',
+      maxTicketsPerUser: ticketConfig?.eventTicket?.maxTicketsPerUser?.toString() || '5',
+      requiresApproval: ticketConfig?.eventTicket?.requiresApproval || false,
+      salesStartDate: ticketConfig?.eventTicket?.salesStartDate ? new Date(ticketConfig.eventTicket.salesStartDate).toISOString().slice(0, 16) : '',
+      salesEndDate: ticketConfig?.eventTicket?.salesEndDate ? new Date(ticketConfig.eventTicket.salesEndDate).toISOString().slice(0, 16) : '',
+      ticketTypes: ticketConfig?.ticketTypes?.map((tt: any) => ({
+        name: tt.name,
+        description: tt.description || '',
+        price: tt.price?.toString() || '',
+        originalPrice: tt.originalPrice?.toString() || '',
+        quantityTotal: tt.quantityTotal?.toString() || '',
+        maxPerOrder: tt.maxPerOrder?.toString() || '5',
+        minPerOrder: tt.minPerOrder?.toString() || '1',
+        benefits: Array.isArray(tt.benefits) ? tt.benefits.join('\n') : (tt.benefits || ''),
+        color: tt.color || '#8c110d',
+        isFeatured: tt.isFeatured || false
+      })) || [],
+      refundPolicy: ticketConfig?.eventTicket?.refundPolicy || '',
+      contactEmail: ticketConfig?.eventTicket?.contactEmail || ''
     });
+    
+    if (ticketConfig) {
+      setShowTicketConfig(true);
+    }
     setShowForm(true);
   };
 
@@ -603,33 +941,307 @@ export default function AdminCalendarPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Teams (comma-separated)</label>
-                    <input
-                      type="text"
-                      name="teams"
-                      value={formData.teams}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Team A, Team B"
-                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
-                    />
-                  </div>
-                  <div className="flex items-center">
+                {/* Ticket Configuration Section */}
+                <div className="border-t border-gray-700 pt-6 mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">Ticket Payment Configuration</h3>
                     <label className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        name="isImportant"
-                        checked={formData.isImportant}
-                        onChange={handleInputChange}
-                        className="w-4 h-4 text-[#961c18] bg-gray-700 border-gray-600 rounded focus:ring-[#961c18]"
+                        checked={formData.enableTickets}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, enableTickets: e.target.checked }));
+                          setShowTicketConfig(e.target.checked);
+                        }}
+                        className="w-5 h-5 text-[#961c18] bg-gray-700 border-gray-600 rounded focus:ring-[#961c18]"
                       />
-                      <span className="text-sm font-medium">Mark as Important</span>
+                      <span className="text-sm font-medium">Enable Ticket Sales</span>
                     </label>
                   </div>
+
+                  {formData.enableTickets && (
+                    <div className="space-y-6">
+                      {/* Game Format Info */}
+                      {selectedGameFormat && (
+                        <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-blue-400 font-bold">Game Format Detected:</span>
+                            <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black uppercase rounded">
+                              {selectedGameFormat.tournamentType === 'individual' ? '1v1 (Individual)' : 
+                               selectedGameFormat.tournamentType === 'duo' ? '2v2 (Duo)' : 
+                               'Team (Squad)'}
+                            </span>
+                          </div>
+                          <p className="text-blue-300 text-sm">
+                            {selectedGameFormat.tournamentType === 'individual' 
+                              ? '1v1 games (e.g., eFootball) use individual pricing per player.' 
+                              : 'Squad games (e.g., PUBG, CODM) use team-based pricing per team.'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* General Ticket Settings */}
+                      <fieldset className="border border-gray-700 rounded-lg p-4">
+                        <legend className="text-sm font-medium text-gray-300 mb-4">General Settings</legend>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Currency</label>
+                            <select
+                              value={formData.ticketCurrency}
+                              onChange={(e) => setFormData(prev => ({ ...prev, ticketCurrency: e.target.value }))}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value="KES">KES (Kenyan Shilling)</option>
+                              <option value="USD">USD (US Dollar)</option>
+                              <option value="EUR">EUR (Euro)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Tax Rate (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.taxRate}
+                              onChange={(e) => setFormData(prev => ({ ...prev, taxRate: e.target.value }))}
+                              placeholder="e.g., 16"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Service Fee</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.serviceFee}
+                              onChange={(e) => setFormData(prev => ({ ...prev, serviceFee: e.target.value }))}
+                              placeholder="e.g., 50"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Fee Type</label>
+                            <select
+                              value={formData.serviceFeeType}
+                              onChange={(e) => setFormData(prev => ({ ...prev, serviceFeeType: e.target.value as 'fixed' | 'percentage' }))}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            >
+                              <option value="fixed">Fixed Amount</option>
+                              <option value="percentage">Percentage</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Max Tickets Per User</label>
+                            <input
+                              type="number"
+                              value={formData.maxTicketsPerUser}
+                              onChange={(e) => setFormData(prev => ({ ...prev, maxTicketsPerUser: e.target.value }))}
+                              placeholder="e.g., 5"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.requiresApproval}
+                                onChange={(e) => setFormData(prev => ({ ...prev, requiresApproval: e.target.checked }))}
+                                className="w-4 h-4 text-[#961c18] bg-gray-700 border-gray-600 rounded focus:ring-[#961c18]"
+                              />
+                              <span className="text-sm font-medium">Requires Admin Approval</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Sales Start Date</label>
+                            <input
+                              type="datetime-local"
+                              value={formData.salesStartDate}
+                              onChange={(e) => setFormData(prev => ({ ...prev, salesStartDate: e.target.value }))}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Sales End Date</label>
+                            <input
+                              type="datetime-local"
+                              value={formData.salesEndDate}
+                              onChange={(e) => setFormData(prev => ({ ...prev, salesEndDate: e.target.value }))}
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Refund Policy</label>
+                            <textarea
+                              value={formData.refundPolicy}
+                              onChange={(e) => setFormData(prev => ({ ...prev, refundPolicy: e.target.value }))}
+                              rows={2}
+                              placeholder="e.g., No refunds within 48 hours of event. Full refund if event cancelled."
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Contact Email</label>
+                            <input
+                              type="email"
+                              value={formData.contactEmail}
+                              onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                              placeholder="support@example.com"
+                              className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                            />
+                          </div>
+                        </div>
+                      </fieldset>
+
+                      {/* Ticket Types */}
+                      <fieldset className="border border-gray-700 rounded-lg p-4">
+                        <legend className="text-sm font-medium text-gray-300 mb-4">Ticket Types</legend>
+                        {formData.ticketTypes.map((ticketType, index) => (
+                     <div key={index} className="bg-gray-700/50 border border-gray-600 rounded-lg p-4 mb-4">
+                       <div className="flex items-center justify-between mb-4">
+                         <h4 className="font-medium text-white">Ticket Type #{index + 1}</h4>
+                         {formData.ticketTypes.length > 1 && (
+                           <button
+                             type="button"
+                             onClick={() => removeTicketType(index)}
+                             className="text-red-400 hover:text-red-300 text-sm"
+                           >
+                             Remove
+                           </button>
+                         )}
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Name *</label>
+                           <input
+                             type="text"
+                             value={ticketType.name}
+                             onChange={(e) => updateTicketType(index, 'name', e.target.value)}
+                             placeholder="e.g., Standard Entry, VIP Pass"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Color</label>
+                           <input
+                             type="color"
+                             value={ticketType.color}
+                             onChange={(e) => updateTicketType(index, 'color', e.target.value)}
+                             className="w-full h-10 bg-gray-700 border border-gray-600 rounded cursor-pointer"
+                           />
+                         </div>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Price *</label>
+                           <input
+                             type="number"
+                             step="0.01"
+                             value={ticketType.price}
+                             onChange={(e) => updateTicketType(index, 'price', e.target.value)}
+                             placeholder="e.g., 500"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Original Price</label>
+                           <input
+                             type="number"
+                             step="0.01"
+                             value={ticketType.originalPrice}
+                             onChange={(e) => updateTicketType(index, 'originalPrice', e.target.value)}
+                             placeholder="e.g., 500 (for showing discount)"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Total Quantity *</label>
+                           <input
+                             type="number"
+                             value={ticketType.quantityTotal}
+                             onChange={(e) => updateTicketType(index, 'quantityTotal', e.target.value)}
+                             placeholder="e.g., 64"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Max Per Order</label>
+                           <input
+                             type="number"
+                             value={ticketType.maxPerOrder}
+                             onChange={(e) => updateTicketType(index, 'maxPerOrder', e.target.value)}
+                             placeholder="e.g., 1"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Min Per Order</label>
+                           <input
+                             type="number"
+                             value={ticketType.minPerOrder}
+                             onChange={(e) => updateTicketType(index, 'minPerOrder', e.target.value)}
+                             placeholder="e.g., 1"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                       </div>
+                       <div className="mb-4">
+                         <label className="block text-sm font-medium mb-2">Benefits (one per line)</label>
+                         <textarea
+                           value={ticketType.benefits}
+                           onChange={(e) => updateTicketType(index, 'benefits', e.target.value)}
+                           rows={3}
+                           placeholder="Tournament entry&#10;Live streaming access&#10;Discord access"
+                           className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                         />
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                           <label className="block text-sm font-medium mb-2">Description</label>
+                           <input
+                             type="text"
+                             value={ticketType.description}
+                             onChange={(e) => updateTicketType(index, 'description', e.target.value)}
+                             placeholder="Brief description of this ticket type"
+                             className="w-full p-3 bg-gray-700 border border-gray-600 rounded text-white"
+                           />
+                         </div>
+                         <div className="flex items-end">
+                           <label className="flex items-center space-x-2 w-full">
+                             <input
+                               type="checkbox"
+                               checked={ticketType.isFeatured}
+                               onChange={(e) => updateTicketType(index, 'isFeatured', e.target.checked)}
+                               className="w-4 h-4 text-[#961c18] bg-gray-700 border-gray-600 rounded focus:ring-[#961c18]"
+                             />
+                             <span className="text-sm font-medium">Featured (highlight in UI)</span>
+                           </label>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                   {formData.ticketTypes.length < 5 && (
+                     <button
+                       type="button"
+                       onClick={addTicketType}
+                       className="w-full py-3 border-2 border-dashed border-gray-600 hover:border-[#8c110d] text-gray-400 hover:text-white font-medium rounded-lg transition-colors"
+                     >
++ Add Another Ticket Type
+                      </button>
+                    )}
+                  </fieldset>
+                    </div>
+            )}
+
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4">
+                  <div className="flex justify-end gap-4 pt-4">
                   <button
                     type="button"
                     onClick={() => {

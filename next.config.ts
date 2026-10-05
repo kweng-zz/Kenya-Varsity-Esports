@@ -153,12 +153,6 @@ const nextConfig: NextConfig = {
         pathname: '/uploads/**',
       },
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '1337',
-        pathname: '/uploads/**',
-      },
-      {
         protocol: 'https',
         hostname: 'c.animaapp.com',
         port: '',

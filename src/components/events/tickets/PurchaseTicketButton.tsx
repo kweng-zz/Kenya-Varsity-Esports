@@ -110,8 +110,7 @@ export default function PurchaseTicketButton({
     <>
       <button
         onClick={handleClick}
-        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
-        disabled={!userId || !userEmail || !userName}
+        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} ${(!userId || !userEmail || !userName) ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Ticket className="w-4 h-4" />
         <span>Get Tickets</span>

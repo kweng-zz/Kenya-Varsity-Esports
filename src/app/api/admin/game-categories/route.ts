@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         // Normalization map for category IDs
         const categoryIdNormalizationMap: Record<string, string[]> = {
             'pubg-mobile': ['pubgm', 'pubg', 'pubg-mobile'],
-            'call-of-duty-mobile-br': ['codm', 'codm-br', 'call-of-duty-mobile-br'],
+            'codm-1v1': ['codm', 'codm-br', 'codm-1v1', 'call-of-duty-mobile-br'],
             'efootball-mobile': ['efootball', 'efootball-mobile'],
             'eafc-1v1': ['eafc', 'eafc-1v1'],
             'eafc-2v2': ['eafc-2v2'],
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         // Normalization map for category IDs
         const categoryIdNormalizationMap: Record<string, string[]> = {
             'pubg-mobile': ['pubgm', 'pubg', 'pubg-mobile'],
-            'call-of-duty-mobile-br': ['codm', 'codm-br', 'call-of-duty-mobile-br'],
+            'codm-1v1': ['codm', 'codm-br', 'codm-1v1', 'call-of-duty-mobile-br'],
             'efootball-mobile': ['efootball', 'efootball-mobile'],
             'eafc-1v1': ['eafc', 'eafc-1v1'],
             'eafc-2v2': ['eafc-2v2'],

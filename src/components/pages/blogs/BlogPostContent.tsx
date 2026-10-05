@@ -10,14 +10,16 @@ const TikTokIcon = ({ className }: { className?: string }) => (
     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.75a8.18 8.18 0 0 0 4.76 1.52V6.84a4.83 4.83 0 0 1-1-.15z" />
   </svg>
 );
-import { TransformedArticle } from '@/lib/contentful';
+
+import { BlogPost } from '@/lib/blog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBlogState } from '@/contexts/BlogStateContext';
 import { FollowButton } from '@/components/FollowButton';
+import resolveImageUrl from '@/lib/imageUrl';
 
 interface BlogPostContentProps {
-  post: TransformedArticle;
+  post: BlogPost;
 }
 
 interface Heading {
@@ -472,7 +474,7 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
       if (imageMatch) {
         flushParagraph();
         const [, alt, src] = imageMatch;
-        const imgSrc = getImageUrl(src);
+        const imgSrc = resolveImageUrl(src);
         
         elements.push(
           <figure key={`image-${elements.length}`} className="mb-8">
@@ -564,34 +566,10 @@ const BlogPostContentInner = ({ post }: BlogPostContentProps) => {
     });
   };
 
-  // Ensure we have a valid image URL with proper fallback
-  const getImageUrl = (url?: string | null) => {
-    if (!url || url.trim() === '') return '/images/Join our tournaments.png';
-    
-    // If it's already a full URL, return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    
-    // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
-    if (url.startsWith('/uploads/')) {
-      const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-      return `${strapiUrl}${url}`;
-    }
-    
-    // If it starts with /, assume it's a local image
-    if (url.startsWith('/')) {
-      return url;
-    }
-    
-    // Otherwise, assume it needs /images/ prefix
-    return `/images/${url}`;
-  };
-
-  // Initialize the image URL when component mounts or imageUrl changes
+// Initialize the image URL when component mounts or imageUrl changes
   useEffect(() => {
     setImageError(false);
-    const processedUrl = getImageUrl(post.imageUrl);
+    const processedUrl = resolveImageUrl(post.imageUrl);
     setCurrentImageUrl(processedUrl);
   }, [post.imageUrl]);
 

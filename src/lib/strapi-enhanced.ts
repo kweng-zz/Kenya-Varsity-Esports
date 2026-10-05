@@ -1,5 +1,5 @@
 // Enhanced Strapi API configuration with better error handling
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || '/api';
 const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN || process.env.STRAPI_API_TOKEN;
 
 // Helper function to get full Strapi URL
@@ -16,7 +16,7 @@ async function fetchAPI(path: string, options: RequestInit = {}, requireAuth: bo
   }
 
   // Check if Strapi is configured
-  if (!STRAPI_URL || STRAPI_URL === 'http://localhost:1337') {
+  if (!STRAPI_URL || STRAPI_URL === '/api') {
     // During build time, if Strapi URL is localhost, skip the call
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
       console.log('Skipping localhost Strapi call in production build:', path);

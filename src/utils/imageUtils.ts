@@ -2,6 +2,8 @@
  * Utility functions for handling image URLs safely
  */
 
+import resolveImageUrl from '@/lib/imageUrl';
+
 /**
  * Ensures that an image src is never empty or null
  * @param src - The source URL that might be empty, null, undefined, or an object
@@ -45,26 +47,7 @@ export function getSafeImageSrc(
     return fallback;
   }
   
-  const trimmedUrl = urlString.trim();
-  
-  // If it's already a full URL, return as is
-  if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
-    return trimmedUrl;
-  }
-  
-  // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
-  if (trimmedUrl.startsWith('/uploads/')) {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-    return `${strapiUrl}${trimmedUrl}`;
-  }
-  
-  // If it starts with /, assume it's a local image
-  if (trimmedUrl.startsWith('/')) {
-    return trimmedUrl;
-  }
-  
-  // Otherwise, assume it needs /images/ prefix
-  return `/images/${trimmedUrl}`;
+  return resolveImageUrl(urlString, fallback);
 }
 
 /**

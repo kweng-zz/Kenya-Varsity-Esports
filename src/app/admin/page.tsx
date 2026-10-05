@@ -140,6 +140,14 @@ export default function AdminPage() {
                     <h2 className="text-2xl font-semibold">Sponsors</h2>
                     <p>Manage sponsor information and partnership details.</p>
                 </Link>
+
+                <Link 
+                    href="/admin/blog" 
+                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                    <h2 className="text-2xl font-semibold">Blog Management</h2>
+                    <p>Create, edit, and manage blog articles and content.</p>
+                </Link>
             </section>
         </div>
     );

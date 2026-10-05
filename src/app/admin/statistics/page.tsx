@@ -1,78 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Client, Databases, ID, Permission, Role, Storage } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 // --- Types ---
-interface SeasonStatsDoc {
-  $id: string;
+interface StatItem {
+  id: string;
   number: string;
   label: string;
-  seasonNumber?: number;
-  seasonStatus?: 'active' | 'completed';
-  seasonEndDate?: string;
-  registrationStartDate?: string;
-  eventImage?: string;
 }
 
-interface SeasonSettings {
-  $id: string;
+interface StatisticsData {
+  seasonTitle: string;
+  image: string;
   seasonNumber: number;
-  seasonTitle?: string; // Added dynamic season title
-  seasonEndDate: string;
-  registrationStartDate?: string;
-  eventImage: string;
-  seasonStatus: 'active' | 'completed';
+  stats: StatItem[];
 }
-
-// --- Appwrite Setup with lazy initialization ---
-let client: Client | null = null;
-let databases: Databases | null = null;
-let storage: Storage | null = null;
-
-const initializeAppwrite = () => {
-  if (!client) {
-    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
-
-    if (!endpoint || !projectId) {
-      console.warn('Appwrite configuration missing for admin statistics');
-      return null;
-    }
-
-    if (typeof endpoint !== 'string' || endpoint.trim() === '') {
-      console.warn('Appwrite endpoint is invalid for admin statistics');
-      return null;
-    }
-
-    try {
-      client = new Client()
-        .setEndpoint(endpoint)
-        .setProject(projectId);
-
-      databases = new Databases(client);
-      storage = new Storage(client);
-    } catch (error) {
-      console.error('Failed to initialize Appwrite client for admin statistics:', error);
-      return null;
-    }
-  }
-  return { databases, storage };
-};
-
-const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
-const COLLECTION_ID = 'season_statistics';
-const BUCKET_ID = 'season-images';
 
 export default function AdminStatisticsPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [stats, setStats] = useState<SeasonStatsDoc[]>([]);
-  const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [seasonNumber, setSeasonNumber] = useState<number>(3);
+  const [seasonTitle, setSeasonTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -82,11 +36,9 @@ export default function AdminStatisticsPage() {
   const [editingStatId, setEditingStatId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ number: '', label: '' });
   const [newSeasonTitle, setNewSeasonTitle] = useState('');
-  const [newRegistrationStartDate, setNewRegistrationStartDate] = useState('');
-  const [newEventImageUrl, setNewEventImageUrl] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [uploadMethod, setUploadMethod] = useState<'url' | 'file'>('url');
 
   // Check if user is admin
   useEffect(() => {
@@ -95,7 +47,7 @@ export default function AdminStatisticsPage() {
     }
   }, [user, profile, loading, router]);
 
-  // Fetch statistics and season settings
+  // Fetch statistics
   useEffect(() => {
     if (user && profile?.isAdmin) {
       fetchData();
@@ -105,52 +57,15 @@ export default function AdminStatisticsPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        console.warn('Appwrite not configured, skipping statistics fetch');
-        setIsLoading(false);
-        return;
+      const response = await fetch('/api/statistics');
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setStats(data.data.stats);
+        setImageUrl(data.data.image);
+        setSeasonNumber(data.data.seasonNumber);
+        setSeasonTitle(data.data.seasonTitle);
       }
-
-      const response = await appwrite.databases.listDocuments(DB_ID, COLLECTION_ID);
-      
-      // Separate statistics from settings
-      const statistics = response.documents.filter(doc => 
-        doc.$id !== 'current_season_settings' && doc.label !== 'Current Season Info'
-      );
-      
-      const settings = response.documents.find(doc => 
-        doc.$id === 'current_season_settings' || doc.label === 'Current Season Info'
-      );
-
-      // Map documents to proper types
-      setStats(statistics.map(doc => ({
-        $id: doc.$id,
-        number: doc.number || '',
-        label: doc.label || '',
-        seasonNumber: doc.seasonNumber,
-        seasonStatus: doc.seasonStatus,
-        seasonEndDate: doc.seasonEndDate,
-        registrationStartDate: doc.registrationStartDate,
-        eventImage: doc.eventImage
-      })));
-      
-      if (settings) {
-        setSeasonSettings({
-          $id: settings.$id,
-          seasonNumber: settings.seasonNumber || 4,
-          seasonTitle: settings.seasonTitle || '', // Fetch title
-          seasonEndDate: settings.seasonEndDate || '',
-          registrationStartDate: settings.registrationStartDate || '',
-          eventImage: settings.eventImage || '',
-          seasonStatus: settings.seasonStatus || 'active'
-        });
-        setPreviewUrl(settings.eventImage || '');
-        setNewEventImageUrl(settings.eventImage || '');
-        setNewSeasonTitle(settings.seasonTitle || ''); // Set initial title state
-        setNewRegistrationStartDate(settings.registrationStartDate ? settings.registrationStartDate.split('T')[0] : '');
-      }
-      
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load statistics data');
@@ -185,136 +100,93 @@ export default function AdminStatisticsPage() {
     }
   };
 
-  const handleEditStat = (stat: SeasonStatsDoc) => {
-    setEditingStatId(stat.$id);
+  const handleEditStat = (stat: StatItem) => {
+    setEditingStatId(stat.id);
     setEditForm({ number: stat.number, label: stat.label });
   };
 
   const handleSaveStat = async (statId: string) => {
     try {
       setIsSaving(true);
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        setError('Appwrite not configured. Please try again.');
-        return;
-      }
-
-      await appwrite.databases.updateDocument(
-        DB_ID,
-        COLLECTION_ID,
-        statId,
-        {
-          number: editForm.number,
-          label: editForm.label
-        }
+      
+      // Update the local state first (optimistic update)
+      const updatedStats = stats.map(stat => 
+        stat.id === statId ? { ...stat, ...editForm } : stat
       );
+      setStats(updatedStats);
+      
+      // Save to markdown file via API
+      const response = await fetch('/api/statistics', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stats: updatedStats,
+          image: imageUrl,
+          seasonNumber,
+          seasonTitle,
+        }),
+      });
+      
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
       
       setMessage('Statistic updated successfully!');
       setEditingStatId(null);
-      fetchData();
     } catch (err) {
       console.error('Error updating statistic:', err);
       setError('Failed to update statistic');
+      fetchData(); // Revert on error
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleUpdateSeasonSettings = async () => {
-    if (!seasonSettings) return;
-    
+  const handleSaveSettings = async () => {
     try {
       setIsSaving(true);
       
-      let eventImageUrl = seasonSettings.eventImage;
+      let eventImageUrl = imageUrl;
       
-      if (uploadMethod === 'url' && newEventImageUrl) {
-        eventImageUrl = newEventImageUrl;
-        
-        // Validate URL length (max 500 chars for database)
-        if (eventImageUrl && eventImageUrl.length > 500) {
-          setError('Image URL is too long. Please use a shorter URL (max 500 characters).');
-          return;
-        }
-      } else if (uploadMethod === 'file' && selectedFile) {
-        const appwrite = initializeAppwrite();
-        if (!appwrite?.storage) {
-          setError('Appwrite not configured. Please try again.');
-          return;
-        }
-
-        try {
-          // Upload file to Appwrite Storage
-          const fileResponse = await appwrite.storage.createFile(
-            BUCKET_ID,
-            ID.unique(),
-            selectedFile
-          );
-          
-          // Get the file URL from Appwrite Storage
-          const fileUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileResponse.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
-          eventImageUrl = fileUrl;
-          
-          console.log('File uploaded successfully:', fileResponse.$id);
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
-          if (errorMessage.includes('bucket with the requested ID could not be found')) {
-            setError('Storage bucket not found. Please contact the administrator to set up the storage bucket with proper permissions.');
-          } else if (errorMessage.includes('missing scopes')) {
-            setError('Insufficient permissions for file upload. Please contact the administrator to update API key permissions.');
-          } else {
-            setError('Failed to upload image file. Please try again or use the URL method.');
-          }
-          return;
-        }
-      }
-      
-      const appwrite = initializeAppwrite();
-      if (!appwrite?.databases) {
-        setError('Appwrite not configured. Please try again.');
+      if (selectedFile) {
+        // For file upload, we'd need an upload endpoint
+        // For now, just show a message that file upload isn't implemented
+        // In production, you'd upload to a storage service
+        setError('File upload not yet implemented. Please use image URL for now.');
         return;
       }
-
-      const updateData: Record<string, unknown> = {
-        eventImage: eventImageUrl,
-        seasonTitle: newSeasonTitle, // Save new title
-        registrationStartDate: newRegistrationStartDate ? new Date(newRegistrationStartDate + 'T00:00:00.000Z').toISOString() : null
-      };
-
-      await appwrite.databases.updateDocument(
-        DB_ID,
-        COLLECTION_ID,
-        seasonSettings.$id,
-        updateData
-      );
-
-      // Also update all statistics with the new event image
-      for (const stat of stats) {
-        await appwrite.databases.updateDocument(
-          DB_ID,
-          COLLECTION_ID,
-          stat.$id,
-          { eventImage: eventImageUrl }
-        );
-      }
       
-      setMessage('Season settings updated successfully!');
-      setSelectedFile(null);
-      setNewEventImageUrl('');
+      // For now, just use the image URL
+      eventImageUrl = newImageUrl || imageUrl;
+      
+      const updatedStats = stats;
+      
+      const response = await fetch('/api/statistics', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stats: updatedStats,
+          image: eventImageUrl,
+          seasonNumber,
+          seasonTitle: newSeasonTitle || `STATISTICS OF SEASON ${seasonNumber}`,
+        }),
+      });
+      
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      
+      setMessage('Settings updated successfully!');
       setPreviewUrl(eventImageUrl);
+      setImageUrl(eventImageUrl);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      fetchData();
     } catch (err) {
-      console.error('Error updating season settings:', err);
-      setError('Failed to update season settings');
+      console.error('Error updating settings:', err);
+      setError('Failed to update settings');
     } finally {
       setIsSaving(false);
     }
   };
-
 
   // Clear messages after 5 seconds
   useEffect(() => {
@@ -360,140 +232,74 @@ export default function AdminStatisticsPage() {
         )}
 
         {/* Season Settings */}
-        {seasonSettings && (
-          <div className="bg-gray-900 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-[#961c18] mb-4">
-              Season Settings
-            </h2>
-            
-            <div className="space-y-6">
-              {/* Image Upload Section */}
-              <div>
-                <label className="block text-sm font-medium mb-3">Event Image</label>
-                
-                {/* Upload Method Toggle */}
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setUploadMethod('url')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      uploadMethod === 'url'
-                        ? 'bg-[#961c18] text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    Image URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadMethod('file')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      uploadMethod === 'file'
-                        ? 'bg-[#961c18] text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                </div>
-
-                {uploadMethod === 'url' ? (
-                  <div className="space-y-2">
-                    <input
-                      type="url"
-                      value={newEventImageUrl || ''}
-                      onChange={(e) => {
-                        setNewEventImageUrl(e.target.value);
-                        setPreviewUrl(e.target.value);
-                      }}
-                      placeholder="https://example.com/image.jpg"
-                      className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
-                    />
-                    <p className="text-xs text-gray-400">
-                      Enter the URL of an image hosted online (max 500 characters)
-                    </p>
-                    <p className="text-xs text-blue-400">
-                      💡 Tip: Upload your image to imgur.com, Google Drive, or any image hosting service and paste the direct link here
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#961c18] file:text-white hover:file:bg-[#7a1514] focus:outline-none focus:border-[#961c18]"
-                    />
-                    <p className="text-xs text-gray-400">
-                      Select an image file (JPG, PNG, GIF, WebP - max 5MB)
-                    </p>
-                    <p className="text-xs text-green-400">
-                      ✅ File upload is ready! Images will be stored securely in Appwrite Storage.
-                    </p>
-                    <p className="text-xs text-yellow-400">
-                      ⚠️ If upload fails, the storage bucket may need to be set up. See STORAGE_SETUP_INSTRUCTIONS.md
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-
-              {/* Season Title */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Season Helper Title (e.g. STATISTICS OF SEASON 3)</label>
+        <div className="bg-gray-900 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#961c18] mb-4">
+            Season Settings
+          </h2>
+          
+          <div className="space-y-6">
+            {/* Image URL */}
+            <div>
+              <label className="block text-sm font-medium mb-3">Event Image URL</label>
+              <div className="space-y-2">
                 <input
-                  type="text"
-                  value={newSeasonTitle || ''}
-                  onChange={(e) => setNewSeasonTitle(e.target.value)}
-                  placeholder="STATISTICS OF SEASON 3"
+                  type="url"
+                  value={newImageUrl || ''}
+                  onChange={(e) => {
+                    setNewImageUrl(e.target.value);
+                    setPreviewUrl(e.target.value);
+                  }}
+                  placeholder="https://example.com/image.jpg"
                   className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
                 />
-                <p className="text-xs text-gray-400 mt-1">This text will be displayed as the main title of the Statistics section.</p>
-              </div>
-
-              {/* Registration Start Date */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Registration Start Date (for Countdown)</label>
-                <input
-                  type="date"
-                  value={newRegistrationStartDate || ''}
-                  onChange={(e) => setNewRegistrationStartDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
-                />
-                <p className="text-xs text-gray-400 mt-1">This date is used for the countdown timer on the tournaments page.</p>
-              </div>
-              
-              {/* Image Preview */}
-              {previewUrl && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Image Preview</label>
-                  <div className="relative">
-                    <img
-                      src={previewUrl}
-                      alt="Event preview"
-                      className="w-full max-w-md h-48 sm:h-64 object-cover rounded-lg border border-gray-600"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://placehold.co/600x400/111111/FFFFFF?text=Image+Error';
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <button
-                  onClick={handleUpdateSeasonSettings}
-                  disabled={isSaving}
-                  className="w-full sm:w-auto px-6 py-3 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
-                >
-                  {isSaving ? 'Updating...' : 'Update Season Settings'}
-                </button>
+                <p className="text-xs text-gray-400">
+                  Enter the URL of an image hosted online (imgur, Google Drive, etc.)
+                </p>
               </div>
             </div>
+
+            {/* Season Title */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Season Helper Title (e.g. STATISTICS OF SEASON 3)</label>
+              <input
+                type="text"
+                value={newSeasonTitle || ''}
+                onChange={(e) => setNewSeasonTitle(e.target.value)}
+                placeholder="STATISTICS OF SEASON 3"
+                className="w-full px-3 py-2 bg-black border border-gray-600 rounded-lg text-white focus:outline-none focus:border-[#961c18]"
+              />
+              <p className="text-xs text-gray-400 mt-1">This text will be displayed as the main title of the Statistics section.</p>
+            </div>
+
+            {/* Image Preview */}
+            {previewUrl && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Image Preview</label>
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Event preview"
+                    className="w-full max-w-md h-48 sm:h-64 object-cover rounded-lg border border-gray-600"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://placehold.co/600x400/111111/FFFFFF?text=Image+Error';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button
+                onClick={handleSaveSettings}
+                disabled={isSaving}
+                className="w-full sm:w-auto px-6 py-3 bg-[#961c18] hover:bg-[#7a1514] disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
+              >
+                {isSaving ? 'Updating...' : 'Update Season Settings'}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Statistics List */}
         <div className="bg-gray-900 rounded-lg p-4 sm:p-6">
@@ -503,8 +309,8 @@ export default function AdminStatisticsPage() {
           
           <div className="space-y-4">
             {stats.map((stat) => (
-              <div key={stat.$id} className="bg-black rounded-lg p-4 border border-gray-700">
-                {editingStatId === stat.$id ? (
+              <div key={stat.id} className="bg-black rounded-lg p-4 border border-gray-700">
+                {editingStatId === stat.id ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -530,7 +336,7 @@ export default function AdminStatisticsPage() {
                     
                     <div className="flex flex-col sm:flex-row gap-2">
                       <button
-                        onClick={() => handleSaveStat(stat.$id)}
+                        onClick={() => handleSaveStat(stat.id)}
                         disabled={isSaving}
                         className="w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded font-medium transition-colors"
                       >
@@ -549,9 +355,6 @@ export default function AdminStatisticsPage() {
                     <div>
                       <div className="text-xl sm:text-2xl font-bold text-white">{stat.number}</div>
                       <div className="text-gray-400 text-sm sm:text-base">{stat.label}</div>
-                      <div className="text-xs sm:text-sm text-gray-500">
-                        Season {stat.seasonNumber || 'N/A'}
-                      </div>
                     </div>
                     
                     <button

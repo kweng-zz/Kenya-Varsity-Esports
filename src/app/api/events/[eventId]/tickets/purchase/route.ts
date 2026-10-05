@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, ID, Query, Permission, Role } from 'node-appwrite';
 import { ticketService, EventTicketType, EventTicket } from '@/lib/tickets';
 import { paymentProviderFactory } from '@/lib/payments';
+import { calculateOrderTotal } from '@/lib/pricing';
 
 // Lazy init
 let client: Client | null = null;

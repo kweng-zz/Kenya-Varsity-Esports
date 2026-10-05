@@ -166,8 +166,9 @@ export async function GET(request: NextRequest) {
             const categoryIdNormalizationMap: Record<string, string> = {
                 'pubgm': 'pubg-mobile',
                 'pubg': 'pubg-mobile',
-                'codm': 'call-of-duty-mobile-br',
-                'codm-br': 'call-of-duty-mobile-br',
+                'codm': 'codm-1v1',
+                'codm-br': 'codm-1v1',
+                'codm-1v1': 'codm-1v1',
                 'efootball': 'efootball-mobile',
                 'eafc': 'eafc-1v1',
                 'eafc-1v1': 'eafc-1v1',

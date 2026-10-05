@@ -1,14 +1,40 @@
 "use client";
 
-import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, ChevronDown, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck, Clock, Eye } from "lucide-react";
-import { contentfulAPI, transformContentfulArticle, TransformedArticle } from "@/lib/contentful";
 import { ImageWithFallback } from "@/components/HydrationFix";
 import { ErrorBoundary, MinimalErrorBoundary } from "@/components/ErrorBoundary";
 import { ViewTracker } from "@/components/ViewTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBlogState } from "@/contexts/BlogStateContext";
+import resolveImageUrl from "@/lib/imageUrl";
+
+interface TransformedArticle {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  slug: string;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  featured: boolean;
+  category: string;
+  game: string;
+  author: string;
+  authorAvatar?: string;
+  authorBio?: string;
+  authorTwitter?: string;
+  authorLinkedIn?: string;
+  authorInstagram?: string;
+  authorTikTok?: string;
+  authorYouTube?: string;
+  authorFacebook?: string;
+  tags: string[];
+  imageUrl?: string;
+  image?: any;
+}
 
 // Search Input Component
 const SearchInput = ({
@@ -123,36 +149,7 @@ const BlogCard = ({ article }: { article: TransformedArticle }) => {
     return readingTime;
   };
 
-  // Ensure we have a valid image URL with proper fallback
-  const getImageUrl = (url?: string | null) => {
-    // Handle null, undefined, or empty string
-    if (!url || url === null || url === undefined || url.trim() === '') {
-      return '/images/Join our tournaments.png';
-    }
-    
-    const trimmedUrl = url.trim();
-    
-    // If it's already a full URL, return as is
-    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
-      return trimmedUrl;
-    }
-    
-    // If it starts with /uploads/, it's a Strapi upload - prepend Strapi URL
-    if (trimmedUrl.startsWith('/uploads/')) {
-      const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-      return `${strapiUrl}${trimmedUrl}`;
-    }
-    
-    // If it starts with /, assume it's a local image
-    if (trimmedUrl.startsWith('/')) {
-      return trimmedUrl;
-    }
-    
-    // Otherwise, assume it needs /images/ prefix
-    return `/images/${trimmedUrl}`;
-  };
-
-  const imageUrl = getImageUrl(article.imageUrl);
+const imageUrl = resolveImageUrl(article.imageUrl);
 
   const handleBookmarkToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -356,19 +353,24 @@ const BlogsOverviewSectionInner = () => {
     try {
       setLoading(true);
       setError(null);
-      let fetchedArticles: TransformedArticle[] = [];
 
-      const response = await contentfulAPI.getArticles({
-        page: currentPage,
-        pageSize: articlesPerPage,
-        category: selectedCategory || undefined,
-        game: selectedGame || undefined,
-        search: searchTerm || undefined,
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        pageSize: articlesPerPage.toString(),
       });
-      fetchedArticles = response.data;
-      setTotalPages(response.meta?.pagination?.pageCount || 1);
+      if (selectedCategory) params.append('category', selectedCategory);
+      if (selectedGame) params.append('game', selectedGame);
+      if (searchTerm) params.append('search', searchTerm);
 
-      setArticles(fetchedArticles);
+      const response = await fetch(`/api/blogs?${params.toString()}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setArticles(data.data);
+        setTotalPages(data.meta?.pagination?.pageCount || 1);
+      } else {
+        setError(data.error || "Failed to load articles.");
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to load articles.");
@@ -379,9 +381,15 @@ const BlogsOverviewSectionInner = () => {
 
   const loadFilters = async () => {
     try {
-      const [categoriesData, gamesData] = await Promise.all([contentfulAPI.getCategories(), contentfulAPI.getGames()]);
-      setCategories(categoriesData);
-      setGames(gamesData);
+      const response = await fetch('/api/blogs');
+      const data = await response.json();
+      if (data.success) {
+        setCategories(data.categories);
+        setGames(data.games);
+      } else {
+        setCategories(["Tournament Results", "Championship", "News", "Reviews"]);
+        setGames(["PUBG Mobile", "Call of Duty Mobile", "Free Fire", "Fortnite"]);
+      }
     } catch {
       setCategories(["Tournament Results", "Championship", "News", "Reviews"]);
       setGames(["PUBG Mobile", "Call of Duty Mobile", "Free Fire", "Fortnite"]);

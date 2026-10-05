@@ -1,10 +1,7 @@
-
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
 import { Clock } from 'lucide-react';
+import resolveImageUrl from '@/lib/imageUrl';
 
 // Define the TypeScript interface for a single news article's data.
 interface NewsArticle {
@@ -44,7 +41,7 @@ const NewsCard = ({ article }: NewsCardProps) => {
   };
 
   // Ensure we have a valid image URL with proper fallback
-  const getImageUrl = (url?: string | object | null) => {
+const getImageUrl = (url?: string | object | null) => {
     // Handle null, undefined, or empty string
     if (!url || url === '' || url === null || url === undefined) {
       return '/images/Join our tournaments.png';
@@ -59,11 +56,10 @@ const NewsCard = ({ article }: NewsCardProps) => {
         if (extractedUrl.startsWith('http')) {
           return extractedUrl;
         }
-        if (extractedUrl.startsWith('/uploads/')) {
-          const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-          return `${strapiUrl}${extractedUrl}`;
-        }
-        return extractedUrl.startsWith('/') ? extractedUrl : `/images/${extractedUrl}`;
+        // Use resolveImageUrl for local paths - never prepend localhost:3000
+        return resolveImageUrl(extractedUrl);
+        // Fallback for other cases
+        return extractedUrl.startsWith('/') ? extractedUrl : '/images/' + extractedUrl;
       }
       // If object doesn't have url property, use fallback
       return '/images/Join our tournaments.png';
@@ -83,10 +79,9 @@ const NewsCard = ({ article }: NewsCardProps) => {
         return trimmedUrl;
       }
       
-      // Handle Strapi uploads
+      // Use resolveImageUrl for local paths - never prepend localhost:3000
       if (trimmedUrl.startsWith('/uploads/')) {
-        const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-        return `${strapiUrl}${trimmedUrl}`;
+        return resolveImageUrl(trimmedUrl);
       }
       
       // If it starts with /, it's already a proper path
@@ -95,11 +90,8 @@ const NewsCard = ({ article }: NewsCardProps) => {
       }
       
       // Otherwise, assume it needs /images/ prefix
-      return `/images/${trimmedUrl}`;
+      return '/images/' + trimmedUrl;
     }
-    
-    // Fallback for any other case
-    return '/images/Join our tournaments.png';
   };
 
   // Initialize the image URL when component mounts or imageUrl changes
@@ -214,16 +206,18 @@ const LatestNews = () => {
       try {
         setLoading(true);
         
-        // Try to fetch from Contentful
-        const response = await contentfulAPI.getFeaturedArticles(2);
-        if (response.data && response.data.length > 0) {
-          const newsArticles = response.data.map((article: TransformedArticle) => ({
+        // Fetch from local CMS API
+        const response = await fetch('/api/articles/latest?limit=2');
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const newsArticles = data.data.map((article: any) => ({
             id: article.id,
             title: article.title,
             description: article.description,
-            imageUrl: article.imageUrl || undefined, // Convert null to undefined to match NewsArticle interface
+            imageUrl: article.imageUrl || undefined,
             category: article.category,
-            date: article.publishedAt,
+            date: article.date,
             slug: article.slug
           }));
           if (isMounted) {
@@ -233,7 +227,7 @@ const LatestNews = () => {
           return;
         }
       } catch (error) {
-        console.log('Contentful not available, using fallback data:', error);
+        console.log('Local CMS not available, using fallback data:', error);
       }
 
       // Fallback to static articles

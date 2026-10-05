@@ -1,4 +1,5 @@
 import { Client, Databases, Query, ID, Permission, Role } from 'node-appwrite';
+import { calculateOrderTotal } from '@/lib/pricing';
 
 // Lazy init
 let client: Client | null = null;
@@ -115,7 +116,6 @@ export interface PurchaseCalculation {
   subtotal: number;
   taxAmount: number;
   serviceFee: number;
-  paystackFee: number;
   discountAmount: number;
   totalAmount: number;
   currency: string;
@@ -218,44 +218,15 @@ export class TicketService {
     quantity: number,
     eventTicket: EventTicket
   ): PurchaseCalculation {
-    const subtotal = ticketType.price * quantity;
-    
-    // Tax (VAT) - default 16% for Kenya if not set
-    const taxRate = eventTicket.taxRate || 16;
-    const taxAmount = (subtotal * taxRate) / 100;
-    
-    // Platform service fee - default small fixed fee if not set
-    let serviceFee = 0;
-    const feeType = eventTicket.serviceFeeType || 'fixed';
-    const feeValue = eventTicket.serviceFee || 0;
-    if (feeType === 'percentage') {
-      serviceFee = (subtotal * feeValue) / 100;
-    } else {
-      serviceFee = feeValue;
-    }
-
-    // Paystack transaction fee estimate (added at checkout)
-    // Local cards: ~1.5% + small fixed, Intl: ~3.9%
-    // We'll use a blended rate of ~2.5% + KES 10
-    const paystackRate = 0.025;
-    const paystackFixedFee = 10;
-    const paystackFee = (subtotal + taxAmount + serviceFee) * paystackRate + paystackFixedFee;
-
-    const discountAmount = ticketType.originalPrice > ticketType.price
-      ? (ticketType.originalPrice - ticketType.price) * quantity
-      : 0;
-
-    const totalAmount = subtotal + taxAmount + serviceFee + paystackFee - discountAmount;
-
-    return {
-      subtotal,
-      taxAmount,
-      serviceFee,
-      paystackFee: Math.round(paystackFee),
-      discountAmount,
-      totalAmount: Math.max(0, Math.round(totalAmount)),
+    return calculateOrderTotal({
+      price: ticketType.price,
+      originalPrice: ticketType.originalPrice,
+      quantity,
+      taxRate: eventTicket.taxRate || 16,
+      serviceFee: eventTicket.serviceFee || 0,
+      serviceFeeType: eventTicket.serviceFeeType || 'fixed',
       currency: eventTicket.currency,
-    };
+    });
   }
 
   async createPurchase(

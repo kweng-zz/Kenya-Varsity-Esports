@@ -84,7 +84,7 @@ const defaultData: TournamentsPageData = {
     // January Season - Main Games
     {
       id: 'codm-mp-jan',
-      name: 'CODM-Multiplayer',
+      name: 'CODM MP',
       slug: 'codm-multiplayer',
       image: '/images/CODM-MP.png',
       route: '/games/codm-multiplayer',
@@ -94,28 +94,37 @@ const defaultData: TournamentsPageData = {
       order: 1
     },
     {
-      id: 'eafc-1v1-jan',
-      name: 'EAFC-1V1',
-      slug: 'eafc-1v1-open',
-      image: '/images/EAFC-1-v1-Open.png',
-      route: '/games/eafc-1v1-open',
+      id: 'codm-1v1-jan',
+      name: 'CODM 1v1',
+      slug: 'codm-1v1',
+      image: '/images/CODM-BR.png',
+      route: '/games/codm-1v1',
       isActive: true,
       season: 'january',
       category: 'main',
       order: 2
     },
-    
-    // January Season - Added Games
     {
-      id: 'fights-jan',
-      name: 'Fights',
-      slug: 'fighting-games',
-      image: '/images/Fighting-Games-Open.png',
-      route: '/games/fighting-games',
+      id: 'efootball-jan',
+      name: 'eFootball Mobile',
+      slug: 'efootball-mobile',
+      image: '/images/Efootball-Mobile.png',
+      route: '/games/efootball-mobile',
       isActive: true,
       season: 'january',
-      category: 'added',
-      order: 1
+      category: 'main',
+      order: 3
+    },
+    {
+      id: 'pubg-jan',
+      name: 'PUBG Mobile',
+      slug: 'pubg-mobile',
+      image: 'https://c.animaapp.com/md9thhqb0sYxAU/img/pubgm-2.png',
+      route: '/games/pubg-mobile',
+      isActive: true,
+      season: 'january',
+      category: 'main',
+      order: 4
     },
     
     

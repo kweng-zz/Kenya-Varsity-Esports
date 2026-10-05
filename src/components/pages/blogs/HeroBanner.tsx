@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { contentfulAPI, transformContentfulArticle, TransformedArticle } from '@/lib/contentful';
+import { BlogPost } from '@/lib/blog';
 
 export const HeroBannerSection = () => {
-  const [featuredArticle, setFeaturedArticle] = useState<TransformedArticle | null>(null);
+  const [featuredArticle, setFeaturedArticle] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,41 +14,16 @@ export const HeroBannerSection = () => {
 
   const loadFeaturedArticle = async () => {
     try {
-      // Check if we're in fallback mode
-      if (process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true') {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('Fallback mode enabled, using fallback content');
-        }
-        setFeaturedArticle(null);
-        setLoading(false);
-        return;
-      }
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Loading featured article from Contentful...');
-      }
-      const response = await contentfulAPI.getArticles({
-        page: 1,
-        pageSize: 1,
-        featured: true
-      });
+      const response = await fetch('/api/articles/featured');
+      const data = await response.json();
       
-      if (response.data.length > 0) {
-        const article = response.data[0];
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('Featured article loaded:', article.id, article.title);
-        }
-        setFeaturedArticle(article);
+      if (data.success && data.data) {
+        setFeaturedArticle(data.data);
       } else {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('No featured articles found');
-        }
         setFeaturedArticle(null);
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Contentful not available, using fallback content');
-      }
+      console.error('Error loading featured article:', error);
       setFeaturedArticle(null);
     } finally {
       setLoading(false);

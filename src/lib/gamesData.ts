@@ -82,22 +82,22 @@ export const gamesData: Record<string, Game> = {
     },
     captainWhatsappLink: "https://chat.whatsapp.com/pubg-mobile-captains"
   },
-  "call-of-duty-mobile-br": {
-    name: "Call of Duty Mobile BR",
-    slug: "call-of-duty-mobile-br",
+  "codm-1v1": {
+    name: "CODM 1v1",
+    slug: "codm-1v1",
     image: "/images/CODM-BR.png",
-    description: "Call of Duty Mobile Battle Royale brings the iconic franchise to mobile devices with intense multiplayer action. Fight across familiar maps with classic weapons and vehicles in this fast-paced battle royale experience.",
-    category: "Battle Royale",
+    description: "Call of Duty Mobile 1v1 brings the iconic franchise to mobile devices with intense one-on-one action. Prove your individual skill in this fast-paced competitive mode.",
+    category: "FPS",
     platform: "Mobile",
     season: "January 2026",
     comingSoon: false,
     featured: true,
     rules: {
-      tournamentType: 'team',
-      minTeamSize: 4,
-      maxTeamSize: 4,
-      allowSubstitutes: true,
-      maxSubstitutes: 2,
+      tournamentType: 'individual',
+      minTeamSize: 1,
+      maxTeamSize: 1,
+      allowSubstitutes: false,
+      maxSubstitutes: 0,
       registrationRequirements: {
         requireStudentId: true,
         requireUniversity: true,
@@ -113,18 +113,11 @@ export const gamesData: Record<string, Game> = {
             type: 'text',
             required: true,
             label: 'COD Mobile Player ID'
-          },
-          {
-            name: 'preferred_mode',
-            type: 'select',
-            required: true,
-            label: 'Preferred Game Mode',
-            options: ['Battle Royale', 'Multiplayer', 'Both']
           }
         ]
       }
     },
-    captainWhatsappLink: "https://chat.whatsapp.com/codm-br-captains"
+    captainWhatsappLink: "https://chat.whatsapp.com/codm-1v1-captains"
   },
   "efootball-mobile": {
     name: "eFootball Mobile",

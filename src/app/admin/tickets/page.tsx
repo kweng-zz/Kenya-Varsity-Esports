@@ -18,7 +18,7 @@ import {
 } from '@/types/ticket';
 
 const AdminTicketsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
   
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -33,14 +33,16 @@ const AdminTicketsPage: React.FC = () => {
   const itemsPerPage = 25;
 
   useEffect(() => {
-    if (!user?.labels?.includes('admin')) {
+    if (!loading && !profile?.isAdmin) {
       router.push('/');
       return;
     }
     
-    loadTickets();
-    loadStats();
-  }, [user, filters, currentPage]);
+    if (profile?.isAdmin) {
+      loadTickets();
+      loadStats();
+    }
+  }, [profile, filters, currentPage]);
 
   const loadTickets = async () => {
     try {
@@ -154,8 +156,21 @@ const AdminTicketsPage: React.FC = () => {
     return formatDate(dateString);
   };
 
-  if (!user?.labels?.includes('admin')) {
-    return <div>Access denied</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#961c18]"></div>
+      </div>
+    );
+  }
+
+  if (!profile?.isAdmin) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-4">
+        <h1 className="text-3xl font-bold">Access Denied</h1>
+        <p className="text-gray-400">You must be an admin to view this page.</p>
+      </div>
+    );
   }
 
   return (

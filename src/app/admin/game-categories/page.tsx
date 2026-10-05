@@ -65,122 +65,101 @@ export default function AdminGameCategoriesPage() {
         if (rankingsResponse.ok) {
           const rankingsResult = await rankingsResponse.json();
           if (rankingsResult.success && rankingsResult.data) {
-            // Build a map of categoryId -> rankings
             Object.entries(rankingsResult.data).forEach(([categoryId, rankings]: [string, any]) => {
               if (Array.isArray(rankings)) {
                 savedRankingsMap.set(categoryId, rankings);
               }
             });
-            console.log('📊 Loaded saved rankings from API:', savedRankingsMap.size, 'categories');
           }
         }
       } catch (e) {
         console.warn('Could not fetch saved rankings from API:', e);
       }
 
-      // Always try to fetch from Appwrite first (don't use localStorage cache)
+      // Fetch games from local CMS API
       try {
-        const { Client, Databases } = await import('appwrite');
-        const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
-        const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
-        const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID;
-
-        console.log('Fetching tournaments from Appwrite...', { endpoint, projectId, dbId });
-
-        if (endpoint && projectId && dbId) {
-          const client = new Client()
-            .setEndpoint(endpoint)
-            .setProject(projectId);
-          const databases = new Databases(client);
-
-          const response = await databases.listDocuments(dbId, 'tournaments');
-          const tournaments = response.documents as any[];
-
-          console.log('Tournaments fetched:', tournaments);
-
-          // Extract unique games from tournaments
-          const uniqueGames = new Map<string, any>();
-          tournaments.forEach((tournament, index) => {
-            if (!uniqueGames.has(tournament.gameName)) {
-              const categoryId = tournament.slug || tournament.gameName.toLowerCase().replace(/\s+/g, '-');
-              uniqueGames.set(tournament.gameName, {
-                id: categoryId,
-                name: tournament.gameName,
-                title: `${tournament.gameName.toUpperCase()} RANKINGS`,
-                description: tournament.description || `Current standings for ${tournament.gameName} tournament`,
-                image: tournament.featuredImageUrl || `/images/${tournament.gameName.replace(/\s+/g, '')}.png`,
-                isActive: true,
-                type: "main",
-                order: index + 1,
-                // Use saved rankings if available, otherwise empty array
-                rankings: savedRankingsMap.get(categoryId) || []
-              });
-            }
-          });
-
-          const categories = Array.from(uniqueGames.values());
-          console.log('Categories created:', categories);
-
-          if (categories.length > 0) {
+        const response = await fetch('/api/games');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const games = result.data;
+            
+            const categories = games.map((game: any, index: number) => ({
+              id: game.slug,
+              name: game.name,
+              title: game.title,
+              description: game.description,
+              image: game.image,
+              isActive: game.isActive,
+              type: "main" as const,
+              order: game.order,
+              rankings: savedRankingsMap.get(game.slug) || []
+            }));
+            
             setCategories(categories);
-            // Save to localStorage for backup
-            localStorage.removeItem('gameCategories');
-            localStorage.setItem('gameCategories', JSON.stringify(categories));
             return;
           }
         }
       } catch (appwriteError) {
-        console.warn('Could not fetch from Appwrite:', appwriteError);
+        console.warn('Could not fetch from local CMS:', appwriteError);
       }
 
-      // Fallback: Load from localStorage if Appwrite fails
+      // Fallback: Load from localStorage if API fails
       const savedCategories = localStorage.getItem('gameCategories');
       if (savedCategories) {
-        console.log('Loading from localStorage');
         setCategories(JSON.parse(savedCategories));
         return;
       }
 
-      // Final fallback: Use default data
+      // Final fallback
       console.log('Using fallback data');
       const fallbackCategories: GameCategory[] = [
         {
-          id: "pubgm",
-          name: "PUBG Mobile",
-          title: "PUBGM RANKINGS",
-          description: "Current standings for PUBGM tournament",
-          image: "/images/PUBGM.jpeg",
+          id: "efootball-mobile",
+          name: "eFootball Mobile",
+          title: "EFOOTBALL MOBILE RANKINGS",
+          description: "Current standings for eFootball Mobile tournament",
+          image: "/images/efootball-mobile.webp",
           isActive: true,
           type: "main",
           order: 1,
-          rankings: savedRankingsMap.get('pubgm') || []
+          rankings: savedRankingsMap.get('efootball-mobile') || []
         },
         {
-          id: "codm",
-          name: "Call of Duty Mobile",
-          title: "CODM RANKINGS",
-          description: "Current standings for CODM tournament",
-          image: "/images/CODM-BR.png",
+          id: "codm-mp",
+          name: "CODM MP",
+          title: "CODM MP RANKINGS",
+          description: "Current standings for Call of Duty Mobile Multiplayer tournament",
+          image: "/images/codm-mp.webp",
           isActive: true,
           type: "main",
           order: 2,
-          rankings: savedRankingsMap.get('codm') || []
+          rankings: savedRankingsMap.get('codm-mp') || []
         },
         {
-          id: "efootball",
-          name: "eFootball Mobile",
-          title: "EFOOTBALL RANKINGS",
-          description: "Current standings for eFootball tournament",
-          image: "/images/EFootball-Mobile.png",
+          id: "codm-1v1",
+          name: "CODM 1v1",
+          title: "CODM 1V1 RANKINGS",
+          description: "Current standings for Call of Duty Mobile 1v1 tournament",
+          image: "/images/codm-1v1.webp",
           isActive: true,
           type: "main",
           order: 3,
-          rankings: savedRankingsMap.get('efootball') || []
+          rankings: savedRankingsMap.get('codm-1v1') || []
+        },
+        {
+          id: "pubg",
+          name: "PUBG",
+          title: "PUBG RANKINGS",
+          description: "Current standings for PUBG tournament",
+          image: "/images/pubg.webp",
+          isActive: true,
+          type: "main",
+          order: 4,
+          rankings: savedRankingsMap.get('pubg') || []
         }
       ];
       setCategories(fallbackCategories);
-      localStorage.removeItem('gameCategories');
-      localStorage.setItem('gameCategories', JSON.stringify(fallbackCategories));
     } catch (error) {
       console.error('Error loading game categories:', error);
       setError('Failed to load game categories.');
@@ -192,10 +171,8 @@ export default function AdminGameCategoriesPage() {
   const handleEditRankings = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     if (category) {
-      // Use the tournament slug (from category.id) as the categoryId for saving
       setEditingCategoryId(category.id);
       
-      // Normalize rankings data to ensure all fields are defined
       const normalizedRankings = (category.rankings || []).map((ranking: any) => ({
         rank: ranking.rank ?? 0,
         playerName: ranking.playerName ?? '',
@@ -239,7 +216,6 @@ export default function AdminGameCategoriesPage() {
     try {
       setIsLoading(true);
       
-      // Save to Appwrite via API
       const response = await fetch('/api/admin/game-categories', {
         method: 'POST',
         headers: {
@@ -257,7 +233,6 @@ export default function AdminGameCategoriesPage() {
         throw new Error(result.error || 'Failed to save rankings');
       }
 
-      // Update local state
       const updatedCategories = categories.map(cat => 
         cat.id === editingCategoryId 
           ? { ...cat, rankings: editingRankings }
@@ -267,10 +242,9 @@ export default function AdminGameCategoriesPage() {
       setCategories(updatedCategories);
       localStorage.setItem('gameCategories', JSON.stringify(updatedCategories));
       
-      // Show appropriate success message based on storage source
       const message = result.source === 'appwrite' 
         ? 'Rankings updated successfully and synced to database!'
-        : 'Rankings saved successfully! (Note: Using temporary storage - run setup script to enable permanent storage)';
+        : 'Rankings saved successfully!';
       
       setSuccessMessage(message);
       setEditingCategoryId(null);
@@ -288,7 +262,6 @@ export default function AdminGameCategoriesPage() {
     category.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
@@ -297,7 +270,6 @@ export default function AdminGameCategoriesPage() {
     );
   }
 
-  // Unauthorized access
   if (!profile?.isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white gap-4">
@@ -313,7 +285,6 @@ export default function AdminGameCategoriesPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Game Categories Management</h1>
@@ -329,14 +300,12 @@ export default function AdminGameCategoriesPage() {
           </div>
         </div>
 
-        {/* Success Message */}
         {successMessage && (
           <div className="mb-6 p-4 bg-green-600 text-white rounded-lg">
             {successMessage}
           </div>
         )}
 
-        {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -350,7 +319,6 @@ export default function AdminGameCategoriesPage() {
           </div>
         </div>
 
-        {/* Categories Table */}
         <div className="bg-gray-800 rounded-lg overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -449,7 +417,6 @@ export default function AdminGameCategoriesPage() {
         )}
       </div>
 
-      {/* Rankings Editor Modal */}
       {editingCategoryId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -469,7 +436,6 @@ export default function AdminGameCategoriesPage() {
             </div>
 
             <div className="p-6">
-              {/* Rankings Table */}
               <div className="mb-6 overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-700">
@@ -554,7 +520,6 @@ export default function AdminGameCategoriesPage() {
                 </table>
               </div>
 
-              {/* Add New Entry Button */}
               <div className="mb-6 flex gap-4">
                 <button
                   onClick={handleAddRankingEntry}
@@ -572,7 +537,6 @@ export default function AdminGameCategoriesPage() {
                 </button>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-4 justify-end">
                 <button
                   onClick={() => {
@@ -595,7 +559,6 @@ export default function AdminGameCategoriesPage() {
         </div>
       )}
 
-      {/* Bulk Importer Modal */}
       {showBulkImporter && (
         <BulkRankingsImporter
           onImport={(rankings) => {

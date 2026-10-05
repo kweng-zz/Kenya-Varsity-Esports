@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ticketService } from '@/lib/tickets';
 import { paymentProviderFactory } from '@/lib/payments';
+import { calculateOrderTotal, fromSubunits } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -44,8 +45,18 @@ export async function POST(
           let newPaymentStatus = purchase.paymentStatus;
 
           if (paymentIntent.status === 'succeeded') {
-            newStatus = 'confirmed';
-            newPaymentStatus = 'paid';
+            // Verify amount matches expected total
+            const expectedTotal = purchase.totalAmount;
+            const paidAmount = paymentIntent.amount;
+            
+            if (Math.abs(paidAmount - expectedTotal) > 1) {
+              console.error(`Amount mismatch: expected ${expectedTotal}, got ${paidAmount}`);
+              newStatus = 'cancelled';
+              newPaymentStatus = 'failed';
+            } else {
+              newStatus = 'confirmed';
+              newPaymentStatus = 'paid';
+            }
           } else if (paymentIntent.status === 'failed') {
             newStatus = 'cancelled';
             newPaymentStatus = 'failed';

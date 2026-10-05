@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CreditCard, Smartphone, Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { calculateOrderTotal } from '@/lib/pricing';
 
 interface TicketType {
   $id: string;
@@ -92,6 +94,21 @@ export default function TicketPurchaseModal({
     redirectUrl?: string;
   } | null>(null);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (isOpen) {
       fetchTicketData();
@@ -127,29 +144,23 @@ export default function TicketPurchaseModal({
   const calculateTotal = () => {
     if (!selectedTicketType || !ticketData) return;
     
-    const subtotal = selectedTicketType.price * quantity;
-    const taxAmount = (subtotal * ticketData.eventTicket.taxRate) / 100;
-    
-    let serviceFee = 0;
-    if (ticketData.eventTicket.serviceFeeType === 'percentage') {
-      serviceFee = (subtotal * ticketData.eventTicket.serviceFee) / 100;
-    } else {
-      serviceFee = ticketData.eventTicket.serviceFee;
-    }
-
-    const discountAmount = selectedTicketType.originalPrice > selectedTicketType.price
-      ? (selectedTicketType.originalPrice - selectedTicketType.price) * quantity
-      : 0;
-
-    const totalAmount = subtotal + taxAmount + serviceFee - discountAmount;
+    const result = calculateOrderTotal({
+      price: selectedTicketType.price,
+      originalPrice: selectedTicketType.originalPrice,
+      quantity,
+      taxRate: ticketData.eventTicket.taxRate,
+      serviceFee: ticketData.eventTicket.serviceFee,
+      serviceFeeType: ticketData.eventTicket.serviceFeeType,
+      currency: ticketData.eventTicket.currency,
+    });
 
     setCalculation({
-      subtotal,
-      taxAmount,
-      serviceFee,
-      discountAmount,
-      totalAmount: Math.max(0, totalAmount),
-      currency: ticketData.eventTicket.currency,
+      subtotal: result.subtotal,
+      taxAmount: result.taxAmount,
+      serviceFee: result.serviceFee,
+      discountAmount: result.discountAmount,
+      totalAmount: result.totalAmount,
+      currency: result.currency,
     });
   };
 
@@ -249,18 +260,18 @@ export default function TicketPurchaseModal({
     }).format(amount);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-      {/* Background click to close */}
+  return createPortal((
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {/* Backdrop - single layer */}
       <div 
-        className="absolute inset-0 bg-black/70" 
+        className="absolute inset-0 bg-black/90 backdrop-blur-md" 
         onClick={onClose}
         aria-hidden="true"
       />
       
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-950 border-2 border-gray-700 shadow-2xl shadow-black/50">
+      <div className="relative z-10 flex flex-col w-full sm:max-w-2xl max-h-[100dvh] sm:max-h-[90dvh] bg-gray-950 border-2 border-gray-700 shadow-2xl shadow-black/50">
         {/* Corner accents */}
         <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8c110d]" />
         <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#8c110d]" />
@@ -268,7 +279,7 @@ export default function TicketPurchaseModal({
         <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#8c110d]" />
         
         {/* Header */}
-        <div className="relative p-6 border-b border-gray-800 flex items-center justify-between">
+        <div className="shrink-0 relative p-6 border-b border-gray-800 flex items-center justify-between">
           <div>
             <span className="text-[#8c110d] font-black text-xs uppercase tracking-[0.2em] block mb-1">
               Purchase Tickets
@@ -287,7 +298,7 @@ export default function TicketPurchaseModal({
         </div>
 
         {/* Step indicator */}
-        <div className="px-6 py-4 border-b border-gray-800">
+        <div className="shrink-0 px-6 py-4 border-b border-gray-800">
           <div className="flex items-center justify-center gap-2">
             {['select', 'payment', 'success'].map((s, i) => (
               <React.Fragment key={s}>
@@ -320,7 +331,7 @@ export default function TicketPurchaseModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6">
           {error && step !== 'success' && (
             <div className="mb-6 p-4 bg-red-900/30 border border-red-800 flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
@@ -477,23 +488,26 @@ export default function TicketPurchaseModal({
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {selectedTicketType && (
-                <button
-                  onClick={handlePurchase}
-                  disabled={loading}
-                  className="w-full py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] hover:from-[#b91c17] hover:to-[#8c110d] text-white font-black uppercase tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    `Proceed to Payment — ${formatPrice(calculation?.totalAmount || 0, calculation?.currency || 'KES')}`
-                  )}
-                </button>
-              )}
+          {/* Fixed footer for Step 1: Proceed to Payment button */}
+          {step === 'select' && selectedTicketType && (
+            <div className="shrink-0 border-t border-gray-800 bg-gray-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <button
+                onClick={handlePurchase}
+                disabled={loading || !calculation}
+                className="w-full py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] hover:from-[#b91c17] hover:to-[#8c110d] text-white font-black uppercase tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  `Proceed to Payment — ${formatPrice(calculation?.totalAmount || 0, calculation?.currency || 'KES')}`
+                )}
+              </button>
             </div>
           )}
 
@@ -622,5 +636,5 @@ export default function TicketPurchaseModal({
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

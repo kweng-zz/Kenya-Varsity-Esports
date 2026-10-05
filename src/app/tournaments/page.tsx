@@ -3,8 +3,7 @@ import ProtectedRoute from "@/components/auth/ProotectedRoute";
 import { FooterSection } from "@/components/Footer";
 import { Navigation } from "@/components/Navigation";
 import { ComingSoonSection } from "@/components/pages/tournaments/ComingSoon";
-import HeroSection from "@/components/pages/tournaments/Herosection";
-import { TeamRosterSection } from "@/components/pages/tournaments/Roaster";
+import HeroSection from "@/components/pages/tournaments/HeroSection";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -80,8 +79,7 @@ export default function TournamentsPage() {
         </div>
 
         <HeroSection />
-        {/* Team Roster section - full width */}
-        <TeamRosterSection />
+       
 
         <ComingSoonSection />
 

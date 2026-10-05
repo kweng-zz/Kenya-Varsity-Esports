@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { paymentProviderFactory } from '@/lib/payments';
 import { ticketService, EventTicketPurchase, EventTicketType, EventTicket } from '@/lib/tickets';
 import { sendTicketConfirmationEmail } from '@/lib/email/ticketEmails';
+import { fromSubunits } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Event not handled' });
     }
 
-    const { paymentIntentId, status, data } = parsed;
+    const { paymentIntentId, status, data: webhookData } = parsed;
 
     // Find purchase by payment reference
     const db = (await import('node-appwrite')).Databases;
@@ -73,8 +74,18 @@ export async function POST(request: NextRequest) {
 
     switch (status) {
       case 'succeeded':
-        newStatus = 'confirmed';
-        newPaymentStatus = 'paid';
+        // Verify amount matches expected total (from subunits)
+        const paidAmount = fromSubunits(typeof webhookData?.amount === 'number' ? webhookData.amount : 0);
+        const expectedTotal = purchase.totalAmount;
+        
+        if (Math.abs(paidAmount - expectedTotal) > 1) {
+          console.error(`Webhook amount mismatch: expected ${expectedTotal}, got ${paidAmount}`);
+          newStatus = 'cancelled';
+          newPaymentStatus = 'failed';
+        } else {
+          newStatus = 'confirmed';
+          newPaymentStatus = 'paid';
+        }
         break;
       case 'failed':
         newStatus = 'cancelled';
@@ -103,7 +114,7 @@ export async function POST(request: NextRequest) {
         {
           status: newStatus,
           paymentStatus: newPaymentStatus,
-          paymentDetails: JSON.stringify(data),
+          paymentDetails: JSON.stringify(webhookData),
           ...(newPaymentStatus === 'paid' && { paidAt: new Date().toISOString() }),
           ...(newStatus === 'cancelled' && { cancelledAt: new Date().toISOString() }),
           ...(newStatus === 'refunded' && { refundedAt: new Date().toISOString() }),

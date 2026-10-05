@@ -4,6 +4,7 @@ import { FooterSection } from "@/components/Footer";
 import { Navigation } from "@/components/Navigation";
 import { ComingSoonSection } from "@/components/pages/tournaments/ComingSoon";
 import HeroSection from "@/components/pages/tournaments/HeroSection";
+import { TeamRosterSection } from "@/components/pages/tournaments/TeamRosterSection";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -79,8 +80,7 @@ export default function TournamentsPage() {
         </div>
 
         <HeroSection />
-       
-
+        <TeamRosterSection />
         <ComingSoonSection />
 
         {/* Footer section - full width */}

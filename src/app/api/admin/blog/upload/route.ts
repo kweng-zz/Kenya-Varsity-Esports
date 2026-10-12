@@ -11,10 +11,6 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const UPLOAD_DIR = '/home/tonny/Documents/work/apps/Kuer/public/uploads/blog';
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
-  }
-
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;

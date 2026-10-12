@@ -1,21 +1,17 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join, extname } from 'path';
-import { randomUUID } from 'crypto';
-import { cwd } from 'process';
+import { Client, Storage, ID } from 'node-appwrite';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-const UPLOAD_DIR = join(cwd(), 'public', 'uploads', 'blog');
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string; // 'cover' or 'body'
+    const type = formData.get('type') as string;
 
     if (!file) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
@@ -29,28 +25,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'File too large. Max 5MB' }, { status: 400 });
     }
 
-    await mkdir(UPLOAD_DIR, { recursive: true });
+    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    const fileExt = extname(file.name).toLowerCase();
-    const baseName = file.name.replace(extname(file.name), ''); // strip original extension
-    const safeName = baseName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 100);
-    // Map MIME type to exactly one extension
-    const extMap: Record<string, string> = {
-      'image/jpeg': '.jpg',
-      'image/png': '.png',
-      'image/webp': '.webp',
-      'image/gif': '.gif',
-    };
-    const guaranteedExt = extMap[file.type] || '.png';
-    const uniqueName = `${randomUUID()}_${safeName}${guaranteedExt}`;
-    const filePath = join(UPLOAD_DIR, uniqueName);
-    
-    await writeFile(filePath, buffer);
+    if (!endpoint || !projectId || !apiKey) {
+      return NextResponse.json({ success: false, error: 'Appwrite server configuration missing' }, { status: 500 });
+    }
 
-    const publicUrl = `/uploads/blog/${uniqueName}`;
+    const client = new Client()
+      .setEndpoint(endpoint)
+      .setProject(projectId)
+      .setKey(apiKey);
+
+    const storage = new Storage(client);
+    const bucketId = 'season-images';
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const sanitizedName = file.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .toLowerCase();
+
+    const inputFile = {
+      name: sanitizedName,
+      type: file.type,
+      size: file.size,
+      buffer: buffer,
+    } as any;
+
+    const response = await storage.createFile(
+      bucketId,
+      ID.unique(),
+      inputFile
+    );
+
+    const publicUrl = `${endpoint}/storage/buckets/${bucketId}/files/${response.$id}/view?project=${projectId}`;
     const markdown = type === 'cover' ? '' : `![](${publicUrl})`;
 
     return NextResponse.json({
@@ -58,11 +70,11 @@ export async function POST(request: Request) {
       data: {
         url: publicUrl,
         markdown,
-        filename: uniqueName,
+        filename: response.$id,
       },
     });
   } catch (error: any) {
-    console.error('Upload error:', error);
+    console.error('Blog upload error:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Upload failed' },
       { status: 500 }

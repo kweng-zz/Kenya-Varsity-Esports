@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
+import { cwd } from 'process';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-const UPLOAD_DIR = '/home/tonny/Documents/work/apps/Kuer/public/uploads/blog';
+const UPLOAD_DIR = join(cwd(), 'public', 'uploads', 'blog');
 
 export async function POST(request: Request) {
   try {

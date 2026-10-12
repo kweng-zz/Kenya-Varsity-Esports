@@ -4,6 +4,10 @@ import { getAdminClient } from './appwrite-server';
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
 const BLOG_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_BLOG_POSTS_COLLECTION_ID!;
 
+if (!BLOG_COLLECTION_ID) {
+  throw new Error('NEXT_PUBLIC_APPWRITE_BLOG_POSTS_COLLECTION_ID environment variable is not set. Please add it to your .env.local or Vercel environment variables.');
+}
+
 export interface BlogPost {
   $id: string;
   id: string;
@@ -224,7 +228,7 @@ export async function savePost(post: BlogPost): Promise<BlogPost> {
     authorFacebook: post.authorFacebook,
     tags: post.tags || [],
     imageUrl: post.imageUrl,
-    image: post.image,
+    image: typeof post.image === 'string' ? post.image : post.image ? JSON.stringify(post.image) : undefined,
     published: post.published !== false,
   };
 

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getAllPosts, getCategories, getGames, getAuthors } from '@/lib/blog';
+import { getAllPosts, getCategories, getGames, getAuthors, savePost } from '@/lib/blog';
+import { checkAdminAuth } from '@/lib/auth-check';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
-  }
+  const authError = await checkAdminAuth(request as any);
+  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -46,13 +46,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
-  }
+  const authError = await checkAdminAuth(request as any);
+  if (authError) return authError;
 
   try {
     const body = await request.json();
-    const { savePost } = await import('@/lib/blog');
     
     savePost(body);
     

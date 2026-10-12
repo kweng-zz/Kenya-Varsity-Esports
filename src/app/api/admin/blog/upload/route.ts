@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Client, Storage, ID, InputFile } from 'node-appwrite';
+import { Client, Storage, ID } from 'node-appwrite';
+import { InputFile } from 'node-appwrite/file';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

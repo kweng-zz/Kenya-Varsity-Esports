@@ -1,11 +1,11 @@
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, resolve, extname } from 'path';
-import matter from 'gray-matter';
+import { Databases, ID, Query } from 'node-appwrite';
+import { getAdminClient } from './appwrite-server';
 
-const CONTENT_DIR = resolve(process.cwd(), 'content/blog');
-const UPLOADS_DIR = resolve(process.cwd(), 'public/uploads/blog');
+const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+const BLOG_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_BLOG_POSTS_COLLECTION_ID!;
 
 export interface BlogPost {
+  $id: string;
   id: string;
   title: string;
   description: string;
@@ -48,66 +48,42 @@ function validateSlug(slug: string): boolean {
   return /^[a-z0-9-]+$/.test(slug);
 }
 
-function ensureContentDir() {
-  if (!existsSync(CONTENT_DIR)) {
-    mkdirSync(CONTENT_DIR, { recursive: true });
-  }
+function mapDocument(doc: any): BlogPost {
+  return {
+    $id: doc.$id,
+    id: doc.id || doc.$id,
+    title: doc.title,
+    description: doc.description,
+    content: doc.content,
+    slug: doc.slug,
+    publishedAt: doc.publishedAt,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    featured: doc.featured || false,
+    category: doc.category || 'General',
+    game: doc.game || '',
+    author: doc.author || 'KVE Team',
+    authorAvatar: doc.authorAvatar,
+    authorBio: doc.authorBio,
+    authorTwitter: doc.authorTwitter,
+    authorLinkedIn: doc.authorLinkedIn,
+    authorInstagram: doc.authorInstagram,
+    authorTikTok: doc.authorTikTok,
+    authorYouTube: doc.authorYouTube,
+    authorFacebook: doc.authorFacebook,
+    tags: doc.tags || [],
+    imageUrl: doc.imageUrl,
+    image: doc.image,
+    published: doc.published !== false,
+  };
 }
 
-function ensureUploadsDir() {
-  if (!existsSync(UPLOADS_DIR)) {
-    mkdirSync(UPLOADS_DIR, { recursive: true });
-  }
+async function getDatabases(): Promise<Databases> {
+  const client = await getAdminClient();
+  return new Databases(client);
 }
 
-function readAllPosts(includeDrafts = false): BlogPost[] {
-  ensureContentDir();
-  const files = readdirSync(CONTENT_DIR).filter(f => extname(f) === '.md');
-  
-  const posts: BlogPost[] = files.map(file => {
-    const filePath = join(CONTENT_DIR, file);
-    const fileContent = readFileSync(filePath, 'utf-8');
-    const { data, content } = matter(fileContent);
-    
-    return {
-      id: data.id || file.replace('.md', ''),
-      title: data.title || '',
-      description: data.description || '',
-      content,
-      slug: data.slug || file.replace('.md', ''),
-      publishedAt: data.publishedAt || data.date || new Date().toISOString(),
-      createdAt: data.createdAt || new Date().toISOString(),
-      updatedAt: data.updatedAt || new Date().toISOString(),
-      featured: data.featured || false,
-      category: data.category || 'General',
-      game: data.game || '',
-      author: data.author || 'KVE Team',
-      authorAvatar: data.authorAvatar,
-      authorBio: data.authorBio,
-      authorTwitter: data.authorTwitter,
-      authorLinkedIn: data.authorLinkedIn,
-      authorInstagram: data.authorInstagram,
-      authorTikTok: data.authorTikTok,
-      authorYouTube: data.authorYouTube,
-      authorFacebook: data.authorFacebook,
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      imageUrl: data.imageUrl || data.coverImage,
-      image: data.image,
-      published: data.published !== false,
-    };
-  });
-
-  if (!includeDrafts) {
-    return posts.filter(p => p.published);
-  }
-  return posts;
-}
-
-function sortPosts(posts: BlogPost[]): BlogPost[] {
-  return posts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-}
-
-export function getAllPosts(params?: {
+export async function getAllPosts(params?: {
   page?: number;
   pageSize?: number;
   category?: string;
@@ -115,39 +91,43 @@ export function getAllPosts(params?: {
   search?: string;
   featured?: boolean;
   includeDrafts?: boolean;
-}): PaginatedResponse<BlogPost> {
+}): Promise<PaginatedResponse<BlogPost>> {
   const page = params?.page || 1;
   const pageSize = params?.pageSize || 10;
   const includeDrafts = params?.includeDrafts || false;
 
-  let posts = readAllPosts(includeDrafts);
+  const databases = await getDatabases();
+  const queries = [
+    Query.orderDesc('publishedAt'),
+    Query.limit(pageSize),
+    Query.offset((page - 1) * pageSize),
+  ];
+
+  if (!includeDrafts) {
+    queries.push(Query.equal('published', true));
+  }
 
   if (params?.category) {
-    posts = posts.filter(p => p.category.toLowerCase() === params.category!.toLowerCase());
+    queries.push(Query.equal('category', params.category));
   }
   if (params?.game) {
-    posts = posts.filter(p => p.game.toLowerCase() === params.game!.toLowerCase());
+    queries.push(Query.equal('game', params.game));
   }
   if (params?.search) {
-    const search = params.search.toLowerCase();
-    posts = posts.filter(p => 
-      p.title.toLowerCase().includes(search) ||
-      p.description.toLowerCase().includes(search) ||
-      p.content.toLowerCase().includes(search)
-    );
+    queries.push(Query.search('title', params.search));
   }
   if (params?.featured !== undefined) {
-    posts = posts.filter(p => p.featured === params.featured);
+    queries.push(Query.equal('featured', params.featured));
   }
 
-  posts = sortPosts(posts);
-  const total = posts.length;
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, queries);
+  
+  const posts = result.documents.map(mapDocument);
+  const total = result.total;
   const pageCount = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize;
-  const data = posts.slice(start, start + pageSize);
 
   return {
-    data,
+    data: posts,
     meta: {
       pagination: {
         page,
@@ -159,86 +139,74 @@ export function getAllPosts(params?: {
   };
 }
 
-export function getPostBySlug(slug: string, includeDrafts = false): BlogPost | null {
+export async function getPostBySlug(slug: string, includeDrafts = false): Promise<BlogPost | null> {
   if (!validateSlug(slug)) return null;
-  
-  ensureContentDir();
-  const filePath = join(CONTENT_DIR, `${slug}.md`);
-  
-  if (!existsSync(filePath)) return null;
 
-  const fileContent = readFileSync(filePath, 'utf-8');
-  const { data, content } = matter(fileContent);
-
-  const post: BlogPost = {
-    id: data.id || slug,
-    title: data.title || '',
-    description: data.description || '',
-    content,
-    slug: data.slug || slug,
-    publishedAt: data.publishedAt || data.date || new Date().toISOString(),
-    createdAt: data.createdAt || new Date().toISOString(),
-    updatedAt: data.updatedAt || new Date().toISOString(),
-    featured: data.featured || false,
-    category: data.category || 'General',
-    game: data.game || '',
-    author: data.author || 'KVE Team',
-    authorAvatar: data.authorAvatar,
-    authorBio: data.authorBio,
-    authorTwitter: data.authorTwitter,
-    authorLinkedIn: data.authorLinkedIn,
-    authorInstagram: data.authorInstagram,
-    authorTikTok: data.authorTikTok,
-    authorYouTube: data.authorYouTube,
-    authorFacebook: data.authorFacebook,
-    tags: Array.isArray(data.tags) ? data.tags : [],
-    imageUrl: data.imageUrl || data.coverImage,
-    image: data.image,
-    published: data.published !== false,
-  };
-
-  if (!includeDrafts && !post.published) return null;
-  return post;
+  try {
+    const databases = await getDatabases();
+    const queries = [Query.equal('slug', slug)];
+    if (!includeDrafts) {
+      queries.push(Query.equal('published', true));
+    }
+    const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, queries);
+    if (result.documents.length === 0) return null;
+    return mapDocument(result.documents[0]);
+  } catch (error) {
+    console.error('Error fetching post by slug:', error);
+    return null;
+  }
 }
 
-export function getFeaturedArticles(limit = 3, includeDrafts = false): BlogPost[] {
-  const posts = readAllPosts(includeDrafts);
-  return sortPosts(posts).filter(p => p.featured).slice(0, limit);
+export async function getFeaturedArticles(limit = 3, includeDrafts = false): Promise<BlogPost[]> {
+  const databases = await getDatabases();
+  const queries = [
+    Query.equal('featured', true),
+    Query.orderDesc('publishedAt'),
+    Query.limit(limit),
+  ];
+  if (!includeDrafts) {
+    queries.push(Query.equal('published', true));
+  }
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, queries);
+  return result.documents.map(mapDocument);
 }
 
-export function getCategories(): string[] {
-  const posts = readAllPosts(true);
-  const categories = new Set(posts.map(p => p.category).filter(Boolean));
+export async function getCategories(): Promise<string[]> {
+  const databases = await getDatabases();
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, [Query.limit(1000)]);
+  const categories = new Set(result.documents.map(d => d.category).filter(Boolean));
   return Array.from(categories).sort();
 }
 
-export function getGames(): string[] {
-  const posts = readAllPosts(true);
-  const games = new Set(posts.map(p => p.game).filter(Boolean));
+export async function getGames(): Promise<string[]> {
+  const databases = await getDatabases();
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, [Query.limit(1000)]);
+  const games = new Set(result.documents.map(d => d.game).filter(Boolean));
   return Array.from(games).sort();
 }
 
-export function getAuthors(): string[] {
-  const posts = readAllPosts(true);
-  const authors = new Set(posts.map(p => p.author).filter(Boolean));
+export async function getAuthors(): Promise<string[]> {
+  const databases = await getDatabases();
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, [Query.limit(1000)]);
+  const authors = new Set(result.documents.map(d => d.author).filter(Boolean));
   return Array.from(authors).sort();
 }
 
-export function savePost(post: BlogPost): void {
-  ensureContentDir();
-  
+export async function savePost(post: BlogPost): Promise<BlogPost> {
   if (!validateSlug(post.slug)) {
     throw new Error('Invalid slug. Use only lowercase letters, numbers, and hyphens.');
   }
 
+  const databases = await getDatabases();
   const now = new Date().toISOString();
-  const isNew = !existsSync(join(CONTENT_DIR, `${post.slug}.md`));
-  
-  const frontmatter = {
+  const isNew = !post.$id;
+
+  const data = {
     id: post.id || post.slug,
     title: post.title,
     description: post.description,
     slug: post.slug,
+    content: post.content,
     publishedAt: post.publishedAt || (isNew ? now : undefined),
     createdAt: post.createdAt || (isNew ? now : undefined),
     updatedAt: now,
@@ -261,30 +229,40 @@ export function savePost(post: BlogPost): void {
   };
 
   // Remove undefined values
-  Object.keys(frontmatter).forEach(key => {
-    if (frontmatter[key as keyof typeof frontmatter] === undefined) {
-      delete frontmatter[key as keyof typeof frontmatter];
+  Object.keys(data).forEach(key => {
+    if (data[key as keyof typeof data] === undefined) {
+      delete data[key as keyof typeof data];
     }
   });
 
-  const fileContent = matter.stringify(post.content, frontmatter);
-  const filePath = join(CONTENT_DIR, `${post.slug}.md`);
-  writeFileSync(filePath, fileContent, 'utf-8');
+  let doc;
+  if (isNew) {
+    doc = await databases.createDocument(DB_ID, BLOG_COLLECTION_ID, ID.unique(), data);
+  } else {
+    doc = await databases.updateDocument(DB_ID, BLOG_COLLECTION_ID, post.$id, data);
+  }
+
+  return mapDocument(doc);
 }
 
-export function deletePost(slug: string): void {
+export async function deletePost(slug: string): Promise<void> {
   if (!validateSlug(slug)) {
     throw new Error('Invalid slug');
   }
-  
-  const filePath = join(CONTENT_DIR, `${slug}.md`);
-  if (existsSync(filePath)) {
-    const fs = require('fs');
-    fs.unlinkSync(filePath);
+
+  const databases = await getDatabases();
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, [Query.equal('slug', slug)]);
+  if (result.documents.length > 0) {
+    await databases.deleteDocument(DB_ID, BLOG_COLLECTION_ID, result.documents[0].$id);
   }
 }
 
-export function getAllSlugs(includeDrafts = false): string[] {
-  const posts = readAllPosts(includeDrafts);
-  return posts.map(p => p.slug);
+export async function getAllSlugs(includeDrafts = false): Promise<string[]> {
+  const databases = await getDatabases();
+  const queries = [Query.limit(1000), Query.select(['slug'])];
+  if (!includeDrafts) {
+    queries.push(Query.equal('published', true));
+  }
+  const result = await databases.listDocuments(DB_ID, BLOG_COLLECTION_ID, queries);
+  return result.documents.map(d => d.slug);
 }

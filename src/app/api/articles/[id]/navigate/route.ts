@@ -20,7 +20,7 @@ export async function GET(
     }
 
     // Get the current article
-    const currentArticle = getPostBySlug(articleSlug, true);
+    const currentArticle = await getPostBySlug(articleSlug, true);
     
     if (!currentArticle) {
       return NextResponse.json({
@@ -31,7 +31,7 @@ export async function GET(
     }
 
     // Get all posts sorted by published date (newest first)
-    const allPostsResponse = getAllPosts({ pageSize: 1000, includeDrafts: true });
+    const allPostsResponse = await getAllPosts({ pageSize: 1000, includeDrafts: true });
     const allPosts = allPostsResponse.data;
     
     // Find the current article's index in the sorted array

@@ -6,7 +6,7 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    const featuredArticles = getFeaturedArticles(1, true);
+    const featuredArticles = await getFeaturedArticles(1, true);
     
     if (featuredArticles.length > 0) {
       return NextResponse.json({

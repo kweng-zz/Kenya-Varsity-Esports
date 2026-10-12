@@ -41,6 +41,14 @@ export const getAppwriteServer = () => {
   return initializeAppwrite();
 };
 
+export const getAdminClient = async () => {
+  const { client } = initializeAppwrite() || { client: null };
+  if (!client) {
+    throw new Error('Appwrite server client not initialized');
+  }
+  return client;
+};
+
 /**
  * Creates an Appwrite client authenticated with a user's JWT token
  * @param jwt The JWT token from the client-side session bridge
@@ -80,6 +88,7 @@ export const COLLECTIONS = {
   SPONSORS: process.env.NEXT_PUBLIC_APPWRITE_SPONSORS_COLLECTION_ID || 'sponsors',
   CONTACT_MESSAGES: process.env.NEXT_PUBLIC_APPWRITE_CONTACT_MESSAGES_COLLECTION_ID || 'contact-messages',
   EVENTS: process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID || 'events',
+  BLOG_POSTS: process.env.NEXT_PUBLIC_APPWRITE_BLOG_POSTS_COLLECTION_ID || 'blog-posts',
 };
 
 // Helper function to handle Appwrite errors

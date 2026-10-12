@@ -16,7 +16,7 @@ export async function GET(request: Request) {
                      searchParams.get('featured') === 'false' ? false : undefined;
     const includeDrafts = searchParams.get('includeDrafts') === 'true';
 
-    const result = getAllPosts({
+    const result = await getAllPosts({
       page,
       pageSize,
       category,

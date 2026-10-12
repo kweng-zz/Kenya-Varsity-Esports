@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const search = searchParams.get('search') || undefined;
 
-    const result = getAllPosts({
+    const result = await getAllPosts({
       page,
       pageSize,
       search,
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    savePost(body);
+    await savePost(body);
     
     return NextResponse.json({ success: true, data: body });
   } catch (error: any) {

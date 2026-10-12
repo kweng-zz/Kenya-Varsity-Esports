@@ -43,7 +43,7 @@ interface BlogPostPageProps {
 // ✅ Generate static params (only needs slug/published, safe for build)
 export async function generateStaticParams() {
   try {
-    const slugs = getAllSlugs(false); // Only published
+    const slugs = await getAllSlugs(false); // Only published
     return slugs.map(slug => ({ slug }));
   } catch (error) {
     // Return fallback slugs if no content
@@ -59,7 +59,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const article = getPostBySlug(slug, false);
+    const article = await getPostBySlug(slug, false);
     
     if (!article) {
       return {
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const article = getPostBySlug(slug, false);
+  const article = await getPostBySlug(slug, false);
   
   if (!article) {
     notFound();

@@ -11,13 +11,13 @@ export async function GET(request: Request) {
     const includeDrafts = searchParams.get('includeDrafts') === 'true';
     
     // First try to get featured articles
-    const featuredPosts = getFeaturedArticles(limit, true);
+    const featuredPosts = await getFeaturedArticles(limit, true);
     
     let postsToReturn = featuredPosts;
     
     // If no featured posts, get the most recent posts
     if (featuredPosts.length === 0) {
-      const allPostsResponse = getAllPosts({
+      const allPostsResponse = await getAllPosts({
         pageSize: limit,
         includeDrafts: true,
       });

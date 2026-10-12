@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Client, Storage, ID } from 'node-appwrite';
+import { Client, Storage, ID, InputFile } from 'node-appwrite';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -49,12 +49,7 @@ export async function POST(request: Request) {
       .replace(/_{2,}/g, '_')
       .toLowerCase();
 
-    const inputFile = {
-      name: sanitizedName,
-      type: file.type,
-      size: file.size,
-      buffer: buffer,
-    } as any;
+    const inputFile = InputFile.fromBuffer(buffer, sanitizedName);
 
     const response = await storage.createFile(
       bucketId,

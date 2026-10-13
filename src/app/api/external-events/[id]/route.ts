@@ -43,6 +43,7 @@ export async function PUT(
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl;
+    if (body.externalUrl !== undefined) updateData.externalUrl = body.externalUrl;
     if (body.eventDate !== undefined) updateData.eventDate = body.eventDate ? new Date(body.eventDate).toISOString() : null;
     if (body.venue !== undefined) updateData.venue = body.venue;
     if (body.prizePool !== undefined) updateData.prizePool = body.prizePool;

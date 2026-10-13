@@ -61,6 +61,13 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    if (!body.externalUrl) {
+      return NextResponse.json(
+        { success: false, error: 'externalUrl is required' },
+        { status: 400 }
+      );
+    }
+
     const doc = await db.createDocument(
       DB_ID,
       EXTERNAL_EVENTS_COLLECTION,
@@ -69,6 +76,7 @@ export async function POST(request: Request) {
         title: body.title,
         description: body.description || '',
         imageUrl: body.imageUrl,
+        externalUrl: body.externalUrl,
         eventDate: body.eventDate ? new Date(body.eventDate).toISOString() : null,
         venue: body.venue || '',
         prizePool: body.prizePool || '',

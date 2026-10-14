@@ -95,7 +95,7 @@ class TicketService {
           data.attachment,
           [
             Permission.read(Role.user(userId)),
-            Permission.read(Role.team('admins')),
+            Permission.read(Role.users()),
             Permission.delete(Role.user(userId))
           ]
         );
@@ -128,10 +128,10 @@ class TicketService {
         },
         [
           Permission.read(Role.user(userId)),
-          Permission.read(Role.team('admins')),
+            Permission.read(Role.users()),
           Permission.update(Role.user(userId)),
-          Permission.update(Role.team('admins')),
-          Permission.delete(Role.team('admins'))
+            Permission.update(Role.users()),
+            Permission.delete(Role.users()),
         ]
       );
 
@@ -289,7 +289,7 @@ class TicketService {
           data.attachment,
           [
             Permission.read(Role.user(ticket.userId)),
-            Permission.read(Role.team('admins')),
+            Permission.read(Role.users()),
             Permission.delete(Role.user(userId))
           ]
         );
@@ -318,9 +318,9 @@ class TicketService {
         },
         [
           Permission.read(Role.user(ticket.userId)),
-          Permission.read(Role.team('admins')),
+            Permission.read(Role.users()),
           Permission.update(Role.user(userId)),
-          Permission.delete(Role.team('admins'))
+            Permission.delete(Role.users()),
         ]
       );
 

@@ -189,7 +189,10 @@ export default function AdminVideoHighlightsPage() {
           highlight,
           [
             Permission.read(Role.any()),
-            Permission.write(Role.users())
+            Permission.update(Role.users()),
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.users()),
+            Permission.delete(Role.team('admins'))
           ]
         );
         createdHighlights.push({
@@ -292,7 +295,10 @@ export default function AdminVideoHighlightsPage() {
         newHighlight,
         [
           Permission.read(Role.any()),
-          Permission.write(Role.users())
+          Permission.update(Role.users()),
+          Permission.update(Role.team('admins')),
+          Permission.delete(Role.users()),
+          Permission.delete(Role.team('admins'))
         ]
       );
       

@@ -259,8 +259,8 @@ export class TicketService {
         [
           Permission.read(Role.user(purchaseData.userId)),
           Permission.update(Role.user(purchaseData.userId)),
-          Permission.read(Role.team('admins')),
-          Permission.update(Role.team('admins')),
+            Permission.read(Role.users()),
+            Permission.update(Role.users()),
         ]
       );
 
@@ -456,6 +456,97 @@ export class TicketService {
     // For now, return placeholder data
     const codes = JSON.parse(purchase.tickets || '[]');
     return codes.map((code: string) => `data:image/svg+xml;base64,${btoa(`<svg>QR for ${code}</svg>`)}`);
+  }
+
+  async getAllPurchases(
+    filters: {
+      eventTicketId?: string;
+      status?: EventTicketPurchase['status'];
+      paymentStatus?: EventTicketPurchase['paymentStatus'];
+      search?: string;
+      startDate?: string;
+      endDate?: string;
+    } = {},
+    limit = 25,
+    offset = 0
+  ): Promise<{ purchases: EventTicketPurchase[]; total: number }> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return { purchases: [], total: 0 };
+
+      const queries: string[] = [
+        Query.orderDesc('purchasedAt'),
+        Query.limit(limit),
+        Query.offset(offset),
+      ];
+
+      if (filters.eventTicketId) {
+        queries.push(Query.equal('eventTicketId', filters.eventTicketId));
+      }
+      if (filters.status) {
+        queries.push(Query.equal('status', filters.status));
+      }
+      if (filters.paymentStatus) {
+        queries.push(Query.equal('paymentStatus', filters.paymentStatus));
+      }
+      if (filters.search) {
+        queries.push(Query.search('confirmationCode', filters.search));
+      }
+      if (filters.startDate) {
+        queries.push(Query.greaterThanEqual('purchasedAt', filters.startDate));
+      }
+      if (filters.endDate) {
+        queries.push(Query.lessThanEqual('purchasedAt', filters.endDate));
+      }
+
+      const [purchasesResponse, totalResponse] = await Promise.all([
+        db.listDocuments(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, queries),
+        db.listDocuments(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, [
+          ...queries.filter(q => !q.startsWith('limit') && !q.startsWith('offset')),
+          Query.limit(1),
+        ]),
+      ]);
+
+      return {
+        purchases: purchasesResponse.documents as unknown as EventTicketPurchase[],
+        total: totalResponse.total,
+      };
+    } catch (error) {
+      console.error('Error fetching all purchases:', error);
+      return { purchases: [], total: 0 };
+    }
+  }
+
+  async getAllEventTickets(): Promise<EventTicket[]> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return [];
+
+      const response = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+        Query.orderDesc('$createdAt'),
+      ]);
+
+      return response.documents as unknown as EventTicket[];
+    } catch (error) {
+      console.error('Error fetching all event tickets:', error);
+      return [];
+    }
+  }
+
+  async updatePurchase(
+    purchaseId: string,
+    data: Partial<EventTicketPurchase>
+  ): Promise<boolean> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return false;
+
+      await db.updateDocument(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, purchaseId, data);
+      return true;
+    } catch (error) {
+      console.error('Error updating purchase:', error);
+      return false;
+    }
   }
 }
 

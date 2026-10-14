@@ -24,9 +24,12 @@ const setupSponsorsCollection = async () => {
         'Sponsors', 
         [
           Permission.read(Role.any()), // Public read
-          Permission.create(Role.users()), // Authenticated users can create (admins filtered by logic later)
+          Permission.create(Role.users()), // Authenticated users can create
+          Permission.create(Role.team('admins')),
           Permission.update(Role.users()),
+          Permission.update(Role.team('admins')),
           Permission.delete(Role.users()),
+          Permission.delete(Role.team('admins')),
         ], 
         false
       );

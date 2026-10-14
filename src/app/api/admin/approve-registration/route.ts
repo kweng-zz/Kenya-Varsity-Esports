@@ -103,7 +103,9 @@ export async function POST(request: NextRequest) {
                     [
                         Permission.read(Role.any()),
                         Permission.update(Role.users()),
-                        Permission.delete(Role.users())
+                        Permission.update(Role.team('admins')),
+                        Permission.delete(Role.users()),
+                        Permission.delete(Role.team('admins'))
                     ]
                 );
                 console.log(`✅ Participant created for ${registrationId}`);

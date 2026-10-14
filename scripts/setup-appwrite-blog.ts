@@ -122,8 +122,11 @@ async function setupAppwrite() {
           [
             Permission.read(Role.any()),
             Permission.create(Role.users()),
+            Permission.create(Role.team('admins')),
             Permission.update(Role.users()),
-            Permission.delete(Role.users())
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.users()),
+            Permission.delete(Role.team('admins'))
           ]
         );
       }

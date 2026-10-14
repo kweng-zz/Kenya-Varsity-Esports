@@ -14,15 +14,12 @@ interface EventDetail {
   image: string;
   date: string;
   time: string;
-  prizePool: string;
+  prizePool: number;
   gameSlug: string;
   registrationLink?: string;
   detailsLink?: string;
   isExternal: boolean;
   externalUrl?: string;
-  hasTickets: boolean;
-  ticketStartingPrice?: number;
-  ticketCurrency?: string;
   venue?: string;
   tags?: string[];
   status: string;
@@ -67,14 +64,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ eventId:
     });
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: currency,
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
-
   if (loading) {
     return (
       <main className="bg-black min-h-screen font-hind">
@@ -108,8 +97,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ eventId:
       </main>
     );
   }
-
-  const formattedPrice = formatPrice(event.ticketStartingPrice || 0, event.ticketCurrency || "KES");
 
   return (
     <main className="bg-black min-h-screen font-hind">
@@ -197,17 +184,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ eventId:
                 <p className="text-white font-black">{event.prizePool}</p>
               </div>
             </div>
-            {event.hasTickets && (
-              <div className="flex items-center gap-3 p-4 bg-gray-900 border border-gray-800 bg-[#8c110d]/10 border-[#8c110d]/30">
-                <div className="w-12 h-12 bg-[#8c110d]/20 flex items-center justify-center">
-                  <Ticket className="w-6 h-6 text-[#8c110d]" />
-                </div>
-                <div>
-                  <p className="text-gray-400 text-xs uppercase tracking-wider">Starting Price</p>
-                  <p className="text-white font-black text-[#8c110d]">{formattedPrice}</p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Tags */}
@@ -231,23 +207,23 @@ export default function EventDetailPage({ params }: { params: Promise<{ eventId:
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Ticket purchase button - shown for ALL events with tickets */}
-            {event.hasTickets && (
-              <PurchaseTicketButton
-                eventId={event.$id}
-                eventTitle={event.title}
-                eventSlug={event.gameSlug || "external"}
-                userId={user?.$id}
-                userEmail={user?.email}
-                userName={profile?.fullname || user?.name}
-                variant="primary"
-                size="lg"
-                className="flex-1"
-              />
-            )}
+            {/* Ticket purchase button - shown for ALL events with tickets.
+                We rely on the PurchaseTicketButton component to check ticket availability
+                via its own API call, rather than the potentially stale event.hasTickets. */}
+            <PurchaseTicketButton
+              eventId={event.$id}
+              eventTitle={event.title}
+              eventSlug={event.gameSlug || "external"}
+              userId={user?.$id}
+              userEmail={user?.email}
+              userName={profile?.fullname || user?.name}
+              variant="primary"
+              size="lg"
+              className="flex-1"
+            />
 
-            {/* External link for external events - now links to shop for ticket purchase */}
-            {event.isExternal && event.externalUrl && event.hasTickets && (
+            {/* External link for external events - links to shop */}
+            {event.isExternal && event.externalUrl && (
               <Link 
                 href="/shop" 
                 className="flex-1 py-4 bg-gray-800 border-2 border-gray-700 hover:border-[#8c110d] text-gray-400 hover:text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all"

@@ -54,6 +54,7 @@ interface ExternalEventFormData {
   externalUrl: string;
   eventDate: string;
   venue: string;
+  prizePool: string;
   status: string;
   tags: string;
   isFeatured: boolean;
@@ -100,6 +101,13 @@ interface TournamentFormData {
   // Events page visibility
   showInEvents: boolean;
   isFeatured: boolean;
+  // Ticket configuration
+  enableTickets: boolean;
+  ticketCurrency: string;
+  maxTicketsPerUser: string;
+  platformFee: string;
+  platformFeeType: 'fixed' | 'percentage';
+  ticketTypes: TicketTypeConfig[];
 }
 
 interface AwardFormData {
@@ -118,6 +126,7 @@ export default function TournamentsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [showAwardsForm, setShowAwardsForm] = useState(false);
   const [editingTournament, setEditingTournament] = useState<any | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
@@ -222,8 +231,9 @@ const initialTicketType: TicketTypeConfig = {
         },
         [
           Permission.read(Role.any()),
-          Permission.create(Role.team('admins')),
+          Permission.update(Role.users()),
           Permission.update(Role.team('admins')),
+          Permission.delete(Role.users()),
           Permission.delete(Role.team('admins'))
         ]
       );
@@ -258,8 +268,9 @@ const initialTicketType: TicketTypeConfig = {
           },
           [
             Permission.read(Role.any()),
-            Permission.create(Role.team('admins')),
+            Permission.update(Role.users()),
             Permission.update(Role.team('admins')),
+            Permission.delete(Role.users()),
             Permission.delete(Role.team('admins'))
           ]
         );
@@ -283,6 +294,7 @@ const initialTicketType: TicketTypeConfig = {
     externalUrl: '',
     eventDate: '',
     venue: '',
+    prizePool: '',
     status: 'draft',
     tags: '',
     isFeatured: false,
@@ -317,7 +329,13 @@ const initialTicketType: TicketTypeConfig = {
     thirdPrize: 0,
     fourthPrize: 0,
     showInEvents: false,
-    isFeatured: false
+    isFeatured: false,
+    enableTickets: false,
+    ticketCurrency: 'KES',
+    maxTicketsPerUser: '5',
+    platformFee: '0',
+    platformFeeType: 'fixed',
+    ticketTypes: []
   });
 
   // Game selection handler
@@ -509,6 +527,7 @@ const initialTicketType: TicketTypeConfig = {
       externalUrl: '',
       eventDate: '',
       venue: '',
+      prizePool: '',
       status: 'draft',
       tags: '',
       isFeatured: false,
@@ -563,6 +582,7 @@ const initialTicketType: TicketTypeConfig = {
       externalUrl: event.externalUrl || '',
       eventDate: event.eventDate ? event.eventDate.split('T')[0] : '',
       venue: event.venue || '',
+      prizePool: event.prizePool || '',
       status: event.status || 'draft',
       tags: (event.tags || []).join(', '),
       isFeatured: event.isFeatured || false,
@@ -647,7 +667,8 @@ const initialTicketType: TicketTypeConfig = {
         currency: formData.currency,
         prizePool: totalPrizePool,
         showInEvents: formData.showInEvents,
-        isFeatured: formData.isFeatured
+        isFeatured: formData.isFeatured,
+        enableTickets: formData.enableTickets
       };
       
       // Only include featuredImageUrl if it's a valid URL
@@ -676,7 +697,9 @@ const initialTicketType: TicketTypeConfig = {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.delete(Role.users())
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.users()),
+            Permission.delete(Role.team('admins'))
           ]
         );
         tournamentId = tournament.$id;
@@ -719,10 +742,91 @@ const initialTicketType: TicketTypeConfig = {
             [
               Permission.read(Role.any()),
               Permission.update(Role.users()),
-              Permission.delete(Role.users())
+              Permission.update(Role.team('admins')),
+              Permission.delete(Role.users()),
+              Permission.delete(Role.team('admins'))
             ]
           );
         }
+      }
+
+      // Create ticket configuration if enabled
+      if (formData.enableTickets && formData.ticketTypes.length > 0) {
+        const EVENT_TICKETS_COLLECTION = 'event_tickets';
+        const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
+        
+        const eventSlug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        
+        // Create event_tickets document
+        const eventTicketResponse = await appwrite.databases.createDocument(
+          DB_ID,
+          EVENT_TICKETS_COLLECTION,
+          ID.unique(),
+          {
+            eventId: tournamentId,
+            eventTitle: formData.title,
+            eventSlug: eventSlug,
+            isActive: true,
+            maxTicketsPerUser: parseInt(formData.maxTicketsPerUser) || 5,
+            currency: formData.ticketCurrency,
+            taxRate: parseFloat(formData.platformFee) || 0,
+            serviceFee: parseFloat(formData.platformFee) || 0,
+            serviceFeeType: formData.platformFeeType,
+            description: formData.description,
+            totalSold: 0,
+            totalRevenue: 0,
+          },
+          [
+            Permission.read(Role.any()),
+            Permission.update(Role.users()),
+            Permission.update(Role.team('admins')),
+            Permission.delete(Role.users()),
+            Permission.delete(Role.team('admins'))
+          ]
+        );
+        
+        const eventTicketId = eventTicketResponse.$id;
+        
+        // Create ticket types
+        for (let i = 0; i < formData.ticketTypes.length; i++) {
+          const tt = formData.ticketTypes[i];
+          const price = parseFloat(tt.price);
+          const originalPrice = parseFloat(tt.originalPrice) || price;
+          
+          await appwrite.databases.createDocument(
+            DB_ID,
+            EVENT_TICKET_TYPES_COLLECTION,
+            ID.unique(),
+            {
+              eventTicketId: eventTicketId,
+              name: tt.name,
+              description: tt.description,
+              price: price,
+              originalPrice: originalPrice,
+              quantityTotal: parseInt(tt.quantityTotal) || 0,
+              quantitySold: 0,
+              quantityReserved: 0,
+              maxPerOrder: parseInt(tt.maxPerOrder) || 5,
+              minPerOrder: parseInt(tt.minPerOrder) || 1,
+              sortOrder: i,
+              isActive: tt.isFeatured, // Using isFeatured as active flag for now
+              benefits: tt.benefits.split('\n').filter(b => b.trim()),
+              color: tt.color,
+              isFeatured: tt.isFeatured,
+            },
+            [
+              Permission.read(Role.any()),
+              Permission.update(Role.users()),
+              Permission.update(Role.team('admins')),
+              Permission.delete(Role.users()),
+              Permission.delete(Role.team('admins'))
+            ]
+          );
+        }
+        
+        console.log('Ticket configuration created successfully for tournament.');
+      } else {
+        console.log('Tournament created successfully.');
       }
 
       // Reset form and refresh list
@@ -759,7 +863,9 @@ const initialTicketType: TicketTypeConfig = {
         [
           Permission.read(Role.any()),
           Permission.update(Role.users()),
-          Permission.delete(Role.users())
+          Permission.update(Role.team('admins')),
+          Permission.delete(Role.users()),
+          Permission.delete(Role.team('admins'))
         ]
       );
 
@@ -800,7 +906,13 @@ const initialTicketType: TicketTypeConfig = {
       thirdPrize: 0,
       fourthPrize: 0,
       showInEvents: false,
-      isFeatured: false
+      isFeatured: false,
+      enableTickets: false,
+      ticketCurrency: 'KES',
+      maxTicketsPerUser: '5',
+      platformFee: '0',
+      platformFeeType: 'fixed',
+      ticketTypes: []
     });
     if (hideForm) {
       setShowForm(false);
@@ -856,7 +968,13 @@ const initialTicketType: TicketTypeConfig = {
       thirdPrize,
       fourthPrize,
       showInEvents: tournament.showInEvents || false,
-      isFeatured: tournament.isFeatured || false
+      isFeatured: tournament.isFeatured || false,
+      enableTickets: tournament.enableTickets || false,
+      ticketCurrency: tournament.ticketCurrency || 'KES',
+      maxTicketsPerUser: tournament.maxTicketsPerUser || '5',
+      platformFee: tournament.platformFee || '0',
+      platformFeeType: tournament.platformFeeType || 'fixed',
+      ticketTypes: tournament.ticketTypes || []
     });
     setShowForm(true);
   };
@@ -980,6 +1098,7 @@ const initialTicketType: TicketTypeConfig = {
                     externalUrl: '',
                     eventDate: '',
                     venue: '',
+                    prizePool: '',
                     status: 'draft',
                     tags: '',
                     isFeatured: false,
@@ -1531,6 +1650,12 @@ const initialTicketType: TicketTypeConfig = {
                       >
                         View
                       </a>
+                      <Link
+                        href={`/admin/events/tickets?eventId=${tournament.$id}`}
+                        className="text-yellow-400 hover:text-yellow-300"
+                      >
+                        Tickets
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -1569,15 +1694,16 @@ const initialTicketType: TicketTypeConfig = {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">External URL *</label>
+                      <label className="block text-sm font-medium mb-2">External URL</label>
                       <input
                         type="url"
                         value={externalFormData.externalUrl}
                         onChange={(e) => setExternalFormData(prev => ({ ...prev, externalUrl: e.target.value }))}
                         className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
                         placeholder="https://www.sherehe.co.ke/events/..."
-                        required
+                        /* removed: required - event is within website, ticket sales handled internally */
                       />
+                      <p className="text-xs text-gray-400 mt-1">For external events only. This event is within the website.</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Event Image *</label>
@@ -1600,6 +1726,16 @@ const initialTicketType: TicketTypeConfig = {
                         onChange={(e) => setExternalFormData(prev => ({ ...prev, venue: e.target.value }))}
                         className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
                         placeholder="e.g., KICC, Nairobi"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Prize Pool</label>
+                      <input
+                        type="text"
+                        value={externalFormData.prizePool}
+                        onChange={(e) => setExternalFormData(prev => ({ ...prev, prizePool: e.target.value }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
+                        placeholder="e.g., 50000"
                       />
                     </div>
                     <div>

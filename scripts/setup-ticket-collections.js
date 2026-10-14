@@ -40,6 +40,7 @@ async function setupTicketCollections() {
           Permission.create(Role.users()),
           Permission.update(Role.users()),
           Permission.update(Role.team('admins')),
+          Permission.delete(Role.users()),
           Permission.delete(Role.team('admins'))
         ]
       );
@@ -125,6 +126,7 @@ async function setupTicketCollections() {
           Permission.create(Role.users()),
           Permission.update(Role.users()),
           Permission.update(Role.team('admins')),
+          Permission.delete(Role.users()),
           Permission.delete(Role.team('admins'))
         ]
       );

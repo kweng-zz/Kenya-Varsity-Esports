@@ -98,11 +98,8 @@ export default function PurchaseTicketButton({
   }
 
   const handleClick = () => {
-    if (!userId || !userEmail || !userName) {
-      // Redirect to login or show auth required
-      window.location.href = `/login?redirect=/events/${eventId}`;
-      return;
-    }
+    // Try to open the purchase modal
+    // The modal/API will handle authentication state
     setModalOpen(true);
   };
 

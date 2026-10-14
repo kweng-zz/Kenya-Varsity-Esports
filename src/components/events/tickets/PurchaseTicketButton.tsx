@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Ticket, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import TicketPurchaseModal from './TicketPurchaseModal';
 
 interface PurchaseTicketButtonProps {
@@ -34,6 +35,7 @@ export default function PurchaseTicketButton({
   const [currency, setCurrency] = useState('KES');
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const { user: authUser, profile: authProfile } = useAuth();
 
   useEffect(() => {
     checkTicketAvailability();
@@ -98,8 +100,12 @@ export default function PurchaseTicketButton({
   }
 
   const handleClick = () => {
-    // Try to open the purchase modal
-    // The modal/API will handle authentication state
+    if (!authUser || !authProfile) {
+      // User not logged in - redirect to login/registration
+      window.location.href = '/login?redirect=/events/' + eventId;
+      return;
+    }
+    // User is logged in - open the purchase modal
     setModalOpen(true);
   };
 
@@ -107,7 +113,7 @@ export default function PurchaseTicketButton({
     <>
       <button
         onClick={handleClick}
-        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} ${(!userId || !userEmail || !userName) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} ${(!authUser || !authProfile) ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <Ticket className="w-4 h-4" />
         <span>Get Tickets</span>
@@ -123,10 +129,10 @@ export default function PurchaseTicketButton({
         onClose={() => setModalOpen(false)}
         eventId={eventId}
         eventTitle={eventTitle}
-        userId={userId!}
-        userEmail={userEmail!}
-        userName={userName!}
-        userPhone={userPhone}
+        userId={authUser?.$id || 'user_123'}
+        userEmail={authUser?.email || authProfile?.email || 'user@example.com'}
+        userName={authUser?.name || authProfile?.fullname || 'User'}
+        userPhone={authProfile?.phone_number || ''}
       />
     </>
   );

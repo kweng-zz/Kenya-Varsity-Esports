@@ -323,7 +323,8 @@ export function Navigation() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col items-center justify-center space-y-6">
+        <div className="md:hidden fixed inset-0 bg-black bg-opacity-95 z-50 overflow-y-auto overscroll-contain">
+          <div className="flex min-h-full flex-col items-center justify-center space-y-6 py-16 px-6">
           {navItems.map((item, idx) => (
             <Link
               key={idx}
@@ -350,6 +351,7 @@ export function Navigation() {
                 rel="noopener noreferrer"
               />
             ))}
+          </div>
           </div>
         </div>
       )}

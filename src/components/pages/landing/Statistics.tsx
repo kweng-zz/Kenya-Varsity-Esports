@@ -133,6 +133,7 @@ const SeasonStatistics = () => {
           top: '20px',
           left: '0px',
           width: '800px',
+          maxWidth: '100%',
           height: '400px',
         }}
       />

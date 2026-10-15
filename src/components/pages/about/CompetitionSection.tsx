@@ -80,7 +80,7 @@ export const CompetitionSection = () => {
 
             <div className="relative h-[233px] mx-10 mt-7 mb-4 flex items-center justify-center">
               <img
-                className="w-[436px] h-[243px] object-cover"
+                className="w-[436px] max-w-full h-[243px] object-cover"
                 alt="Intense focus in"
                 src="https://c.animaapp.com/mdczve1hcUQk59/img/intense-focus-in-esports-competition-1.png"
               />

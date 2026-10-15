@@ -101,21 +101,13 @@ export function RadialNavigation() {
     }, [router]);
 
     return (
-        <div className="responsive-wrapper">
+        <div className="flex h-[340px] w-[340px] max-w-full shrink-0 items-center justify-center overflow-hidden sm:h-[480px] sm:w-[480px] lg:overflow-visible">
             <div 
                 className="radial-navigation-container"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
             >
                 <style jsx>{`
-                    .responsive-wrapper {
-                        width: 480px;
-                        height: 480px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-
                     .radial-navigation-container {
                         position: relative;
                         width: 700px;
@@ -128,23 +120,15 @@ export function RadialNavigation() {
                         transition: transform 0.3s ease;
                     }
 
-                    @media (max-width: 640px) {
-                        .responsive-wrapper {
-                            width: 320px;
-                            height: 320px;
-                        }
+                    @media (max-width: 1024px) {
                         .radial-navigation-container {
-                            transform: scale(0.53);
+                            transform: scale(0.65);
                         }
                     }
 
-                    @media (max-width: 400px) {
-                        .responsive-wrapper {
-                            width: 280px;
-                            height: 280px;
-                        }
+                    @media (max-width: 640px) {
                         .radial-navigation-container {
-                            transform: scale(0.46);
+                            transform: scale(0.48);
                         }
                     }
     

@@ -6,7 +6,10 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  // camera=(self): the gate check-in scanner needs same-origin camera access.
+  // An empty allowlist - camera=() - makes getUserMedia fail instantly with
+  // NotAllowedError in every browser, with no permission prompt shown.
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
 };
 

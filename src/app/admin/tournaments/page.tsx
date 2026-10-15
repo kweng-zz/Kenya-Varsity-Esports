@@ -308,6 +308,8 @@ const initialTicketType: TicketTypeConfig = {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
+  const [localImages, setLocalImages] = useState<string[]>([]);
   const externalFileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<TournamentFormData>({
@@ -404,6 +406,15 @@ const initialTicketType: TicketTypeConfig = {
   useEffect(() => {
     fetchTournaments();
     fetchExternalEvents();
+    // Local image list for the featured image autocomplete (optional)
+    fetch('/api/admin/images')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json?.success && Array.isArray(json.data)) setLocalImages(json.data);
+      })
+      .catch(() => {
+        // Autocomplete is best-effort; ignore failures
+      });
   }, []);
 
   // --- External Events Handlers ---
@@ -434,6 +445,41 @@ const initialTicketType: TicketTypeConfig = {
       const reader = new FileReader();
       reader.onload = (e) => setImagePreviewUrl(e.target?.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Featured image upload for tournaments: uploads to Appwrite Storage and
+  // fills the featured image field with the resulting file URL
+  const handleFeaturedImageFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    const appwrite = initializeAppwrite();
+    if (!appwrite?.storage) {
+      setError('Storage not configured. Please try again.');
+      return;
+    }
+
+    try {
+      setIsUploadingFeaturedImage(true);
+      setError(null);
+      const fileResponse = await appwrite.storage.createFile(BUCKET_ID, ID.unique(), file);
+      const url = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileResponse.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+      setFormData((prev) => ({ ...prev, featuredImageUrl: url }));
+    } catch (uploadError) {
+      console.error('Error uploading featured image:', uploadError);
+      setError('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingFeaturedImage(false);
+      event.target.value = '';
     }
   };
 
@@ -642,10 +688,14 @@ const initialTicketType: TicketTypeConfig = {
       const totalPrizePool = formData.firstPrize + formData.secondPrize + formData.thirdPrize + formData.fourthPrize;
       
       // Helper to check if string is valid URL
-      const isValidUrl = (str: string) => {
-        if (!str || str.trim() === '') return false;
+      // Featured image may be an external URL or a local path bundled with
+      // the site (e.g. /images/Efootball.png)
+      const isValidImageSource = (str: string) => {
+        const value = (str || '').trim();
+        if (value === '') return false;
+        if (value.startsWith('/')) return true;
         try {
-          new URL(str);
+          new URL(value);
           return true;
         } catch {
           return false;
@@ -665,15 +715,25 @@ const initialTicketType: TicketTypeConfig = {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         currency: formData.currency,
-        prizePool: totalPrizePool,
         showInEvents: formData.showInEvents,
         isFeatured: formData.isFeatured,
         enableTickets: formData.enableTickets
       };
-      
-      // Only include featuredImageUrl if it's a valid URL
-      if (isValidUrl(formData.featuredImageUrl)) {
-        tournamentData.featuredImageUrl = formData.featuredImageUrl;
+
+      // The prize pool is the sum of the per-position amounts above and is
+      // stored on the tournament document. Only overwrite it when new amounts
+      // were entered - otherwise an unrelated edit (e.g. the featured image)
+      // would wipe it to 0, because per-position awards live in a separate,
+      // possibly empty collection.
+      if (totalPrizePool > 0) {
+        tournamentData.prizePool = totalPrizePool;
+      } else if (!editingTournament) {
+        tournamentData.prizePool = 0;
+      }
+
+      // Only include featuredImageUrl when it's a valid URL or a local image path
+      if (isValidImageSource(formData.featuredImageUrl)) {
+        tournamentData.featuredImageUrl = formData.featuredImageUrl.trim();
       }
 
       let tournamentId;
@@ -948,7 +1008,13 @@ const initialTicketType: TicketTypeConfig = {
     } catch (error) {
       console.error('Error fetching awards for edit:', error);
     }
-    
+
+    // No per-position awards on record: show the stored prize pool total in
+    // the 1st position field so it is visible and round-trips on save.
+    if (firstPrize + secondPrize + thirdPrize + fourthPrize === 0 && tournament.prizePool > 0) {
+      firstPrize = tournament.prizePool;
+    }
+
     setFormData({
       slug: tournament.slug || '',
       gameName: tournament.gameName || '',
@@ -1293,6 +1359,9 @@ const initialTicketType: TicketTypeConfig = {
               {/* Awards Section */}
               <div className="bg-gray-800 rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-4 text-white">Tournament Awards (Top 4 Positions)</h3>
+                <p className="text-xs text-gray-400 mb-4">
+                  The prize pool displayed on event cards is the sum of these four amounts.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">🥇 1st Position Prize</label>
@@ -1357,15 +1426,43 @@ const initialTicketType: TicketTypeConfig = {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Featured Image URL</label>
+                <label className="block text-sm font-medium mb-2">Featured Image</label>
                 <input
-                  type="url"
+                  type="text"
+                  list="kve-local-images"
                   value={formData.featuredImageUrl}
                   onChange={(e) => setFormData(prev => ({ ...prev, featuredImageUrl: e.target.value }))}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2"
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://example.com/image.jpg or /images/Efootball.png"
                 />
-                <p className="text-xs text-gray-400 mt-1">Image displayed in the hero section</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Image displayed in the hero section. Paste an image URL, or a path to an image bundled
+                  with the site (start typing <code>/images/</code> to pick one). You can also upload a file:
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFeaturedImageFileSelect}
+                  disabled={isUploadingFeaturedImage}
+                  className="mt-2 block text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-[#8c110d] file:text-white file:text-xs file:cursor-pointer"
+                />
+                {isUploadingFeaturedImage && (
+                  <p className="text-xs text-gray-400 mt-1">Uploading image…</p>
+                )}
+                {formData.featuredImageUrl && (
+                  <img
+                    src={formData.featuredImageUrl}
+                    alt="Featured image preview"
+                    className="mt-3 h-24 w-auto rounded border border-gray-700 object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    onLoad={(e) => { (e.currentTarget as HTMLImageElement).style.display = ''; }}
+                  />
+                )}
+                <datalist id="kve-local-images">
+                  {localImages.map((src) => (
+                    <option key={src} value={src} />
+                  ))}
+                </datalist>
               </div>
               
               <div>

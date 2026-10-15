@@ -470,7 +470,7 @@ const ParticipationGuidePage = () => {
             <div className="h-px bg-gradient-to-r from-transparent via-[#8c110d]/50 to-transparent mb-16" />
 
             <div className="relative max-w-3xl mx-auto text-center">
-              <div className="absolute -inset-4 border border-[#8c110d]/15 transform rotate-1" />
+              <div className="absolute -inset-2 md:-inset-4 border border-[#8c110d]/15 transform rotate-1" />
               <div className="relative bg-black border-2 border-gray-800 p-12">
                 <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#8c110d]" />
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#8c110d]" />

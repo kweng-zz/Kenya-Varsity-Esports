@@ -65,7 +65,7 @@ export const HeroBannerSection = () => {
         <>
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${featuredArticle.imageUrl})` }}
+            style={{ backgroundImage: `url("${featuredArticle.imageUrl}")` }}
           />
           <div className="absolute inset-0 bg-black opacity-70" />
         </>

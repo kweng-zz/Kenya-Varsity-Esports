@@ -29,7 +29,7 @@ export const TournamentHeader: React.FC<TournamentHeaderProps> = ({
       <div className="absolute inset-0 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{ backgroundImage: featuredImageUrl ? `url(${featuredImageUrl})` : 'none' }}
+          style={{ backgroundImage: featuredImageUrl ? `url("${featuredImageUrl}")` : 'none' }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0F0F13]/80 via-black/90 to-black" />
         

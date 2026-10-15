@@ -120,7 +120,7 @@ export default async function TournamentInformationPage({ params }: TournamentIn
       <section className="relative w-full h-[560px] bg-black mt-0">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${getHeroImage()})` }}
+          style={{ backgroundImage: `url("${getHeroImage()}")` }}
         ></div>
 
         <div className="absolute inset-0 bg-[#0F0F13] opacity-0"></div>

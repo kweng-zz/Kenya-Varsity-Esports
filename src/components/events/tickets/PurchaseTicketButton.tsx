@@ -42,13 +42,16 @@ export default function PurchaseTicketButton({
   }, [eventId, eventSlug]);
 
   const checkTicketAvailability = async () => {
+    // Safety timeout so the button never stays stuck on "Loading..."
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       // Always use eventId for ticket lookup since the API supports it
       // eventSlug from external events is just a placeholder ("external")
-      const response = await fetch(`/api/events/${eventId}/tickets`);
+      const response = await fetch(`/api/events/${eventId}/tickets`, { signal: controller.signal });
       const data = await response.json();
       
-      if (data.success && data.data.ticketTypes.length > 0) {
+      if (data.success && data.data?.ticketTypes?.length > 0) {
         setHasTickets(true);
         const minPrice = Math.min(...data.data.ticketTypes.map((t: any) => t.price));
         setStartingPrice(minPrice);
@@ -59,6 +62,7 @@ export default function PurchaseTicketButton({
     } catch {
       setHasTickets(false);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };

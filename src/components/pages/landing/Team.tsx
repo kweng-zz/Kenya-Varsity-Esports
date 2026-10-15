@@ -29,7 +29,7 @@ const TeamMemberCard = ({ member, index }: { member: TeamMember; index: number }
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className="flex-shrink-0 w-[300px] h-[400px] relative group cursor-pointer">
+    <div className="flex-shrink-0 w-full md:w-[300px] h-[400px] relative group cursor-pointer">
       {/* Background Image */}
       <div className="absolute inset-0 rounded-none overflow-hidden">
         <SafeImage
@@ -63,7 +63,7 @@ const TeamMemberCard = ({ member, index }: { member: TeamMember; index: number }
 
         {/* Social Links */}
         {member.socialUrls && member.socialUrls.length > 0 && (
-          <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
             {member.socialUrls.slice(0, 4).map((url, socialIndex) => {
               // Determine platform based on URL
               let platform = 'link';
@@ -305,7 +305,7 @@ export const MeetTheTeamSection = () => {
               target.style.display = 'none';
             }}
           />
-          <h2 className="font-['Hind',Helvetica] font-bold text-white text-[46px] tracking-[1.84px]">
+          <h2 className="font-['Hind',Helvetica] font-bold text-white text-3xl sm:text-[46px] tracking-[1.84px]">
             MEET THE TEAM
           </h2>
         </header>

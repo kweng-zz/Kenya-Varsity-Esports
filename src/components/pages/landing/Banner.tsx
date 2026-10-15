@@ -22,7 +22,7 @@ const defaultFallbackBanners = [
         title: "JOIN YOUR INSTITUTION'S ESPORTS LEGACY",
         subtitle: "To get information for upcoming events.",
         ctaText: "UPCOMING EVENTS",
-        ctaLink: "/rankings"
+        ctaLink: "/events"
     },
 ];
 

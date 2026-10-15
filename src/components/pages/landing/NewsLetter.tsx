@@ -124,7 +124,7 @@ export const NewsletterSection = () => {
             <span className="font-['Hind',Helvetica] text-lg text-[#961c18] mb-2 uppercase">
               NEWSLETTER
             </span>
-            <h2 className="font-['Hind',Helvetica] font-bold text-white text-[46px] tracking-[1.84px] uppercase">
+            <h2 className="font-['Hind',Helvetica] font-bold text-white text-3xl sm:text-[46px] tracking-[1.84px] uppercase">
               SUBSCRIBE TO OUR NEWSLETTER
             </h2>
           </div>
@@ -134,7 +134,7 @@ export const NewsletterSection = () => {
                 <span className="text-white font-['Hind',Helvetica] font-semibold">YOUR EMAIL</span>
               </div>
             </div>
-            <div className="h-[70px] w-60 bg-[#961c18] flex items-center justify-center">
+            <div className="h-[70px] w-full sm:w-60 bg-[#961c18] flex items-center justify-center">
               <span className="text-white font-['Hind',Helvetica] font-semibold uppercase">SUBSCRIBE</span>
             </div>
           </div>
@@ -163,7 +163,7 @@ export const NewsletterSection = () => {
           <span className="font-['Hind',Helvetica] text-lg text-[#961c18] mb-2 uppercase">
             NEWSLETTER
           </span>
-          <h2 className="font-['Hind',Helvetica] font-bold text-white text-[46px] tracking-[1.84px] uppercase">
+          <h2 className="font-['Hind',Helvetica] font-bold text-white text-3xl sm:text-[46px] tracking-[1.84px] uppercase">
             SUBSCRIBE TO OUR NEWSLETTER
           </h2>
         </div>
@@ -207,7 +207,7 @@ export const NewsletterSection = () => {
           <Button
             type="submit"
             disabled={subscriptionState.loading || !email.trim()}
-            className="h-[70px] w-60 rounded-none bg-[#961c18] hover:bg-[#7a1714] text-white
+            className="h-[70px] w-full sm:w-60 rounded-none bg-[#961c18] hover:bg-[#7a1714] text-white
                        font-['Hind',Helvetica] font-semibold uppercase
                        relative overflow-hidden
                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#961c18]

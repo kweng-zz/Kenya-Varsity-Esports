@@ -449,7 +449,7 @@ const BlogsOverviewSectionInner = () => {
         </div>
 
         {/* Articles Section */}
-        <div className="min-h-[600px] relative">
+        <div className="relative md:min-h-[600px]">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
@@ -466,10 +466,10 @@ const BlogsOverviewSectionInner = () => {
               <div
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="flex gap-6 overflow-x-auto scrollbar-hide pb-4"
+                className="flex flex-col gap-6 md:flex-row md:overflow-x-auto scrollbar-hide pb-4"
               >
                  {articles.map((article) => (
-                   <div key={article.id} className="flex-none w-80">
+                   <div key={article.id} className="w-full md:flex-none md:w-80">
                      <MinimalErrorBoundary>
                        <BlogCard article={article} />
                      </MinimalErrorBoundary>
@@ -480,7 +480,7 @@ const BlogsOverviewSectionInner = () => {
               {canScrollLeft && (
                 <button
                   onClick={scrollLeft}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-10"
+                  className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-10"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
@@ -489,7 +489,7 @@ const BlogsOverviewSectionInner = () => {
               {canScrollRight && (
                 <button
                   onClick={scrollRight}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-10"
+                  className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-10"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>

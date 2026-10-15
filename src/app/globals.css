@@ -167,6 +167,14 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, var(--slant-depth) 100%);
 }
 
+/* Mobile: stacked layout - slanted clip paths look broken when not side by side */
+@media (max-width: 639px) {
+  .newsletter-input-slant,
+  .newsletter-button-slant {
+    clip-path: none;
+  }
+}
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */

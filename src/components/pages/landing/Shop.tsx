@@ -59,7 +59,7 @@ export const ShopSection = () => {
     <section className="w-full py-24 bg-[#0c0e11e6] flex justify-center items-center">
       <div className="container mx-auto px-4 max-w-7xl">
         <header className="mb-16 text-center">
-          <h2 className="font-['Hind',Helvetica] font-bold text-white text-[46px] tracking-[1.84px] mb-4">
+          <h2 className="font-['Hind',Helvetica] font-bold text-white text-3xl sm:text-[46px] tracking-[1.84px] mb-4">
             VISIT OUR SHOP
           </h2>
           <p className="font-['Hind',Helvetica] text-white text-base tracking-[0.64px]">
@@ -83,13 +83,13 @@ export const ShopSection = () => {
                 key={index}
                 className="relative h-[250px] w-[250px] flex-shrink-0 overflow-hidden group cursor-pointer transition-transform duration-300 hover:scale-105"
               >
-                {/* Default State (Grey background) */}
-                <div className="absolute inset-0 bg-[#c4c4c4] transition-opacity duration-300 opacity-100 group-hover:opacity-0">
+                {/* Default State (Grey background) - on mobile the details layer below is shown instead */}
+                <div className="absolute inset-0 bg-[#c4c4c4] transition-opacity duration-300 opacity-0 md:opacity-100 md:group-hover:opacity-0">
                   {/* Default state background */}
                 </div>
 
                 {/* Hover State (Red background with product details) - Full card coverage */}
-                <div className="absolute inset-0 bg-[#961c18] transition-opacity duration-300 flex flex-col items-center justify-center text-center p-4 opacity-0 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-[#961c18] transition-opacity duration-300 flex flex-col items-center justify-center text-center p-4 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                   <h3 className="font-['Hind',Helvetica] font-semibold text-white text-xl tracking-[0.96px] mb-2">
                     {item.name}
                   </h3>

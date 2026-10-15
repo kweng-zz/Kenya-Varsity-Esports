@@ -14,11 +14,11 @@ import {
 
 describe('WebSocket Types and Channels', () => {
   test('RealtimeEventType contains required event types', () => {
-    expect(RealtimeEventType.CONNECT).toBe('connect');
-    expect(RealtimeEventType.SUBSCRIBE).toBe('subscribe');
-    expect(RealtimeEventType.SCORE_UPDATE).toBe('score:update');
-    expect(RealtimeEventType.LEADERBOARD_UPDATE).toBe('leaderboard:update');
-    expect(RealtimeEventType.TOURNAMENT_STATUS_CHANGE).toBe('tournament:status_change');
+    expect(RealtimeEventType.CONNECT as string).toBe('connect');
+    expect(RealtimeEventType.SUBSCRIBE as string).toBe('subscribe');
+    expect(RealtimeEventType.SCORE_UPDATE as string).toBe('score:update');
+    expect(RealtimeEventType.LEADERBOARD_UPDATE as string).toBe('leaderboard:update');
+    expect(RealtimeEventType.TOURNAMENT_STATUS_CHANGE as string).toBe('tournament:status_change');
   });
 
   test('CHANNELS helper generates correct channel names', () => {
@@ -107,7 +107,7 @@ describe('Realtime Message Format', () => {
       timestamp: Date.now(),
     };
 
-    expect(scoreUpdate.type).toBe('score:update');
+    expect(scoreUpdate.type as string).toBe('score:update');
     expect(scoreUpdate.payload.score).toBe(1500);
     expect(scoreUpdate.channel).toBe('leaderboard:tournament123');
   });

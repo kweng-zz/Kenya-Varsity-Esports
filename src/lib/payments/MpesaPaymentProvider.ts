@@ -287,7 +287,11 @@ export class MpesaPaymentProvider extends BasePaymentProvider {
         type: 'mpesa.stk_callback',
         paymentIntentId,
         status,
-        data: { callback: stkCallback as unknown as Record<string, unknown> },
+        // `amount` is in main currency units (M-Pesa reports KES directly)
+        data: {
+          callback: stkCallback as unknown as Record<string, unknown>,
+          amount: this.extractAmountFromCallback(payload as unknown as MpesaCallbackData),
+        },
       };
     } catch {
       return null;

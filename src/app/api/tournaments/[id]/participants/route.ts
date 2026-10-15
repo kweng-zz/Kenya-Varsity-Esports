@@ -11,6 +11,8 @@ import { checkRateLimit } from '@/lib/redis-rate-limit';
 import { z } from 'zod';
 import { TournamentRegistrationPayloadSchema, validateTournamentPayload } from '@/components/tournament-registration/schema';
 import { sseManager } from '@/lib/realtime/sse-manager';
+import { ticketService } from '@/lib/tickets';
+import { approveRegistration } from '@/lib/tournaments/approveRegistration';
 import '@/lib/startup'; // Trigger startup initialization
 
 /**
@@ -127,6 +129,41 @@ export async function POST(
       );
     }
 
+    // Auto-approve when the player already checked in a ticket for this
+    // tournament. The gate scanner records check-ins; a registration arriving
+    // afterwards is approved immediately instead of waiting in the pending queue.
+    let autoApproved = false;
+    if (result.participant) {
+      try {
+        const checkedIn = await ticketService.hasCheckedInTicketForTournament(tournamentId, {
+          email: validatedData.email,
+          userId: validatedData.userId,
+        });
+
+        if (checkedIn) {
+          const approval = await approveRegistration({
+            registrationId: result.participant.id,
+            status: 'approved',
+            registration: {
+              tournamentId,
+              playerName: validatedData.playerName,
+              email: validatedData.email,
+              university: validatedData.university,
+              teamName: validatedData.teamName,
+              players: validatedData.players,
+              registrationDate: new Date().toISOString(),
+            },
+          });
+          autoApproved = approval.success;
+          if (autoApproved) {
+            console.log(`[Participants API] Auto-approved ${validatedData.email} (ticket already checked in)`);
+          }
+        }
+      } catch (autoApproveError) {
+        console.error('[Participants API] Auto-approve after ticket check-in failed:', autoApproveError);
+      }
+    }
+
     // Broadcast real-time update via SSE
     sseManager.broadcastToTournament(tournamentId, 'participant_registered', {
       participant: result.participant,
@@ -137,6 +174,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: result.participant,
+      autoApproved,
     }, { status: 201 });
 
   } catch (error) {

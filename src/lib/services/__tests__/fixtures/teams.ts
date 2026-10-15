@@ -1,5 +1,5 @@
 import type { TournamentRegistration, TournamentParticipant } from '@/types/tournament';
-import { ParticipantManagementService } from '../participantManagement';
+import { ParticipantManagementService } from '../../participantManagement';
 
 // Mock data generator for testing complex team structures
 

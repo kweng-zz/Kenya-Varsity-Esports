@@ -6,11 +6,7 @@ import { FooterSection } from "@/components/Footer";
 import { XCircle, ArrowLeft, Ticket, RotateCcw } from 'lucide-react';
 import Link from "next/link";
 
-export default function TicketCancelledPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ purchaseId?: string; eventId: string }>;
-}) {
+export default function TicketCancelledPage() {
   return (
     <main className="bg-black min-h-screen font-hind">
       <Navigation />
@@ -64,7 +60,7 @@ export default function TicketCancelledPage({
           </div>
 
           <p className="mt-8 text-gray-500 text-sm">
-            Need help? Contact support at <a href="mailto:support@kuer.com" className="text-[#8c110d] hover:underline">support@kuer.com</a>
+            Need help? Visit <a href="https://www.kve.co.ke" target="_blank" rel="noopener noreferrer" className="text-[#8c110d] hover:underline">www.kve.co.ke</a>
           </p>
         </div>
       </section>

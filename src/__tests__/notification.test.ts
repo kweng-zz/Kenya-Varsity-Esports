@@ -9,32 +9,32 @@ import { NotificationType } from '@/lib/services/notification';
 
 describe('NotificationType Enum', () => {
   test('Contains tournament event types', () => {
-    expect(NotificationType.TOURNAMENT_START).toBe('tournament_start');
-    expect(NotificationType.TOURNAMENT_END).toBe('tournament_end');
-    expect(NotificationType.TOURNAMENT_REMINDER).toBe('tournament_reminder');
-    expect(NotificationType.REGISTRATION_OPEN).toBe('registration_open');
-    expect(NotificationType.REGISTRATION_CLOSING).toBe('registration_closing');
+    expect(NotificationType.TOURNAMENT_START as string).toBe('tournament_start');
+    expect(NotificationType.TOURNAMENT_END as string).toBe('tournament_end');
+    expect(NotificationType.TOURNAMENT_REMINDER as string).toBe('tournament_reminder');
+    expect(NotificationType.REGISTRATION_OPEN as string).toBe('registration_open');
+    expect(NotificationType.REGISTRATION_CLOSING as string).toBe('registration_closing');
   });
 
   test('Contains match event types', () => {
-    expect(NotificationType.MATCH_SCHEDULED).toBe('match_scheduled');
-    expect(NotificationType.MATCH_STARTING).toBe('match_starting');
-    expect(NotificationType.MATCH_RESULT).toBe('match_result');
+    expect(NotificationType.MATCH_SCHEDULED as string).toBe('match_scheduled');
+    expect(NotificationType.MATCH_STARTING as string).toBe('match_starting');
+    expect(NotificationType.MATCH_RESULT as string).toBe('match_result');
   });
 
   test('Contains score event types', () => {
-    expect(NotificationType.SCORE_UPDATE).toBe('score_update');
-    expect(NotificationType.RANK_CHANGE).toBe('rank_change');
+    expect(NotificationType.SCORE_UPDATE as string).toBe('score_update');
+    expect(NotificationType.RANK_CHANGE as string).toBe('rank_change');
   });
 
   test('Contains system event types', () => {
-    expect(NotificationType.ANNOUNCEMENT).toBe('announcement');
-    expect(NotificationType.SYSTEM_ALERT).toBe('system_alert');
+    expect(NotificationType.ANNOUNCEMENT as string).toBe('announcement');
+    expect(NotificationType.SYSTEM_ALERT as string).toBe('system_alert');
   });
 
   test('Contains user event types', () => {
-    expect(NotificationType.TEAM_INVITE).toBe('team_invite');
-    expect(NotificationType.REGISTRATION_CONFIRMED).toBe('registration_confirmed');
+    expect(NotificationType.TEAM_INVITE as string).toBe('team_invite');
+    expect(NotificationType.REGISTRATION_CONFIRMED as string).toBe('registration_confirmed');
   });
 });
 
@@ -79,7 +79,7 @@ describe('Notification Structure', () => {
 
     expect(notification.id).toBeDefined();
     expect(notification.userId).toBeDefined();
-    expect(notification.type).toBe('tournament_start');
+    expect(notification.type as string).toBe('tournament_start');
     expect(notification.read).toBe(false);
     expect(notification.createdAt).toBeGreaterThan(0);
   });
@@ -138,7 +138,7 @@ describe('NotificationPreferences', () => {
   });
 
   test('All notification types are included by default', () => {
-    const allTypes = Object.values(NotificationType);
+    const allTypes = Object.values(NotificationType) as string[];
     
     expect(allTypes).toContain('tournament_start');
     expect(allTypes).toContain('match_scheduled');

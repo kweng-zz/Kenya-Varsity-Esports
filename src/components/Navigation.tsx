@@ -263,7 +263,7 @@ export function Navigation() {
           />
           <img
             className="absolute w-[250px] h-[250px] top-9 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover z-30"
-            alt="Kuer transparent"
+            alt="KVE logo"
             src="/images/KVE white no words.png"
           />
 

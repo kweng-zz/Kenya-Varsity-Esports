@@ -83,7 +83,7 @@ export const FooterSection = () => {
           <div className="flex flex-col items-center sm:items-start pt-2 col-span-1 sm:col-span-2 lg:col-span-1">
             <Image
               className="w-30 sm:w-35 h-32.5 sm:h-37.5 object-cover mb-4 sm:mb-0 sm:ml-6"
-              alt="Kuer transparent"
+              alt="KVE logo"
               src="/images/KVE white no words.png"
               width={140}
               height={150}

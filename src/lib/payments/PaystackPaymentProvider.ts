@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { BasePaymentProvider } from './BasePaymentProvider';
 import {
   PaymentProvider,
@@ -196,7 +197,9 @@ export class PaystackPaymentProvider extends BasePaymentProvider {
       const payload = {
         transaction: request.paymentIntentId,
         amount: request.amount ? Math.round(request.amount * 100) : undefined,
-        currency: 'NGN',
+        // Paystack defaults the refund currency to NGN - use the store currency
+        // (KES) unless the caller specifies otherwise via metadata.
+        currency: request.metadata?.currency || 'KES',
         customer_note: request.reason,
         merchant_note: request.metadata?.merchant_note,
       };
@@ -240,9 +243,7 @@ export class PaystackPaymentProvider extends BasePaymentProvider {
   }
 
   verifyWebhookSignature(payload: string | Buffer, signature: string): boolean {
-    const crypto = require('crypto');
-    const hash = crypto
-      .createHmac('sha512', this.paystackConfig.secretKey)
+    const hash = createHmac('sha512', this.paystackConfig.secretKey)
       .update(payload)
       .digest('hex');
     return hash === signature;
@@ -263,7 +264,8 @@ export class PaystackPaymentProvider extends BasePaymentProvider {
           type: event.event,
           paymentIntentId: tx.reference,
           status: this.mapProviderStatusToStandard(tx.status),
-          data: { transaction: tx as unknown as Record<string, unknown> },
+          // `amount` is in main currency units (Paystack sends kobo/cents subunits)
+          data: { transaction: tx as unknown as Record<string, unknown>, amount: tx.amount / 100 },
         };
       }
       
@@ -273,7 +275,7 @@ export class PaystackPaymentProvider extends BasePaymentProvider {
           type: event.event,
           paymentIntentId: refundData.transaction.reference,
           status: refundData.status === 'success' ? 'refunded' : 'failed',
-          data: { refund: refundData as unknown as Record<string, unknown> },
+          data: { refund: refundData as unknown as Record<string, unknown>, amount: refundData.amount / 100 },
         };
       }
       

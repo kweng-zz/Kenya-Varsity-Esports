@@ -60,6 +60,7 @@ export abstract class BasePaymentProvider {
       'requires_payment_method': 'pending',
       'requires_confirmation': 'pending',
       'succeeded': 'succeeded',
+      'success': 'succeeded', // Paystack reports successful transactions as 'success'
       'paid': 'succeeded',
       'completed': 'succeeded',
       'failed': 'failed',

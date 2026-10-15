@@ -3,17 +3,21 @@
 import React, { useEffect, useState } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { FooterSection } from "@/components/Footer";
-import { CheckCircle, Loader2, Ticket, ArrowRight } from 'lucide-react';
+import { CheckCircle, Loader2, Ticket, ArrowRight, Download } from 'lucide-react';
 import Link from "next/link";
+import { downloadTicketsPdf } from '@/lib/tickets/ticketPdf';
 
 export default function TicketSuccessPage({
+  params,
   searchParams,
 }: {
-  searchParams: Promise<{ purchaseId: string; eventId: string }>;
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ purchaseId: string }>;
 }) {
   const [purchase, setPurchase] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     verifyPurchase();
@@ -21,8 +25,7 @@ export default function TicketSuccessPage({
 
   const verifyPurchase = async () => {
     try {
-      const params = await searchParams;
-      const { purchaseId, eventId } = params;
+      const [{ eventId }, { purchaseId }] = await Promise.all([params, searchParams]);
       
       if (!purchaseId) {
         setLoading(false);
@@ -45,6 +48,23 @@ export default function TicketSuccessPage({
     } finally {
       setLoading(false);
       setVerifying(false);
+    }
+  };
+
+  const downloadTicketPdf = async () => {
+    if (!purchase) return;
+    setDownloading(true);
+    try {
+      const codes: string[] =
+        purchase.ticketCodes && purchase.ticketCodes.length > 0
+          ? purchase.ticketCodes
+          : [purchase.confirmationCode || purchase.purchaseId];
+      await downloadTicketsPdf(purchase, codes);
+    } catch (err) {
+      console.error('Failed to generate ticket PDF:', err);
+      alert('Failed to generate the ticket PDF. Please try again.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -132,7 +152,7 @@ export default function TicketSuccessPage({
               Purchase Successful!
             </h1>
             <p className="text-gray-400 text-lg">
-              Your tickets have been confirmed. A confirmation email has been sent.
+              Your tickets have been confirmed. Download your e-tickets below and keep them safe.
             </p>
           </div>
 
@@ -176,19 +196,33 @@ export default function TicketSuccessPage({
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href={`/events/${purchase.eventId}/tickets/${purchase.purchaseId}`}>
-              <button className="flex-1 py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:from-[#b91c17] hover:to-[#8c110d]">
-                <Ticket className="w-5 h-5" />
-                View My Tickets
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </Link>
-            <Link href="/events">
-              <button className="flex-1 py-4 border-2 border-gray-700 hover:border-[#8c110d] text-gray-300 hover:text-white font-black uppercase tracking-wider transition-all">
-                Browse More Events
-              </button>
-            </Link>
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={downloadTicketPdf}
+              disabled={downloading}
+              className="w-full py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:from-[#b91c17] hover:to-[#8c110d] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {downloading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+              {downloading ? 'Generating PDF...' : 'Download Tickets (PDF)'}
+            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href={`/events/${purchase.eventId}/tickets/${purchase.purchaseId}`} className="flex-1">
+                <button className="w-full py-4 border-2 border-gray-700 hover:border-[#8c110d] text-gray-300 hover:text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all">
+                  <Ticket className="w-5 h-5" />
+                  View My Tickets
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </Link>
+              <Link href="/events" className="flex-1">
+                <button className="w-full py-4 border-2 border-gray-700 hover:border-[#8c110d] text-gray-300 hover:text-white font-black uppercase tracking-wider transition-all">
+                  Browse More Events
+                </button>
+              </Link>
+            </div>
           </div>
 
           {/* Next Steps */}
@@ -200,11 +234,11 @@ export default function TicketSuccessPage({
             <ol className="space-y-3 text-gray-300 text-sm">
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 bg-[#8c110d] text-white text-xs font-black flex items-center justify-center rounded">1</span>
-                <span>Check your email for the ticket confirmation and QR codes</span>
+                <span>Download your e-tickets and save the PDF to your phone</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 bg-[#8c110d] text-white text-xs font-black flex items-center justify-center rounded">2</span>
-                <span>Save the QR codes to your phone or print them</span>
+                <span>Each ticket has a unique QR code - it scans once at the entrance</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 bg-[#8c110d] text-white text-xs font-black flex items-center justify-center rounded">3</span>

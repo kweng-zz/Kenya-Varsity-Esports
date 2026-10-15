@@ -85,17 +85,17 @@ describe('Tournament Subscription Module', () => {
 
 describe('Event Types for Status Broadcasting', () => {
   test('Status change event type is defined', () => {
-    expect(RealtimeEventType.TOURNAMENT_STATUS_CHANGE).toBe('tournament:status_change');
+    expect(RealtimeEventType.TOURNAMENT_STATUS_CHANGE as string).toBe('tournament:status_change');
   });
 
   test('Match event types are defined', () => {
-    expect(RealtimeEventType.MATCH_START).toBe('match:start');
-    expect(RealtimeEventType.MATCH_END).toBe('match:end');
-    expect(RealtimeEventType.MATCH_UPDATE).toBe('match:update');
+    expect(RealtimeEventType.MATCH_START as string).toBe('match:start');
+    expect(RealtimeEventType.MATCH_END as string).toBe('match:end');
+    expect(RealtimeEventType.MATCH_UPDATE as string).toBe('match:update');
   });
 
   test('Notification event type is defined', () => {
-    expect(RealtimeEventType.NOTIFICATION).toBe('notification');
+    expect(RealtimeEventType.NOTIFICATION as string).toBe('notification');
   });
 });
 

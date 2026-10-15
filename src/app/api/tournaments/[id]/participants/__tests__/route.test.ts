@@ -9,7 +9,7 @@ import { participantManagement } from '@/lib/services/participantManagement';
 import { mock, spyOn } from 'bun:test';
 
 // Mock the rate limit module
-mock('@/lib/redis-rate-limit', () => ({
+mock.module('@/lib/redis-rate-limit', () => ({
   checkRateLimit: () => Promise.resolve(null),
 }));
 

@@ -24,6 +24,50 @@ const EVENT_TICKETS_COLLECTION = 'event_tickets';
 const EVENT_TICKET_TYPES_COLLECTION = 'event_ticket_types';
 const EVENT_TICKET_PURCHASES_COLLECTION = 'event_ticket_purchases';
 
+export interface ParsedPurchaseTickets {
+  /** Individual ticket codes (one per attendee). */
+  codes: string[];
+  /** Map of ticket code -> ISO timestamp of the gate scan (empty when none scanned). */
+  scanned: Record<string, string>;
+  /** Optional e-ticket display payload. */
+  eticketData: unknown | null;
+}
+
+/**
+ * Parse the purchase `tickets` field, which is stored either as a legacy JSON
+ * array of codes or as an object: `{ codes: string[], scanned?: { code: iso }, eticketData?: unknown }`.
+ */
+export function parsePurchaseTickets(raw: string | null | undefined): ParsedPurchaseTickets {
+  const empty: ParsedPurchaseTickets = { codes: [], scanned: {}, eticketData: null };
+  if (!raw) return empty;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return {
+        codes: parsed.filter((c): c is string => typeof c === 'string'),
+        scanned: {},
+        eticketData: null,
+      };
+    }
+    if (parsed && typeof parsed === 'object') {
+      return {
+        codes: Array.isArray(parsed.codes)
+          ? parsed.codes.filter((c: unknown): c is string => typeof c === 'string')
+          : [],
+        scanned:
+          parsed.scanned && typeof parsed.scanned === 'object' && !Array.isArray(parsed.scanned)
+            ? (parsed.scanned as Record<string, string>)
+            : {},
+        eticketData: parsed.eticketData ?? null,
+      };
+    }
+    return empty;
+  } catch {
+    return empty;
+  }
+}
+
 export interface EventTicket {
   $id: string;
   eventId: string;
@@ -154,6 +198,32 @@ export class TicketService {
       return response.documents[0] as unknown as EventTicket;
     } catch (error) {
       console.error('Error fetching event ticket by slug:', error);
+      return null;
+    }
+  }
+
+  async getEventTicketById(eventTicketDocId: string): Promise<EventTicket | null> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return null;
+
+      const response = await db.getDocument(DB_ID, EVENT_TICKETS_COLLECTION, eventTicketDocId);
+      return response as unknown as EventTicket;
+    } catch (error) {
+      console.error('Error fetching event ticket by id:', error);
+      return null;
+    }
+  }
+
+  async getTicketTypeById(ticketTypeId: string): Promise<EventTicketType | null> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return null;
+
+      const response = await db.getDocument(DB_ID, EVENT_TICKET_TYPES_COLLECTION, ticketTypeId);
+      return response as unknown as EventTicketType;
+    } catch (error) {
+      console.error('Error fetching ticket type by id:', error);
       return null;
     }
   }
@@ -403,6 +473,123 @@ export class TicketService {
     }
   }
 
+  async updatePurchaseTickets(purchaseDocId: string, ticketCodes: string[]): Promise<boolean> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return false;
+
+      await db.updateDocument(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, purchaseDocId, {
+        tickets: JSON.stringify(ticketCodes),
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating purchase tickets:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Mark one ticket code as scanned (checked in at the gate).
+   * The tickets field is upgraded from a legacy array to `{ codes, scanned }`.
+   * Returns the resulting scan map, or null when the purchase/code is invalid.
+   */
+  async markTicketCodeScanned(
+    purchaseDocId: string,
+    code: string,
+    timestamp: string = new Date().toISOString()
+  ): Promise<{ scanned: Record<string, string>; codes: string[] } | null> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return null;
+
+      const doc = (await db.getDocument(
+        DB_ID,
+        EVENT_TICKET_PURCHASES_COLLECTION,
+        purchaseDocId
+      )) as unknown as EventTicketPurchase;
+
+      const parsed = parsePurchaseTickets(doc.tickets);
+      if (!parsed.codes.includes(code)) return null;
+
+      if (parsed.scanned[code]) {
+        return { scanned: parsed.scanned, codes: parsed.codes };
+      }
+
+      const scanned = { ...parsed.scanned, [code]: timestamp };
+      const payload: Record<string, unknown> = { codes: parsed.codes, scanned };
+      if (parsed.eticketData) payload.eticketData = parsed.eticketData;
+
+      await db.updateDocument(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, purchaseDocId, {
+        tickets: JSON.stringify(payload),
+      });
+
+      return { scanned, codes: parsed.codes };
+    } catch (error) {
+      console.error('Error marking ticket code as scanned:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Ticket configurations attached to a source event (tournament or external event).
+   */
+  async getEventTicketConfigsByEventId(sourceEventId: string): Promise<EventTicket[]> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return [];
+
+      const res = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+        Query.equal('eventId', sourceEventId),
+        Query.limit(20),
+      ]);
+      return res.documents as unknown as EventTicket[];
+    } catch (error) {
+      console.error('Error fetching ticket configs by event:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Has this buyer already checked in a ticket for the given source event?
+   * Used to auto-approve tournament registrations after a gate scan.
+   */
+  async hasCheckedInTicketForTournament(
+    sourceEventId: string,
+    buyer: { email?: string; userId?: string }
+  ): Promise<boolean> {
+    try {
+      const db = initializeAppwrite();
+      if (!db) return false;
+      if (!buyer.email && !buyer.userId) return false;
+
+      const configs = await this.getEventTicketConfigsByEventId(sourceEventId);
+      if (configs.length === 0) return false;
+
+      const email = buyer.email?.toLowerCase();
+
+      for (const config of configs) {
+        const res = await db.listDocuments(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, [
+          Query.equal('eventTicketId', config.$id),
+          Query.limit(200),
+        ]);
+
+        const checkedIn = (res.documents as unknown as EventTicketPurchase[]).some((p) => {
+          const emailMatch = !!email && !!p.userEmail && p.userEmail.toLowerCase() === email;
+          const userMatch = !!buyer.userId && p.userId === buyer.userId;
+          if (!emailMatch && !userMatch) return false;
+          return Object.keys(parsePurchaseTickets(p.tickets).scanned).length > 0;
+        });
+
+        if (checkedIn) return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking checked-in tickets for tournament:', error);
+      return false;
+    }
+  }
+
   async releaseReservedTickets(ticketTypeId: string, quantity: number): Promise<void> {
     try {
       const db = initializeAppwrite();
@@ -451,10 +638,68 @@ export class TicketService {
     return codes;
   }
 
+  // Generate e-ticket data with game title specific info
+  generateETicketData(purchase: EventTicketPurchase, ticketType: EventTicketType, event?: { startDate?: string }): any {
+    // Map ticket type names to game title images and names
+    const gameTitleMap: Record<string, { title: string; imageUrl: string }> = {
+      'eFootball Mobile': {
+        title: 'eFootball Mobile',
+        imageUrl: '/images/Efootball.png',
+      },
+      'PUBG Mobile': {
+        title: 'PUBG Mobile',
+        imageUrl: '/images/PUBGM.png',
+      },
+      'CODM Multiplayer 5v5': {
+        title: 'CODM Multiplayer 5v5',
+        imageUrl: '/images/CODM MP.png',
+      },
+      'CODM 1v1': {
+        title: 'CODM 1v1',
+        imageUrl: '/images/CODM 1v1.png',
+      },
+    };
+    
+    const gameInfo = gameTitleMap[ticketType.name] || {
+      title: ticketType.name,
+      imageUrl: '/images/Efootball.png',
+    };
+    
+    // Format event date if available
+    let eventDateStr = '';
+    let eventTimeStr = '';
+    if (event?.startDate) {
+      const eventDate = new Date(event.startDate);
+      eventDateStr = eventDate.toLocaleDateString('en-US');
+      eventTimeStr = eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    return {
+      // Ticket identification
+      purchaseId: purchase.purchaseId,
+      confirmationCode: purchase.confirmationCode,
+      eventTitle: event ? 'KVE 2026 Event' : 'Event',
+      gameTitle: gameInfo.title,
+      gameImage: gameInfo.imageUrl,
+      quantity: purchase.quantity,
+      eventDate: eventDateStr,
+      eventTime: eventTimeStr,
+      
+      // Ticket codes
+      ticketCodes: this.generateTicketCodes(purchase, ticketType),
+      
+      // Purchase info
+      totalAmount: purchase.totalAmount,
+      currency: purchase.currency,
+      paymentStatus: purchase.paymentStatus,
+      purchasedAt: purchase.purchasedAt,
+    };
+  }
+
   async generateTicketQRCodes(purchase: EventTicketPurchase): Promise<string[]> {
     // This would integrate with a QR code generation service
     // For now, return placeholder data
-    const codes = JSON.parse(purchase.tickets || '[]');
+    const codes = parsePurchaseTickets(purchase.tickets).codes;
     return codes.map((code: string) => `data:image/svg+xml;base64,${btoa(`<svg>QR for ${code}</svg>`)}`);
   }
 

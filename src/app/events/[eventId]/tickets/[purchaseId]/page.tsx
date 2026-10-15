@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Navigation } from "@/components/Navigation";
 import { FooterSection } from "@/components/Footer";
-import { Ticket, CheckCircle, Calendar, Clock, MapPin, Download, Share2, Copy, AlertCircle } from 'lucide-react';
+import { Ticket, CheckCircle, Calendar, Clock, MapPin, Download, Share2, Copy, AlertCircle, Loader2 } from 'lucide-react';
+import { downloadTicketsPdf } from '@/lib/tickets/ticketPdf';
 
 interface TicketDetailPageProps {
   params: Promise<{ eventId: string; purchaseId: string }>;
@@ -14,6 +15,7 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetchTicket();
@@ -69,8 +71,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
   };
 
   const downloadTicket = async () => {
-    // In a real implementation, this would generate a PDF
-    alert('PDF download would be implemented here');
+    if (!purchase) return;
+    setDownloading(true);
+    try {
+      const codes: string[] =
+        purchase.ticketCodes && purchase.ticketCodes.length > 0
+          ? purchase.ticketCodes
+          : [purchase.confirmationCode || purchase.purchaseId];
+      await downloadTicketsPdf(purchase, codes);
+    } catch (err) {
+      console.error('Failed to generate ticket PDF:', err);
+      alert('Failed to generate the ticket PDF. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const shareTicket = async () => {
@@ -153,6 +167,12 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
         <div className="relative z-10 max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-8 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/KVE%20white%20no%20words.png"
+              alt="KVE - Kenya Varsity Esports"
+              className="h-20 w-auto mx-auto mb-5"
+            />
             <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#8c110d] text-white text-xs font-black uppercase tracking-[0.3em] mb-4">
               <Ticket className="w-4 h-4" />
               Event Ticket
@@ -294,10 +314,20 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps) {
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <button
               onClick={downloadTicket}
-              className="flex-1 py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:from-[#b91c17] hover:to-[#8c110d]"
+              disabled={downloading}
+              className="flex-1 py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] text-white font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:from-[#b91c17] hover:to-[#8c110d] disabled:opacity-60 disabled:cursor-wait"
             >
-              <Download className="w-5 h-5" />
-              Download Ticket
+              {downloading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" />
+                  Download Ticket
+                </>
+              )}
             </button>
             <button
               onClick={shareTicket}
@@ -339,6 +369,24 @@ function TicketCard({ code, purchase, index, total, onCopy, copied }: {
   onCopy: () => void;
   copied: boolean;
 }) {
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const QRCode = await import('qrcode');
+        const url = await QRCode.toDataURL(code, { width: 256, margin: 1 });
+        if (!cancelled) setQrDataUrl(url);
+      } catch (err) {
+        console.error('Failed to render QR code:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [code]);
+
   return (
     <div className="relative border-2 border-gray-800 bg-black overflow-hidden group">
       <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8c110d]" />
@@ -390,15 +438,20 @@ function TicketCard({ code, purchase, index, total, onCopy, copied }: {
           </div>
         </div>
 
-        {/* QR Code Placeholder */}
+        {/* QR Code */}
         <div className="mt-6 pt-6 border-t border-gray-800">
           <div className="flex items-center justify-center gap-8">
-            <div className="w-32 h-32 bg-white flex items-center justify-center">
-              <div className="w-24 h-24 bg-black" />
+            <div className="w-32 h-32 bg-white flex items-center justify-center p-1.5">
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrDataUrl} alt={`QR code for ticket ${code}`} className="w-full h-full" />
+              ) : (
+                <div className="w-full h-full bg-gray-200 animate-pulse" />
+              )}
             </div>
             <div className="text-center">
               <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Scan at Entry</p>
-              <p className="text-white font-mono text-sm">{code}</p>
+              <p className="text-white font-mono text-sm break-all">{code}</p>
             </div>
           </div>
         </div>

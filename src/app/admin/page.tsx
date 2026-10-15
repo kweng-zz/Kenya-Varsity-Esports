@@ -97,6 +97,14 @@ export default function AdminPage() {
                     <p>Review and approve tournament registration requests.</p>
                 </Link>
 
+                <Link 
+                    href="/admin/check-in" 
+                    className="p-6 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex flex-col items-center justify-center gap-2"
+                >
+                    <h2 className="text-2xl font-semibold">Gate Check-In</h2>
+                    <p>Scan ticket QR codes at the gate — pending registrations are approved automatically.</p>
+                </Link>
+
                 
 
                 <Link 

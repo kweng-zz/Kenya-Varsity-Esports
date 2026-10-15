@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 
 // Component tests without DOM rendering to avoid setup complexity
 describe('Tournament Registration Components Structure', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mock.clearAllMocks();
   });
 
   describe('Component Module Exports', () => {
@@ -107,9 +107,9 @@ describe('Tournament Registration Components Structure', () => {
       const mockProps = {
         index: 0,
         field: { id: 'player-1', name: 'players[0]' },
-        register: vi.fn(),
+        register: mock(),
         errors: {},
-        onRemove: vi.fn(),
+        onRemove: mock(),
         canRemove: true,
         isSubstitute: false,
         gameSpecificFields: []
@@ -142,7 +142,7 @@ describe('Tournament Registration Components Structure', () => {
           { id: '1', title: 'Step 1', description: 'Description', status: 'current' as const }
         ],
         currentStep: 0,
-        onStepClick: vi.fn()
+        onStepClick: mock()
       };
 
       expect(validStepsIndicatorProps).toHaveProperty('steps');
@@ -155,9 +155,9 @@ describe('Tournament Registration Components Structure', () => {
       const baseProps = {
         index: 0,
         field: { id: 'player-1', name: 'players[0]' },
-        register: vi.fn(),
+        register: mock(),
         errors: {},
-        onRemove: vi.fn(),
+        onRemove: mock(),
       };
 
       const playerProps = { ...baseProps, canRemove: true, isSubstitute: false };
@@ -172,7 +172,7 @@ describe('Tournament Registration Components Structure', () => {
     it('should validate TeamManager props', () => {
       const validTeamManagerProps = {
         control: {},
-        register: vi.fn(),
+        register: mock(),
         errors: {},
         game: {
           name: 'Test Game',

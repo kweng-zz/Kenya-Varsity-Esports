@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { paymentProviderFactory } from '@/lib/payments';
-import { ticketService, EventTicketPurchase, EventTicketType, EventTicket } from '@/lib/tickets';
-import { sendTicketConfirmationEmail } from '@/lib/email/ticketEmails';
-import { fromSubunits } from '@/lib/pricing';
+import { ticketService, EventTicketPurchase, deliverPurchaseTickets } from '@/lib/tickets';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -73,12 +71,18 @@ export async function POST(request: NextRequest) {
     let newPaymentStatus = purchase.paymentStatus;
 
     switch (status) {
-      case 'succeeded':
-        // Verify amount matches expected total (from subunits)
-        const paidAmount = fromSubunits(typeof webhookData?.amount === 'number' ? webhookData.amount : 0);
+      case 'succeeded': {
+        // Providers parse webhook events into a consistent `amount` in main currency units
+        const paidAmount = typeof webhookData?.amount === 'number' && webhookData.amount > 0
+          ? webhookData.amount
+          : null;
         const expectedTotal = purchase.totalAmount;
-        
-        if (Math.abs(paidAmount - expectedTotal) > 1) {
+
+        if (paidAmount === null) {
+          console.warn(`Webhook for ${paymentIntentId} has no payable amount, skipping amount check`);
+          newStatus = 'confirmed';
+          newPaymentStatus = 'paid';
+        } else if (Math.abs(paidAmount - expectedTotal) > 1) {
           console.error(`Webhook amount mismatch: expected ${expectedTotal}, got ${paidAmount}`);
           newStatus = 'cancelled';
           newPaymentStatus = 'failed';
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest) {
           newPaymentStatus = 'paid';
         }
         break;
+      }
       case 'failed':
         newStatus = 'cancelled';
         newPaymentStatus = 'failed';
@@ -126,54 +131,14 @@ export async function POST(request: NextRequest) {
         await ticketService.releaseReservedTickets(purchase.eventTicketTypeId, purchase.quantity);
       }
 
-      // If payment succeeded and was previously reserved, generate ticket codes and send email
+      // If payment succeeded, generate ticket codes and email the e-tickets
       if (newPaymentStatus === 'paid' && purchase.status !== 'confirmed') {
-        // Get ticket type for code generation
-        const ticketTypeResponse = await databases.getDocument(
-          DB_ID,
-          'event_ticket_types',
-          purchase.eventTicketTypeId
-        );
-        const ticketType = ticketTypeResponse as unknown as EventTicketType;
-        const ticketCodes = ticketService.generateTicketCodes(purchase, ticketType);
-        
-        await databases.updateDocument(
-          DB_ID,
-          'event_ticket_purchases',
-          purchase.$id,
-          {
-            tickets: JSON.stringify(ticketCodes),
-          }
-        );
-
-        // Get event ticket details for email
-        const eventTicketResponse = await databases.getDocument(
-          DB_ID,
-          'event_tickets',
-          purchase.eventTicketId
-        );
-        const eventTicket = eventTicketResponse as unknown as EventTicket;
-
-        // Send e-ticket email
-        await sendTicketConfirmationEmail({
-          userEmail: purchase.userEmail,
-          userName: purchase.userName,
-          eventTitle: eventTicket.eventTitle,
-          eventDate: eventTicket.salesStartDate ? new Date(eventTicket.salesStartDate).toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }) : 'TBA',
-          eventVenue: 'Nairobi Convention Center, Kenya', // Could be stored in event_tickets
-          ticketTypeName: ticketType.name,
-          quantity: purchase.quantity,
-          ticketCodes,
-          purchaseId: purchase.purchaseId,
-          confirmationCode: purchase.confirmationCode || `CONF-${purchase.purchaseId}`,
-          totalAmount: purchase.totalAmount,
-          currency: purchase.currency,
-        });
+        const delivery = await deliverPurchaseTickets(purchase);
+        if (!delivery.emailSent) {
+          console.error(
+            `Ticket email not sent for purchase ${purchase.purchaseId}: ${delivery.emailError || 'unknown error'}`
+          );
+        }
       }
     }
 

@@ -280,7 +280,7 @@ export default function AdminEventTicketsPage() {
             title: newEventTitle,
             description: '',
             imageUrl: '/images/hero-bg.jpg',
-            externalUrl: `https://kuer.esports.com/events/${slug}`,
+            externalUrl: `https://www.kve.co.ke/events/${slug}`,
             eventDate: newEventDate ? new Date(newEventDate).toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             venue: '',
             prizePool: '',

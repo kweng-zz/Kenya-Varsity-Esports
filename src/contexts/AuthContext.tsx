@@ -238,6 +238,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (process.env.NODE_ENV === 'development') {
               console.log(`Account.get() attempt ${retryCount} failed:`, sessionError.message);
             }
+
+            // Network-level failures (offline, CORS-blocked origin, DNS) will never
+            // succeed on retry - bail out quietly and continue as a guest.
+            if (
+              sessionError instanceof TypeError ||
+              /failed to fetch|networkerror|load failed|network request failed/i.test(sessionError?.message || '')
+            ) {
+              if (process.env.NODE_ENV === 'development') {
+                console.info(
+                  `Account check could not reach Appwrite from ${typeof window !== 'undefined' ? window.location.origin : 'this origin'} ` +
+                  '(blocked or offline). Continuing as guest. If this is a tunnel/dev URL, add it under Appwrite Console > Overview > Platforms.'
+                );
+              }
+              if (isMounted) {
+                setUser(null);
+                setProfile(null);
+              }
+              return;
+            }
             
             // Handle scope errors for guest users
             if (sessionError?.code === 401 || sessionError?.message?.includes('missing scopes')) {

@@ -179,7 +179,8 @@ export class StripePaymentProvider extends BasePaymentProvider {
           type: event.type,
           paymentIntentId: paymentIntent.id,
           status: this.mapProviderStatusToStandard(paymentIntent.status),
-          data: { paymentIntent: paymentIntent as unknown as Record<string, unknown> },
+          // `amount` is in main currency units (Stripe sends cents subunits)
+          data: { paymentIntent: paymentIntent as unknown as Record<string, unknown>, amount: paymentIntent.amount / 100 },
         };
       }
       if (event.type.startsWith('charge.')) {
@@ -188,7 +189,7 @@ export class StripePaymentProvider extends BasePaymentProvider {
           type: event.type,
           paymentIntentId: charge.payment_intent as string,
           status: charge.status === 'succeeded' ? 'succeeded' : 'failed',
-          data: { charge: charge as unknown as Record<string, unknown> },
+          data: { charge: charge as unknown as Record<string, unknown>, amount: charge.amount / 100 },
         };
       }
       if (event.type === 'refund.created' || event.type === 'refund.updated') {
@@ -197,7 +198,7 @@ export class StripePaymentProvider extends BasePaymentProvider {
           type: event.type,
           paymentIntentId: refund.payment_intent as string,
           status: refund.status === 'succeeded' ? 'refunded' : 'processing',
-          data: { refund: refund as unknown as Record<string, unknown> },
+          data: { refund: refund as unknown as Record<string, unknown>, amount: refund.amount / 100 },
         };
       }
       return null;

@@ -40,8 +40,11 @@ function createTransporter(config: TicketEmailConfig) {
 }
 
 async function generateTicketEmailHTML(data: TicketEmailData): Promise<string> {
-  // Generate QR codes for each ticket
-  const ticketCodesHtml = await Promise.all(data.ticketCodes.map(async (code, index) => {
+  // Public base URL used for hosted assets (falls back to the official site)
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.kve.co.ke').replace(/\/+$/, '');
+
+  // Generate QR codes for each ticket and join them into a single HTML string
+  const ticketCodesHtml = (await Promise.all(data.ticketCodes.map(async (code, index) => {
     const qrCodeDataUrl = await QRCode.toDataURL(code, {
       width: 200,
       margin: 2,
@@ -62,9 +65,7 @@ async function generateTicketEmailHTML(data: TicketEmailData): Promise<string> {
       <div style="font-size: 10px; color: #aaa; margin-top: 8px;">Scan at gate for entry</div>
     </div>
   `;
-  }));
-  
-  const resolvedTicketCodesHtml = await Promise.all(ticketCodesHtml);
+  }))).join('');
 
   return `
     <!DOCTYPE html>
@@ -78,8 +79,9 @@ async function generateTicketEmailHTML(data: TicketEmailData): Promise<string> {
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <!-- Header -->
         <tr>
-          <td style="background: linear-gradient(135deg, #8c110d 0%, #b91c17 100%); padding: 40px 30px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: 1px;">🎟️ Your E-Tickets</h1>
+          <td style="background: linear-gradient(135deg, #8c110d 0%, #b91c17 100%); padding: 32px 30px 36px; text-align: center;">
+            <img src="${appUrl}/images/KVE%20white%20no%20words.png" alt="KVE - Kenya Varsity Esports" style="height: 56px; width: auto; margin: 0 0 14px;" />
+            <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 1px;">🎟️ Your E-Tickets</h1>
             <p style="margin: 12px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">${data.eventTitle}</p>
           </td>
         </tr>
@@ -133,14 +135,14 @@ async function generateTicketEmailHTML(data: TicketEmailData): Promise<string> {
                 <li>Each ticket code can only be scanned once - duplicates will be rejected</li>
                 <li>Arrive at least 30 minutes before the event start time</li>
                 <li>Bring a valid photo ID that matches the name on the ticket</li>
-                <li>For support, contact us at tickets@kuer.esports.com</li>
+                <li>For support, visit www.kve.co.ke</li>
               </ul>
             </div>
 
             <!-- Footer Info -->
             <div style="border-top: 1px solid #eee; padding-top: 24px; margin-top: 32px;">
               <p style="font-size: 14px; color: #666; margin: 0 0 8px;">If you have any questions, reply to this email or contact our support team.</p>
-              <p style="font-size: 14px; color: #666; margin: 0;">Thank you for choosing Kuer Esports!</p>
+              <p style="font-size: 14px; color: #666; margin: 0;">Thank you for choosing KVE!</p>
             </div>
           </td>
         </tr>
@@ -148,7 +150,7 @@ async function generateTicketEmailHTML(data: TicketEmailData): Promise<string> {
         <!-- Footer -->
         <tr>
           <td style="background: #1a1a1a; padding: 24px 30px; text-align: center;">
-            <p style="margin: 0 0 8px; color: #888; font-size: 12px;">Kuer Esports • Nairobi, Kenya</p>
+            <p style="margin: 0 0 8px; color: #888; font-size: 12px;">KVE • Nairobi, Kenya</p>
             <p style="margin: 0; color: #666; font-size: 11px;">This is an automated email. Please do not reply directly.</p>
           </td>
         </tr>
@@ -185,12 +187,12 @@ IMPORTANT INFORMATION:
 - Each ticket code can only be scanned once - duplicates will be rejected
 - Arrive at least 30 minutes before the event start time
 - Bring a valid photo ID that matches the name on the ticket
-- For support, contact us at tickets@kuer.esports.com
+- For support, visit www.kve.co.ke
 
-Thank you for choosing Kuer Esports!
+Thank you for choosing KVE!
 
 ---
-Kuer Esports • Nairobi, Kenya
+KVE • Nairobi, Kenya
 This is an automated email. Please do not reply directly.
   `.trim();
 }
@@ -203,7 +205,7 @@ export async function sendTicketConfirmationEmail(data: TicketEmailData): Promis
     user: process.env.SMTP_EVENTS_EMAIL || process.env.SMTP_EMAIL || 'events@tunzaesports.com',
     pass: process.env.SMTP_EVENTS_PASSWORD || process.env.SMTP_PASSWORD || '',
     fromEmail: process.env.SMTP_EVENTS_EMAIL || process.env.SMTP_EMAIL || 'events@tunzaesports.com',
-    fromName: 'Kuer Esports Tickets',
+    fromName: 'KVE Tickets',
   };
 
   if (!config.user || !config.pass) {
@@ -245,7 +247,7 @@ export async function sendTicketRefundEmail(data: TicketEmailData): Promise<{ su
     user: process.env.SMTP_EVENTS_EMAIL || process.env.SMTP_EMAIL || 'events@tunzaesports.com',
     pass: process.env.SMTP_EVENTS_PASSWORD || process.env.SMTP_PASSWORD || '',
     fromEmail: process.env.SMTP_EVENTS_EMAIL || process.env.SMTP_EMAIL || 'events@tunzaesports.com',
-    fromName: 'Kuer Esports Tickets',
+    fromName: 'KVE Tickets',
   };
 
   if (!config.user || !config.pass) {
@@ -259,7 +261,7 @@ export async function sendTicketRefundEmail(data: TicketEmailData): Promise<{ su
       from: `"${config.fromName}" <${config.fromEmail}>`,
       to: data.userEmail,
       subject: `Ticket Refund Confirmation - ${data.eventTitle}`,
-      text: `Hi ${data.userName},\n\nYour refund for ${data.quantity}x ${data.ticketTypeName} for ${data.eventTitle} has been processed.\n\nRefund Amount: ${data.currency} ${data.totalAmount}\nOrder ID: ${data.purchaseId}\n\nThe refund will be credited back to your original payment method within 5-10 business days.\n\nIf you have any questions, contact us at tickets@kuer.esports.com\n\nThank you,\nKuer Esports`,
+      text: `Hi ${data.userName},\n\nYour refund for ${data.quantity}x ${data.ticketTypeName} for ${data.eventTitle} has been processed.\n\nRefund Amount: ${data.currency} ${data.totalAmount}\nOrder ID: ${data.purchaseId}\n\nThe refund will be credited back to your original payment method within 5-10 business days.\n\nIf you have any questions, visit www.kve.co.ke\n\nThank you,\nKVE`,
       headers: {
         'Auto-Submitted': 'auto-generated',
         Precedence: 'bulk',

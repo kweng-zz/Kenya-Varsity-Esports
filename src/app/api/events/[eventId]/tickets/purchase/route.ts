@@ -238,8 +238,8 @@ export async function POST(
         quantity: quantity.toString(),
         ...metadata,
       },
-      returnUrl: returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/events/${eventId}/tickets/success?purchaseId=${purchase.purchaseId}`,
-      cancelUrl: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}/events/${eventId}/tickets/cancelled?purchaseId=${purchase.purchaseId}`,
+      returnUrl: returnUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kve.co.ke'}/events/${eventId}/tickets/success?purchaseId=${purchase.purchaseId}`,
+      cancelUrl: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kve.co.ke'}/events/${eventId}/tickets/cancelled?purchaseId=${purchase.purchaseId}`,
     });
 
     if (!paymentResult.success) {

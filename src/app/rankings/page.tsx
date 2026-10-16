@@ -55,19 +55,18 @@ export default function RankingsPage() {
 
         <div className="relative z-10 w-full pl-4 md:pl-8 pr-4 md:pr-8 pt-16 pb-14 md:pt-24 md:pb-20 max-w-6xl mx-auto">
           <div className="mb-5">
-            <span className="bg-[#E73138] text-white text-xs font-bold px-3 py-1 uppercase tracking-wider italic transform -skew-x-12 inline-block">
+            <span className="inline-flex items-center bg-[#E73138] text-white text-xs font-black uppercase tracking-[0.3em] px-4 py-2">
               Official Standings
             </span>
           </div>
 
-          <h1 className="text-white text-5xl md:text-7xl font-black italic uppercase leading-none tracking-tighter mb-6 max-w-4xl">
+          <h1 className="text-white text-5xl md:text-7xl font-black uppercase leading-none tracking-tight mb-6 max-w-4xl">
             <span className="block">KVE Game</span>
             <span className="block text-[#E73138]">Rankings</span>
           </h1>
 
-          <p className="text-gray-300 text-lg md:text-xl max-w-2xl font-light">
-            Top performers from our tournaments. Points are earned on the stage — follow your
-            favourite players as the season unfolds.
+          <p className="text-gray-300 text-lg md:text-xl max-w-2xl leading-relaxed">
+            Top performers from our tournaments. Points are earned on the stage — follow your favourite players as the season unfolds.
           </p>
         </div>
       </section>
@@ -84,7 +83,7 @@ export default function RankingsPage() {
             <div className="text-[#8c110d] font-black text-xs uppercase tracking-[0.3em] mb-4">
               Climb The Ladder
             </div>
-            <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-white mb-4">
+            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white mb-4">
               Think You Can <span className="text-[#E73138]">Top The Board?</span>
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto mb-8">

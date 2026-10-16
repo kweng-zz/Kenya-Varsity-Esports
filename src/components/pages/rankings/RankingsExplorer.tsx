@@ -117,7 +117,7 @@ export function RankingsExplorer() {
 
         {/* Result summary */}
         <div className="mt-6 mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-white">
+          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">
             {selectedGame ? (
               <>
                 {selectedGame.shortName} <span className="text-[#8c110d]">Standings</span>

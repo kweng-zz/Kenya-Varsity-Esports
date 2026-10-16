@@ -11,7 +11,7 @@ export default function NotFound() {
 
       <section className="flex-1 flex items-center justify-center px-6 py-24">
         <div className="text-center max-w-lg">
-          <p className="font-['Hind',Helvetica] font-black italic text-[#E73138] text-7xl sm:text-9xl tracking-tighter leading-none">
+          <p className="font-['Hind',Helvetica] font-black text-[#E73138] text-7xl sm:text-9xl tracking-tighter leading-none">
             404
           </p>
           <h1 className="font-['Hind',Helvetica] font-bold text-white text-2xl sm:text-3xl uppercase mt-6">

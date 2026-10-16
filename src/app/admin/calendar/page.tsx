@@ -568,9 +568,7 @@ export default function AdminCalendarPage() {
         [
           Permission.read(Role.any()),
           Permission.update(Role.users()),
-          Permission.update(Role.team('admins')),
           Permission.delete(Role.users()),
-          Permission.delete(Role.team('admins'))
         ]
       );
 
@@ -608,9 +606,7 @@ export default function AdminCalendarPage() {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.update(Role.team('admins')),
             Permission.delete(Role.users()),
-            Permission.delete(Role.team('admins'))
           ]
         );
       }

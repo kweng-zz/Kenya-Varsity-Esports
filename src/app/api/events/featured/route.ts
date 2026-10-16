@@ -179,8 +179,8 @@ export async function GET() {
       let timeStr = '';
       if (winner.eventDate) {
         const d = new Date(winner.eventDate);
-        dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
-        timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Africa/Nairobi' }).toUpperCase();
+        timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi' });
       }
 
       featuredEvent = {
@@ -205,8 +205,8 @@ export async function GET() {
       let timeStr = '';
       if (t.startDate) {
         const d = new Date(t.startDate);
-        dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
-        timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Africa/Nairobi' }).toUpperCase();
+        timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi' });
       }
 
       // Check for tickets

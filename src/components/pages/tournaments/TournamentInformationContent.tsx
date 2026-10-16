@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tournament } from '@/types/tournament';
 import { TournamentHeader } from '@/components/tournaments/TournamentHeader';
+import { GameRankingsSection } from '@/components/pages/tournaments/GameRankingsSection';
 
 interface TournamentInformationContentProps {
   tournamentData?: Tournament | null;
@@ -390,6 +391,9 @@ export const TournamentInformationContent: React.FC<TournamentInformationContent
             </div>
           </div>
         </div>
+
+        {/* Game Rankings — top performers with link to /rankings */}
+        <GameRankingsSection slug={slug} gameName={displayData?.gameName} />
 
         {/* Tournament Rules - Enhanced List Design */}
         {displayData?.rules && displayData.rules.length > 0 && (

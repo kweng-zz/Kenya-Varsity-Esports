@@ -9,7 +9,7 @@ interface RankingEntry {
   university: string;
   wins: number;
   losses: number;
-  total: number;
+  points: number;
   image?: string;
 }
 
@@ -19,50 +19,51 @@ interface BulkRankingsImporterProps {
 }
 
 export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onImport, onClose }) => {
-  const [importMethod, setImportMethod] = useState<'csv' | 'json' | 'manual'>('csv');
+  const [importMethod, setImportMethod] = useState<'csv' | 'json'>('csv');
   const [csvText, setCsvText] = useState('');
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RankingEntry[]>([]);
 
+  const toInt = (value: string | undefined | number) => parseInt(String(value ?? 0), 10) || 0;
+
   const parseCSV = (text: string): RankingEntry[] => {
-    const lines = text.trim().split('\n');
+    const lines = text.trim().split('\n').filter((line) => line.trim() !== '');
     if (lines.length < 2) {
       throw new Error('CSV must have at least a header row and one data row');
     }
 
-    const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
-    const requiredFields = ['rank', 'playername', 'university', 'wins', 'losses', 'total'];
-    
-    const missingFields = requiredFields.filter(field => !headers.includes(field));
+    const headers = lines[0].toLowerCase().split(',').map((h) => h.trim());
+    const requiredFields = ['rank', 'playername', 'university'];
+    const missingFields = requiredFields.filter((field) => !headers.includes(field));
     if (missingFields.length > 0) {
       throw new Error(`Missing required columns: ${missingFields.join(', ')}`);
     }
 
+    // Accept both "points" and the legacy "total" column for the score
+    const scoreKey = headers.includes('points') ? 'points' : headers.includes('total') ? 'total' : null;
+    const idx = (key: string) => headers.indexOf(key);
+
     const rankings: RankingEntry[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length < requiredFields.length) continue;
-
-      const rankIdx = headers.indexOf('rank');
-      const playerIdx = headers.indexOf('playername');
-      const univIdx = headers.indexOf('university');
-      const winsIdx = headers.indexOf('wins');
-      const lossesIdx = headers.indexOf('losses');
-      const totalIdx = headers.indexOf('total');
-      const imageIdx = headers.indexOf('image');
+      const values = lines[i].split(',').map((v) => v.trim());
+      const playerName = values[idx('playername')];
+      if (!playerName) continue;
 
       rankings.push({
-        rank: parseInt(values[rankIdx]) || i,
-        playerName: values[playerIdx],
-        university: values[univIdx],
-        wins: parseInt(values[winsIdx]) || 0,
-        losses: parseInt(values[lossesIdx]) || 0,
-        total: parseInt(values[totalIdx]) || 0,
-        image: imageIdx >= 0 ? values[imageIdx] : undefined
+        rank: toInt(values[idx('rank')]) || i,
+        playerName,
+        university: values[idx('university')] || '',
+        wins: idx('wins') >= 0 ? toInt(values[idx('wins')]) : 0,
+        losses: idx('losses') >= 0 ? toInt(values[idx('losses')]) : 0,
+        points: scoreKey && idx(scoreKey) >= 0 ? toInt(values[idx(scoreKey)]) : 0,
+        image: idx('image') >= 0 ? values[idx('image')] : undefined,
       });
     }
 
+    if (rankings.length === 0) {
+      throw new Error('No valid rows found in CSV data');
+    }
     return rankings;
   };
 
@@ -76,10 +77,10 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
       rank: item.rank || index + 1,
       playerName: item.playerName || item.squadName || '',
       university: item.university || '',
-      wins: parseInt(item.wins) || 0,
-      losses: parseInt(item.losses) || 0,
-      total: parseInt(item.total) || 0,
-      image: item.image
+      wins: toInt(item.wins),
+      losses: toInt(item.losses),
+      points: toInt(item.points ?? item.total),
+      image: item.image,
     }));
   };
 
@@ -89,19 +90,15 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
       let rankings: RankingEntry[] = [];
 
       if (importMethod === 'csv') {
-        if (!csvText.trim()) {
-          throw new Error('Please paste CSV data');
-        }
+        if (!csvText.trim()) throw new Error('Please paste CSV data');
         rankings = parseCSV(csvText);
-      } else if (importMethod === 'json') {
-        if (!jsonText.trim()) {
-          throw new Error('Please paste JSON data');
-        }
+      } else {
+        if (!jsonText.trim()) throw new Error('Please paste JSON data');
         rankings = parseJSON(jsonText);
       }
 
-      if (rankings.length === 0) {
-        throw new Error('No valid rankings found');
+      if (rankings.some((r) => !r.playerName)) {
+        throw new Error('Every entry needs a player name');
       }
 
       setPreview(rankings);
@@ -120,10 +117,10 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
   };
 
   const downloadTemplate = () => {
-    const csvTemplate = `rank,playerName,university,wins,losses,total,image
-1,SQUAD NAME,UNIVERSITY,24,0,72,/images/game.png
-2,ANOTHER SQUAD,ANOTHER UNI,20,2,68,/images/game.png
-3,THIRD SQUAD,THIRD UNI,18,4,64,/images/game.png`;
+    const csvTemplate = `rank,playerName,university,wins,losses,points,image
+1,PLAYER NAME,UNIVERSITY,24,0,72,/images/game.png
+2,ANOTHER PLAYER,ANOTHER UNI,20,2,68,/images/game.png
+3,THIRD PLAYER,THIRD UNI,18,4,64,/images/game.png`;
 
     const element = document.createElement('a');
     element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvTemplate));
@@ -136,24 +133,8 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
 
   const downloadJSONTemplate = () => {
     const jsonTemplate = [
-      {
-        rank: 1,
-        playerName: 'SQUAD NAME',
-        university: 'UNIVERSITY',
-        wins: 24,
-        losses: 0,
-        total: 72,
-        image: '/images/game.png'
-      },
-      {
-        rank: 2,
-        playerName: 'ANOTHER SQUAD',
-        university: 'ANOTHER UNI',
-        wins: 20,
-        losses: 2,
-        total: 68,
-        image: '/images/game.png'
-      }
+      { rank: 1, playerName: 'PLAYER NAME', university: 'UNIVERSITY', wins: 24, losses: 0, points: 72, image: '/images/game.png' },
+      { rank: 2, playerName: 'ANOTHER PLAYER', university: 'ANOTHER UNI', wins: 20, losses: 2, points: 68, image: '/images/game.png' },
     ];
 
     const element = document.createElement('a');
@@ -168,8 +149,13 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-700 px-6 py-4 border-b border-gray-600">
+        <div className="sticky top-0 bg-gray-700 px-6 py-4 border-b border-gray-600 flex justify-between items-center">
           <h2 className="text-2xl font-bold">Bulk Import Rankings</h2>
+          <button onClick={onClose} className="text-gray-300 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <div className="p-6 space-y-6">
@@ -177,20 +163,20 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-300">Import Method</label>
             <div className="flex gap-4">
-              {(['csv', 'json', 'manual'] as const).map(method => (
+              {(['csv', 'json'] as const).map((method) => (
                 <label key={method} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     value={method}
                     checked={importMethod === method}
-                    onChange={(e) => {
-                      setImportMethod(e.target.value as typeof method);
+                    onChange={() => {
+                      setImportMethod(method);
                       setError(null);
                       setPreview([]);
                     }}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm text-gray-300 capitalize">{method === 'csv' ? 'CSV' : method === 'json' ? 'JSON' : 'Manual Entry'}</span>
+                  <span className="text-sm text-gray-300 uppercase">{method}</span>
                 </label>
               ))}
             </div>
@@ -212,11 +198,12 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
               <textarea
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
-                placeholder="rank,playerName,university,wins,losses,total,image&#10;1,SQUAD NAME,UNIVERSITY,24,0,72,/images/game.png"
+                placeholder="rank,playerName,university,wins,losses,points,image&#10;1,PLAYER NAME,UNIVERSITY,24,0,72,/images/game.png"
                 className="w-full h-40 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 font-mono text-sm"
               />
               <p className="text-xs text-gray-400">
-                Required columns: rank, playerName, university, wins, losses, total. Optional: image
+                Required columns: rank, playerName, university. Optional: wins, losses, points
+                (a legacy &quot;total&quot; column is also accepted), image.
               </p>
             </div>
           )}
@@ -237,23 +224,9 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
               <textarea
                 value={jsonText}
                 onChange={(e) => setJsonText(e.target.value)}
-                placeholder='[{"rank": 1, "playerName": "SQUAD", "university": "UNI", "wins": 24, "losses": 0, "total": 72}]'
+                placeholder='[{"rank": 1, "playerName": "PLAYER", "university": "UNI", "wins": 24, "losses": 0, "points": 72}]'
                 className="w-full h-40 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 font-mono text-sm"
               />
-            </div>
-          )}
-
-          {/* Manual Entry */}
-          {importMethod === 'manual' && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-400">
-                Use the "Add Ranking Entry" button in the main editor to manually add rankings one by one.
-              </p>
-              <div className="bg-gray-700 p-4 rounded border border-gray-600">
-                <p className="text-sm text-gray-300">
-                  This method is best for adding a few rankings. For bulk imports, use CSV or JSON.
-                </p>
-              </div>
             </div>
           )}
 
@@ -268,7 +241,9 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
           {/* Preview */}
           {preview.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-gray-300">Preview ({preview.length} entries)</h3>
+              <h3 className="text-sm font-medium text-gray-300">
+                Preview ({preview.length} entries) — importing replaces the current list in the editor
+              </h3>
               <div className="overflow-x-auto bg-gray-700 rounded border border-gray-600">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-600">
@@ -278,7 +253,7 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
                       <th className="px-3 py-2 text-left text-xs font-medium">University</th>
                       <th className="px-3 py-2 text-left text-xs font-medium">Wins</th>
                       <th className="px-3 py-2 text-left text-xs font-medium">Losses</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium">Total</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium">Points</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-600">
@@ -289,7 +264,7 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
                         <td className="px-3 py-2">{entry.university}</td>
                         <td className="px-3 py-2">{entry.wins}</td>
                         <td className="px-3 py-2">{entry.losses}</td>
-                        <td className="px-3 py-2">{entry.total}</td>
+                        <td className="px-3 py-2">{entry.points}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -309,14 +284,12 @@ export const BulkRankingsImporter: React.FC<BulkRankingsImporterProps> = ({ onIm
             >
               Cancel
             </button>
-            {importMethod !== 'manual' && (
-              <button
-                onClick={handlePreview}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Preview
-              </button>
-            )}
+            <button
+              onClick={handlePreview}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              Preview
+            </button>
             {preview.length > 0 && (
               <button
                 onClick={handleImport}

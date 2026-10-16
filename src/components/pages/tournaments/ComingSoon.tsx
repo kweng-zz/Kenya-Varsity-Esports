@@ -1,179 +1,121 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
+import { useRankings, sortByStanding } from "@/hooks/useRankings";
 
-interface RankingEntry {
-  id?: string;
-  rank: number;
-  playerName: string;
-  game?: string;
-  categoryId?: string;
-  points: number;
-  wins: number;
-  losses: number;
-  university: string;
-  total?: number;
-}
-
+/**
+ * Rankings preview on the /tournaments page.
+ * Shows the current top 3 players and links to the full
+ * /rankings page, which is the single place standings are displayed.
+ */
 export const ComingSoonSection = () => {
-  const [rankings, setRankings] = useState<RankingEntry[]>([]);
-  const [selectedGame, setSelectedGame] = useState<string>("All Games");
-  const [games, setGames] = useState<string[]>([]);
+  const { data, loading, error } = useRankings();
 
-  useEffect(() => {
-    loadRankings();
-    
-    // Refresh rankings every 30 seconds to catch updates from admin panel
-    const interval = setInterval(loadRankings, 30000);
-    
-    // Also listen for visibility changes - refresh when tab becomes visible
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadRankings();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+  const topThree = useMemo(() => {
+    if (!data) return [];
+    return sortByStanding(data.rankings).slice(0, 3);
+  }, [data]);
 
-  const loadRankings = async () => {
-    try {
-      // Add cache-busting parameter to force fresh data
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/rankings?t=${timestamp}`);
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // Transform API data to match RankingEntry format
-        const transformedRankings = result.data.map((ranking: any) => ({
-          id: ranking.id,
-          rank: ranking.rank,
-          playerName: ranking.playerName,
-          game: ranking.game || ranking.categoryId,
-          categoryId: ranking.categoryId,
-          points: ranking.points || ranking.total || 0,
-          wins: ranking.wins,
-          losses: ranking.losses,
-          university: ranking.university,
-          total: ranking.total
-        }));
-
-        setRankings(transformedRankings);
-
-        // Extract unique games
-        const uniqueGames: string[] = ["All Games", ...new Set(transformedRankings.map((r: RankingEntry) => r.game).filter(Boolean) as string[])];
-        setGames(uniqueGames);
-      } else {
-        // Fallback to empty state if API fails
-        setRankings([]);
-        setGames(["All Games"]);
-      }
-    } catch (error) {
-      console.error('Error loading rankings:', error);
-      // Fallback to empty state
-      setRankings([]);
-      setGames(["All Games"]);
-    }
-  };
-
-  const filteredRankings = selectedGame === "All Games" 
-    ? rankings 
-    : rankings.filter((r: RankingEntry) => r.game === selectedGame);
+  const medal = (rank: number) => (rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉");
+  const badgeClass = (rank: number) =>
+    rank === 1
+      ? "border-yellow-500/70 text-yellow-400"
+      : rank === 2
+        ? "border-gray-400/70 text-gray-300"
+        : "border-orange-500/70 text-orange-400";
 
   return (
     <section className="w-full py-20 bg-black relative">
       {/* Background images */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Left background image */}
         <img
-          className="absolute top-105 left-20 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2"
-          alt="Background Left"
+          className="absolute top-1/2 left-20 w-2/4 h-2/4 object-contain -translate-x-1/2 -translate-y-1/2"
+          alt=""
           src="/images/Mask Group.png"
         />
-        
-        {/* Right background image - inverted */}
         <img
-          className="absolute top-105 right-20 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1]"
-          alt="Background Right"
+          className="absolute top-1/2 right-20 w-2/4 h-2/4 object-contain translate-x-1/2 -translate-y-1/2 scale-x-[-1]"
+          alt=""
           src="/images/Mask Group.png"
         />
       </div>
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        {/* Rankings Header */}
-        <div className="mb-16 text-center">
-          <h2 className="font-bold text-[46px] tracking-[1.84px] mb-6">
-            <span className="text-white tracking-[0.85px]">PREVIOUS </span>
-            <span className="text-[#961c18] tracking-[0.85px]">GAME </span>
-            <span className="text-white tracking-[0.85px]">RANKINGS</span>
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <h2 className="font-bold text-3xl md:text-[46px] tracking-[1.84px] mb-6">
+            <span className="text-white tracking-[0.85px]">GAME </span>
+            <span className="text-[#961c18] tracking-[0.85px]">RANKINGS</span>
           </h2>
-          <p className="text-[#aaaaaa] text-[32px] max-w-4xl mx-auto">
-            Top performers from our previous tournaments. 
-            <br /> 
+          <p className="text-[#aaaaaa] text-lg md:text-2xl max-w-2xl mx-auto">
+            Top performers from our tournaments — see who is leading the board.
           </p>
         </div>
 
-        {/* Game Filter */}
-        <div className="mb-12 flex justify-center gap-4 flex-wrap">
-          {games.map((game) => (
-            <button
-              key={game}
-              onClick={() => setSelectedGame(game)}
-              className={`px-6 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                selectedGame === game
-                  ? "bg-[#961c18] text-white"
-                  : "bg-white/10 text-[#aaaaaa] hover:bg-white/20"
-              }`}
-            >
-              {game}
-            </button>
-          ))}
-        </div>
-
-        {/* Rankings Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b-2 border-[#961c18]">
-                <th className="px-4 py-4 text-left text-white font-bold text-lg">Rank</th>
-                <th className="px-4 py-4 text-left text-white font-bold text-lg">Player Name</th>
-                <th className="px-4 py-4 text-left text-white font-bold text-lg">Game</th>
-                <th className="px-4 py-4 text-center text-white font-bold text-lg">Points</th>
-                <th className="px-4 py-4 text-center text-white font-bold text-lg">Wins</th>
-                <th className="px-4 py-4 text-center text-white font-bold text-lg">Losses</th>
-                <th className="px-4 py-4 text-left text-white font-bold text-lg">University</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRankings.map((entry, index) => (
-                <tr 
-                  key={`${entry.rank}-${index}`}
-                  className="border-b border-white/10 hover:bg-white/5 transition-colors duration-200"
+        {/* Top 3 preview */}
+        {loading ? (
+          <div className="max-w-3xl mx-auto space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-20 border border-gray-800 bg-[#0a0a0a] animate-pulse" />
+            ))}
+          </div>
+        ) : error || topThree.length === 0 ? (
+          <div className="max-w-3xl mx-auto border-2 border-gray-800 bg-black p-10 text-center">
+            <div className="text-4xl mb-4">🏆</div>
+            <p className="text-[#aaaaaa] text-lg">
+              Rankings will be published as tournaments progress.
+            </p>
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto space-y-3">
+            {topThree.map((row, index) => {
+              const position = index + 1;
+              return (
+              <div
+                key={row.id}
+                className="flex items-center gap-4 border border-gray-800 bg-[#0a0a0a] p-4 md:p-5 border-l-4 border-l-[#961c18]"
+              >
+                <span
+                  className={`inline-flex items-center justify-center min-w-[44px] h-[44px] px-2 border-2 font-black text-lg ${badgeClass(position)}`}
                 >
-                  <td className="px-4 py-4 text-[#961c18] font-bold text-lg">#{entry.rank}</td>
-                  <td className="px-4 py-4 text-white font-semibold">{entry.playerName}</td>
-                  <td className="px-4 py-4 text-[#aaaaaa]">{entry.game}</td>
-                  <td className="px-4 py-4 text-center text-white font-semibold">{entry.points}</td>
-                  <td className="px-4 py-4 text-center text-green-400 font-semibold">{entry.wins}</td>
-                  <td className="px-4 py-4 text-center text-red-400 font-semibold">{entry.losses}</td>
-                  <td className="px-4 py-4 text-[#aaaaaa]">{entry.university}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredRankings.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[#aaaaaa] text-xl">No rankings available for this game yet.</p>
+                  {medal(position)}
+                </span>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-white font-bold truncate">{row.playerName}</div>
+                  <div className="text-gray-400 text-xs md:text-sm truncate">{row.university}</div>
+                  <span className="inline-block mt-1 px-2 py-0.5 border border-gray-700 text-gray-400 text-[10px] font-black uppercase tracking-wider">
+                    {row.gameName}
+                  </span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-white font-black text-xl md:text-2xl leading-none">
+                    {row.points}
+                  </div>
+                  <div className="text-[11px] font-bold mt-1">
+                    <span className="text-green-400">{row.wins}W</span>
+                    <span className="text-gray-600"> · </span>
+                    <span className="text-red-400">{row.losses}L</span>
+                  </div>
+                </div>
+              </div>
+              );
+            })}
           </div>
         )}
+
+        {/* Full rankings CTA */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/rankings"
+            className="inline-flex items-center px-10 py-5 bg-gradient-to-r from-[#961c18] to-[#b91c17] hover:from-[#b91c17] hover:to-[#961c18] text-white font-black text-sm uppercase tracking-wider transition-all duration-300"
+          >
+            View Full Rankings
+            <svg className="w-5 h-5 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </Link>
+        </div>
       </div>
     </section>
   );

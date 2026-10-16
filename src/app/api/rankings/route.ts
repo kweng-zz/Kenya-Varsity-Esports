@@ -1,363 +1,114 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAppwriteServer, DATABASE_ID, COLLECTIONS, Query, handleAppwriteError, handleAppwriteSuccess } from '@/lib/appwrite-server';
+import { NextResponse } from 'next/server';
+import { Client, Databases, Query } from 'node-appwrite';
+import { shortGameLabel } from '@/types/rankings';
 
-// Check if we should use fallback mode
-const useFallbackMode = () => {
-    return process.env.NEXT_PUBLIC_FALLBACK_MODE === 'true';
-};
+/**
+ * Public game rankings API.
+ *
+ * Serves the `game_category_rankings` collection — the same data the
+ * admin Rankings Management page edits — so the frontend always matches
+ * what admins enter.
+ *
+ * Response shape:
+ * {
+ *   success: true,
+ *   data: {
+ *     games: [{ id, name, shortName }],
+ *     rankings: [{ id, rank, playerName, university, categoryId, gameName, points, wins, losses, image }]
+ *   }
+ * }
+ */
 
-// Fallback data for when Appwrite is not configured
-const getFallbackData = () => {
-    const sampleRankings = [
-        {
-            id: "1",
-            university: "TECHNICAL UNIVERSITY OF KENYA",
-            rank: 1,
-            plnum: 17,
-            ccumW: 842,
-            ccumMW: 0,
-            bonuses: 3,
-            total: 862,
-        },
-        {
-            id: "2",
-            university: "UNIVERSITY OF NAIROBI",
-            rank: 2,
-            plnum: 15,
-            ccumW: 720,
-            ccumMW: 2,
-            bonuses: 5,
-            total: 740,
-        },
-        {
-            id: "3",
-            university: "KENYATTA UNIVERSITY",
-            rank: 3,
-            plnum: 12,
-            ccumW: 650,
-            ccumMW: 1,
-            bonuses: 2,
-            total: 663,
-        },
-    ];
+const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
+const RANKINGS_COLLECTION = 'game_category_rankings';
+const TOURNAMENTS_COLLECTION = 'tournaments';
 
-    return {
-        septemberMain: [
-            {
-                id: "pubgm",
-                name: "PUBGM",
-                title: "PUBGM RANKINGS",
-                description: "Current standings for PUBGM tournament",
-                image: "/images/PUBGM.jpeg",
-                isActive: true,
-                universities: sampleRankings,
-            },
-            {
-                id: "codm",
-                name: "CALL OF DUTY MOBILE",
-                title: "CODM RANKINGS",
-                description: "Current standings for CODM tournament",
-                image: "/images/CODM-BR.png",
-                isActive: true,
-                universities: sampleRankings,
-            },
-            {
-                id: "efootball",
-                name: "EFOOTBALL",
-                title: "EFOOTBALL RANKINGS",
-                description: "Current standings for EFOOTBALL tournament",
-                image: "/images/Efootball-Mobile.png",
-                isActive: true,
-                universities: sampleRankings,
-            },
-        ],
-        septemberAdded: [
-            {
-                id: "codm-mp",
-                name: "CODM-MULTIPLAYER",
-                title: "CODM-MULTIPLAYER RANKINGS",
-                description: "Current standings for CODM-MULTIPLAYER tournament",
-                image: "/images/CODM-MP.png",
-                isActive: true,
-                universities: sampleRankings,
-            },
-            {
-                id: "eafc-2v2",
-                name: "EAFC-2V2",
-                title: "EAFC-2V2 RANKINGS",
-                description: "Current standings for EAFC-2V2 tournament",
-                image: "/images/EAFC--Open.png",
-                isActive: true,
-                universities: sampleRankings,
-            },
-            {
-                id: "eafc-women",
-                name: "EAFC-WOMEN",
-                title: "EAFC-WOMEN RANKINGS",
-                description: "Current standings for EAFC-Women tournament",
-                image: "/images/EAFC-Women.png",
-                isActive: true,
-                universities: sampleRankings,
-            },
-        ],
-        januaryMain: [],
-        januaryAdded: []
-    };
-};
+function initializeAppwrite(): Databases {
+  const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
+  const apiKey = process.env.APPWRITE_API_KEY;
 
-export async function GET(request: NextRequest) {
-    let category: string | null = null;
-    let limit = 50;
+  if (!endpoint || !projectId || !apiKey) {
+    throw new Error('Appwrite server configuration missing');
+  }
 
+  const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+  return new Databases(client);
+}
+
+export async function GET() {
+  try {
+    const databases = initializeAppwrite();
+
+    // 1. Games list comes from the published tournaments (the 4 real game titles)
+    const games: { id: string; name: string; shortName: string; order: number }[] = [];
     try {
-        const { searchParams } = new URL(request.url);
-        category = searchParams.get('category');
-        const region = searchParams.get('region');
-        limit = parseInt(searchParams.get('limit') || '50');
-
-        console.log('Rankings API called with:', { category, region, limit });
-
-        // Use fallback mode if enabled OR if Appwrite fails
-        if (useFallbackMode()) {
-            console.log('Using fallback mode for rankings API');
-            
-            if (category === 'all') {
-                return NextResponse.json({
-                    success: true,
-                    data: getFallbackData(),
-                    message: 'Using fallback rankings data'
-                });
-            }
-            
-            // Return sample rankings for other requests
-            const sampleRankings = [
-                {
-                    id: "1",
-                    university: "TECHNICAL UNIVERSITY OF KENYA",
-                    rank: 1,
-                    pubgm: 17,
-                    codmBR: 842,
-                    codmMP: 0,
-                    efootball: 3,
-                    total: 862,
-                },
-                {
-                    id: "2",
-                    university: "UNIVERSITY OF NAIROBI",
-                    rank: 2,
-                    pubgm: 15,
-                    codmBR: 720,
-                    codmMP: 2,
-                    efootball: 5,
-                    total: 742,
-                }
-            ].slice(0, limit);
-            
-            return NextResponse.json({
-                success: true,
-                data: sampleRankings,
-                message: 'Using fallback rankings data'
-            });
-        }
-
-        try {
-            // Initialize Appwrite server
-            const appwrite = getAppwriteServer();
-            if (!appwrite) {
-                throw new Error('Appwrite server not initialized');
-            }
-
-            // Try to get data from Appwrite
-            if (category === 'all') {
-                // Get all rankings for September season with game categories
-                const allRankingsResponse = await appwrite.databases.listDocuments(
-                    DATABASE_ID,
-                    COLLECTIONS.RANKINGS,
-                    [
-                        Query.equal('season', 'september'),
-                        Query.orderDesc('totalPoints'),
-                        Query.limit(1000)
-                    ]
-                );
-                // Filter to only include rankings with a gameCategory (exclude general rankings)
-                const allRankings = {
-                    documents: allRankingsResponse.documents.filter((doc: any) => doc.gameCategory && doc.gameCategory !== null)
-                };
-
-                // Get all tournaments to extract unique game categories
-                const tournamentsResponse = await appwrite.databases.listDocuments(
-                    DATABASE_ID,
-                    'tournaments',
-                    [
-                        Query.limit(100)
-                    ]
-                );
-
-                console.log('📊 API - Tournaments fetched:', tournamentsResponse.documents.length);
-                console.log('📊 API - Rankings fetched:', allRankings.documents.length);
-
-                // Extract unique game categories from tournaments
-                const uniqueGames = new Map<string, any>();
-                tournamentsResponse.documents.forEach((tournament: any) => {
-                    const gameSlug = tournament.slug || tournament.gameName.toLowerCase().replace(/\s+/g, '-');
-                    if (!uniqueGames.has(gameSlug)) {
-                        uniqueGames.set(gameSlug, {
-                            id: gameSlug,
-                            name: tournament.gameName,
-                            title: `${tournament.gameName.toUpperCase()} RANKINGS`,
-                            description: tournament.description || `Current standings for ${tournament.gameName} tournament`,
-                            image: tournament.featuredImageUrl || `/images/${tournament.gameName.replace(/\s+/g, '')}.png`,
-                            isActive: true,
-                            type: 'main'
-                        });
-                    }
-                });
-
-                console.log('📊 API - Unique game categories extracted:', uniqueGames.size);
-
-                // Group rankings by game category
-                const rankingsByCategory = new Map<string, any[]>();
-                
-                allRankings.documents.forEach((ranking: any) => {
-                    const categorySlug = ranking.gameCategory;
-                    if (!rankingsByCategory.has(categorySlug)) {
-                        rankingsByCategory.set(categorySlug, []);
-                    }
-                    rankingsByCategory.get(categorySlug)!.push(ranking);
-                });
-
-                // Build categories with their rankings
-                const septemberMain: any[] = [];
-                const septemberAdded: any[] = [];
-
-                uniqueGames.forEach((category: any) => {
-                    const categoryRankings = rankingsByCategory.get(category.id) || [];
-                    
-                    // Sort rankings by total points descending
-                    const sortedRankings = categoryRankings.sort((a: any, b: any) => b.totalPoints - a.totalPoints);
-                    
-                    const categoryData = {
-                        id: category.id,
-                        name: category.name,
-                        title: category.title,
-                        description: category.description,
-                        image: category.image,
-                        isActive: category.isActive,
-                        universities: sortedRankings.map((ranking: any, index: number) => ({
-                            id: ranking.$id,
-                            university: ranking.universityName,
-                            rank: index + 1,
-                            plnum: ranking.placementPoints || 0,
-                            ccumW: ranking.participationPoints || 0,
-                            ccumMW: ranking.socialMediaPoints || 0,
-                            bonuses: ranking.bonusPoints || 0,
-                            total: ranking.totalPoints || 0
-                        }))
-                    };
-
-                    if (category.type === 'added') {
-                        septemberAdded.push(categoryData);
-                    } else {
-                        septemberMain.push(categoryData);
-                    }
-                });
-
-                console.log('📊 API - September Main categories:', septemberMain.length);
-                console.log('📊 API - September Added categories:', septemberAdded.length);
-
-                return NextResponse.json({
-                    success: true,
-                    data: {
-                        septemberMain,
-                        septemberAdded,
-                        januaryMain: [],
-                        januaryAdded: []
-                    }
-                });
-            }
-
-            // Get rankings for specific category or general rankings
-            const queries = [
-                Query.equal('season', 'september'),
-                Query.orderDesc('totalPoints'),
-                Query.limit(limit)
-            ];
-
-            if (category && category !== 'general') {
-                queries.push(Query.equal('gameCategory', category));
-            } else {
-                queries.push(Query.isNull('gameCategory'));
-            }
-
-            if (region) {
-                queries.push(Query.equal('region', region));
-            }
-
-            const response = await appwrite.databases.listDocuments(
-                DATABASE_ID,
-                COLLECTIONS.RANKINGS,
-                queries
-            );
-
-            const rankings = response.documents.map((doc: any, index: number) => ({
-                id: doc.$id,
-                university: doc.universityName,
-                rank: index + 1,
-                pubgm: doc.gameCategory === 'pubgm' ? doc.totalPoints : 0,
-                codmBR: doc.gameCategory === 'codm' ? doc.totalPoints : 0,
-                codmMP: doc.gameCategory === 'codm-mp' ? doc.totalPoints : 0,
-                efootball: doc.gameCategory === 'efootball' ? doc.totalPoints : 0,
-                total: doc.totalPoints,
-                placementPoints: doc.placementPoints,
-                participationPoints: doc.participationPoints,
-                socialMediaPoints: doc.socialMediaPoints,
-                bonusPoints: doc.bonusPoints
-            }));
-
-            return NextResponse.json({
-                success: true,
-                data: rankings
-            });
-
-        } catch (appwriteError) {
-            console.warn('Appwrite request failed, using fallback data:', appwriteError);
-            
-            // If Appwrite fails, return fallback data with 200 status
-            if (category === 'all') {
-                return NextResponse.json({
-                    success: true,
-                    data: getFallbackData(),
-                    message: 'Using fallback data - Appwrite connection failed'
-                });
-            }
-            
-            const sampleRankings = [
-                {
-                    id: "1",
-                    university: "TECHNICAL UNIVERSITY OF KENYA",
-                    rank: 1,
-                    pubgm: 17,
-                    codmBR: 842,
-                    codmMP: 0,
-                    efootball: 3,
-                    total: 862,
-                }
-            ].slice(0, limit);
-            
-            return NextResponse.json({
-                success: true,
-                data: sampleRankings,
-                message: 'Using fallback data - Appwrite connection failed'
-            });
-        }
-
-    } catch (error) {
-        console.error('Rankings API error:', error);
-        // Even if there's an unexpected error, return successful response with fallback data
-        return NextResponse.json({
-            success: true,
-            data: category === 'all' ? getFallbackData() : [],
-            message: 'Using fallback data due to server error'
+      const tournamentsRes = await databases.listDocuments(DATABASE_ID, TOURNAMENTS_COLLECTION, [
+        Query.equal('status', 'published'),
+        Query.orderAsc('$createdAt'),
+        Query.limit(100),
+      ]);
+      for (const t of tournamentsRes.documents as any[]) {
+        const id = t.slug || String(t.gameName || '').toLowerCase().replace(/\s+/g, '-');
+        if (!id || games.some((g) => g.id === id)) continue;
+        games.push({
+          id,
+          name: t.gameName || t.title || id,
+          shortName: shortGameLabel(t.gameName || t.title || id),
+          order: games.length,
         });
+      }
+    } catch (tournamentError) {
+      console.warn('Rankings API: could not load tournaments for game list:', tournamentError);
     }
+
+    // 2. Rankings rows
+    const response = await databases.listDocuments(DATABASE_ID, RANKINGS_COLLECTION, [
+      Query.limit(500),
+    ]);
+
+    const rankings = (response.documents as any[]).map((doc) => {
+      const categoryId = doc.categoryId || doc.game || '';
+      const known = games.find((g) => g.id === categoryId);
+      const points = parseInt(doc.points, 10) || parseInt(doc.total, 10) || 0;
+      return {
+        id: doc.$id,
+        rank: parseInt(doc.rank, 10) || 0,
+        playerName: doc.playerName || '',
+        university: doc.university || '',
+        categoryId,
+        gameName: known?.name || categoryId,
+        points,
+        wins: parseInt(doc.wins, 10) || 0,
+        losses: parseInt(doc.losses, 10) || 0,
+        image: doc.image || '',
+      };
+    });
+
+    // Include any category present in rankings but missing from tournaments
+    for (const row of rankings) {
+      if (row.categoryId && !games.some((g) => g.id === row.categoryId)) {
+        games.push({
+          id: row.categoryId,
+          name: row.categoryId,
+          shortName: shortGameLabel(row.categoryId),
+          order: games.length,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        games: games.map(({ id, name, shortName }) => ({ id, name, shortName })),
+        rankings,
+      },
+    });
+  } catch (error: any) {
+    console.error('Rankings API error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to load rankings' },
+      { status: 500 }
+    );
+  }
 }

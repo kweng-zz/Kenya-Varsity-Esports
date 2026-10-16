@@ -232,9 +232,7 @@ const initialTicketType: TicketTypeConfig = {
         [
           Permission.read(Role.any()),
           Permission.update(Role.users()),
-          Permission.update(Role.team('admins')),
           Permission.delete(Role.users()),
-          Permission.delete(Role.team('admins'))
         ]
       );
 
@@ -269,9 +267,7 @@ const initialTicketType: TicketTypeConfig = {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.update(Role.team('admins')),
             Permission.delete(Role.users()),
-            Permission.delete(Role.team('admins'))
           ]
         );
       }
@@ -757,9 +753,7 @@ const initialTicketType: TicketTypeConfig = {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.update(Role.team('admins')),
             Permission.delete(Role.users()),
-            Permission.delete(Role.team('admins'))
           ]
         );
         tournamentId = tournament.$id;
@@ -802,9 +796,7 @@ const initialTicketType: TicketTypeConfig = {
             [
               Permission.read(Role.any()),
               Permission.update(Role.users()),
-              Permission.update(Role.team('admins')),
               Permission.delete(Role.users()),
-              Permission.delete(Role.team('admins'))
             ]
           );
         }
@@ -839,9 +831,7 @@ const initialTicketType: TicketTypeConfig = {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.update(Role.team('admins')),
             Permission.delete(Role.users()),
-            Permission.delete(Role.team('admins'))
           ]
         );
         
@@ -877,9 +867,7 @@ const initialTicketType: TicketTypeConfig = {
             [
               Permission.read(Role.any()),
               Permission.update(Role.users()),
-              Permission.update(Role.team('admins')),
               Permission.delete(Role.users()),
-              Permission.delete(Role.team('admins'))
             ]
           );
         }
@@ -923,9 +911,7 @@ const initialTicketType: TicketTypeConfig = {
         [
           Permission.read(Role.any()),
           Permission.update(Role.users()),
-          Permission.update(Role.team('admins')),
           Permission.delete(Role.users()),
-          Permission.delete(Role.team('admins'))
         ]
       );
 

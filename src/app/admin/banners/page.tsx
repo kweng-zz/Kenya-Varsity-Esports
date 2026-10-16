@@ -176,9 +176,7 @@ export default function AdminBannersPage() {
           [
             Permission.read(Role.any()),
             Permission.update(Role.users()),
-            Permission.update(Role.team('admins')),
             Permission.delete(Role.users()),
-            Permission.delete(Role.team('admins'))
           ]
         );
         createdBanners.push({
@@ -334,9 +332,7 @@ export default function AdminBannersPage() {
         [
           Permission.read(Role.any()),
           Permission.update(Role.users()),
-          Permission.update(Role.team('admins')),
           Permission.delete(Role.users()),
-          Permission.delete(Role.team('admins'))
         ]
       );
       

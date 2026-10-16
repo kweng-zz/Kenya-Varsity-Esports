@@ -114,13 +114,13 @@ function toEvent(t: any) {
   let dateStr = '';
   if (t.startDate) {
     const d = new Date(t.startDate);
-    dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+    dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Africa/Nairobi' }).toUpperCase();
   }
 
   let timeStr = '';
   if (t.startDate) {
     const d = new Date(t.startDate);
-    timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi' });
   }
 
   // Map tournamentStatus to event-style status
@@ -154,8 +154,8 @@ function toExternalEvent(e: any) {
   let timeStr = '';
   if (e.eventDate) {
     const d = new Date(e.eventDate);
-    dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
-    timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    dateStr = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Africa/Nairobi' }).toUpperCase();
+    timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi' });
   }
 
   return {

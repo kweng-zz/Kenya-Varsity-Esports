@@ -19,6 +19,12 @@ interface Tournament {
   maxParticipants?: number;
   currentParticipants?: number;
   category?: string;
+  enableTickets?: boolean;
+}
+
+interface TicketNotice {
+  tournamentId: string;
+  paymentPending: boolean;
 }
 
 export default function TournamentRegistrationPage() {
@@ -30,6 +36,8 @@ export default function TournamentRegistrationPage() {
   const [loadingTournaments, setLoadingTournaments] = useState(true);
   const [isTeamCaptain, setIsTeamCaptain] = useState<boolean | null>(null);
   const [checkingCaptainStatus, setCheckingCaptainStatus] = useState(true);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [ticketNotice, setTicketNotice] = useState<TicketNotice | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -135,6 +143,7 @@ export default function TournamentRegistrationPage() {
         teamName: formData.teamName || undefined,
         players: JSON.stringify(teamData), // Combined players + substitutes
         additionalInfo: formData.additionalInfo || undefined,
+        userId: user.$id,
       };
 
       const response = await fetch(`/api/tournaments/${tournament.id}/participants`, {
@@ -153,9 +162,17 @@ export default function TournamentRegistrationPage() {
         } else {
           setMessage({ type: 'error', text: result.message || 'Failed to submit registration' });
         }
+
+        if (result.error === 'TICKET_REQUIRED' || result.error === 'TICKET_PAYMENT_PENDING') {
+          setTicketNotice({
+            tournamentId: tournament.id,
+            paymentPending: result.error === 'TICKET_PAYMENT_PENDING',
+          });
+        }
         return;
       }
 
+      setTicketNotice(null);
       setMessage({ 
         type: 'success', 
         text: 'Registration submitted successfully! Your registration is pending approval.' 
@@ -266,6 +283,36 @@ export default function TournamentRegistrationPage() {
           </motion.div>
         )}
 
+        {/* Ticket Requirement Notice */}
+        {(ticketNotice || selectedTournament?.enableTickets) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-4 rounded-xl border border-amber-500/60 bg-amber-500/10 text-amber-200"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="font-semibold text-amber-300">
+                  {ticketNotice?.paymentPending ? 'Ticket payment pending' : 'Ticket required'}
+                </p>
+                <p className="text-sm text-amber-100/80 mt-1">
+                  {ticketNotice?.paymentPending
+                    ? 'We are still waiting for your payment to be confirmed. Registration opens once your ticket is paid.'
+                    : ticketNotice
+                      ? 'You must purchase a ticket for this tournament before your registration can be submitted.'
+                      : 'This tournament requires a ticket. Purchase yours before submitting your registration. Already bought one? You can continue below.'}
+                </p>
+              </div>
+              <Link
+                href={`/events/${ticketNotice?.tournamentId || selectedTournament?.id}`}
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm rounded-lg transition-colors whitespace-nowrap"
+              >
+                {ticketNotice?.paymentPending ? 'View my ticket' : 'Buy ticket'}
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
         {/* Tournament Registration Form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -307,6 +354,10 @@ export default function TournamentRegistrationPage() {
                 <TournamentRegistrationForm
                   onSubmit={handleFormSubmit}
                   tournaments={tournaments}
+                  onTournamentChange={(tournament) => {
+                    setSelectedTournament(tournament);
+                    setTicketNotice(null);
+                  }}
                   initialData={{
                     tournamentId: '',
                     teamName: '',

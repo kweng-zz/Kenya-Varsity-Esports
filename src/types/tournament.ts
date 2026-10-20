@@ -21,6 +21,7 @@ export interface Tournament {
   currentParticipants?: number;
   prizePool?: number;
   currency?: string;
+  enableTickets?: boolean;
   rules?: string[];
   requirements?: string[];
   rulesTitle?: string;

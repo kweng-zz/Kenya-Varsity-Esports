@@ -101,6 +101,39 @@ export async function POST(
       );
     }
 
+    // Enforce the pay-first rule: when the tournament has ticketing configured,
+    // registration is only allowed after a confirmed, fully paid ticket purchase.
+    const ticketRequirement = await ticketService.getTicketPurchaseRequirement(tournamentId, {
+      email: validatedData.email,
+      userId: validatedData.userId,
+    });
+
+    if (ticketRequirement.checkFailed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'TICKET_CHECK_FAILED',
+          message: 'We could not verify your ticket purchase. Please try again.',
+        },
+        { status: 503 }
+      );
+    }
+
+    if (ticketRequirement.requiresTicket && !ticketRequirement.hasPaidTicket) {
+      const paymentPending = ticketRequirement.hasPendingPurchase;
+      return NextResponse.json(
+        {
+          success: false,
+          error: paymentPending ? 'TICKET_PAYMENT_PENDING' : 'TICKET_REQUIRED',
+          message: paymentPending
+            ? 'Your ticket payment is still being processed. Please wait for the payment to be confirmed before registering.'
+            : 'You must purchase a ticket for this tournament before you can register.',
+          ticketUrl: `/events/${tournamentId}`,
+        },
+        { status: paymentPending ? 409 : 403 }
+      );
+    }
+
     // Register participant with full payload
     const result = await participantManagement.register(tournamentId, {
       tournamentId,

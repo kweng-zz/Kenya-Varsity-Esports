@@ -26,6 +26,7 @@ export interface CMSTournament {
   category?: string;
   slug?: string;
   image?: string;
+  enableTickets?: boolean;
 }
 
 interface TournamentRegistrationFormProps {
@@ -33,6 +34,7 @@ interface TournamentRegistrationFormProps {
   onSubmit?: (data: TournamentRegistrationFormData) => void;
   selectedGameSlug?: string;
   tournaments?: CMSTournament[]; // CMS tournaments from API
+  onTournamentChange?: (tournament: CMSTournament) => void;
 }
 
 interface FormStep {
@@ -55,7 +57,8 @@ export const TournamentRegistrationForm: React.FC<TournamentRegistrationFormProp
   initialData = {},
   onSubmit,
   selectedGameSlug,
-  tournaments = [] // CMS tournaments from API
+  tournaments = [], // CMS tournaments from API
+  onTournamentChange,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedGame, setSelectedGame] = useState<Game | null>(
@@ -93,6 +96,7 @@ export const TournamentRegistrationForm: React.FC<TournamentRegistrationFormProp
     setSelectedGame(game);
     setSelectedTournamentId(tournament.id);
     setValue('tournamentId', tournament.id);
+    onTournamentChange?.(tournament);
     
     // Reset form fields when changing tournament
     setValue('players', []);
@@ -485,6 +489,14 @@ const TournamentSelectionStep: React.FC<{
                     <p className="text-sm text-gray-400">{tournament.gameName}</p>
                   </div>
                 </div>
+
+                {tournament.enableTickets && (
+                  <div className="mb-3">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs font-bold rounded-full">
+                      🎟️ Ticket required
+                    </span>
+                  </div>
+                )}
                 
                 <div className="space-y-2 text-sm">
                   {game && (

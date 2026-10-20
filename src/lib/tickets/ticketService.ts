@@ -156,6 +156,17 @@ export interface TicketAvailability {
   saleMessage?: string;
 }
 
+export interface TicketPurchaseRequirement {
+  /** Whether this event has a ticket configuration (i.e. registration requires a ticket). */
+  requiresTicket: boolean;
+  /** Whether the buyer has a confirmed, fully paid purchase. */
+  hasPaidTicket: boolean;
+  /** Whether the buyer has a purchase that is still awaiting payment confirmation. */
+  hasPendingPurchase: boolean;
+  /** True when the requirement could not be determined (e.g. database error). */
+  checkFailed?: boolean;
+}
+
 export interface PurchaseCalculation {
   subtotal: number;
   taxAmount: number;
@@ -587,6 +598,98 @@ export class TicketService {
     } catch (error) {
       console.error('Error checking checked-in tickets for tournament:', error);
       return false;
+    }
+  }
+
+  /**
+   * Determine whether an event requires a ticket for registration and whether
+   * the buyer already has a confirmed, paid ticket.
+   *
+   * A ticket configuration (`event_tickets`) linked to the source event is the
+   * source of truth: if one exists, registration is only allowed after the
+   * buyer's payment has been confirmed. Events without a ticket configuration
+   * remain free to register for.
+   */
+  async getTicketPurchaseRequirement(
+    sourceEventId: string,
+    buyer: { email?: string; userId?: string }
+  ): Promise<TicketPurchaseRequirement> {
+    const noRequirement: TicketPurchaseRequirement = {
+      requiresTicket: false,
+      hasPaidTicket: false,
+      hasPendingPurchase: false,
+    };
+
+    try {
+      const db = initializeAppwrite();
+      if (!db) {
+        return { ...noRequirement, checkFailed: true };
+      }
+
+      const configsResponse = await db.listDocuments(DB_ID, EVENT_TICKETS_COLLECTION, [
+        Query.equal('eventId', sourceEventId),
+        Query.limit(20),
+      ]);
+
+      if (configsResponse.documents.length === 0) {
+        return noRequirement;
+      }
+
+      const email = buyer.email?.trim().toLowerCase();
+      const userId = buyer.userId?.trim();
+
+      if (!email && !userId) {
+        return { requiresTicket: true, hasPaidTicket: false, hasPendingPurchase: false };
+      }
+
+      let hasPendingPurchase = false;
+      const pageSize = 100;
+
+      for (const config of configsResponse.documents) {
+        let offset = 0;
+        let total = 0;
+
+        do {
+          const purchases = await db.listDocuments(DB_ID, EVENT_TICKET_PURCHASES_COLLECTION, [
+            Query.equal('eventTicketId', config.$id),
+            Query.limit(pageSize),
+            Query.offset(offset),
+          ]);
+
+          total = purchases.total;
+
+          for (const purchase of purchases.documents as unknown as EventTicketPurchase[]) {
+            const emailMatch = !!email && purchase.userEmail?.trim().toLowerCase() === email;
+            const userMatch = !!userId && purchase.userId === userId;
+
+            if (!emailMatch && !userMatch) continue;
+
+            if (purchase.status === 'confirmed' && purchase.paymentStatus === 'paid') {
+              return {
+                requiresTicket: true,
+                hasPaidTicket: true,
+                hasPendingPurchase: false,
+              };
+            }
+
+            if (purchase.paymentStatus === 'pending') {
+              hasPendingPurchase = true;
+            }
+          }
+
+          if (purchases.documents.length === 0) break;
+          offset += purchases.documents.length;
+        } while (offset < total);
+      }
+
+      return {
+        requiresTicket: true,
+        hasPaidTicket: false,
+        hasPendingPurchase,
+      };
+    } catch (error) {
+      console.error('Error checking ticket purchase requirement:', error);
+      return { ...noRequirement, checkFailed: true };
     }
   }
 

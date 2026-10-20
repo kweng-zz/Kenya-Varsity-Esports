@@ -13,11 +13,32 @@ mock.module('@/lib/redis-rate-limit', () => ({
   checkRateLimit: () => Promise.resolve(null),
 }));
 
+// Mock the ticket service so registration tests never hit the database
+const defaultTicketRequirement = {
+  requiresTicket: false,
+  hasPaidTicket: false,
+  hasPendingPurchase: false,
+};
+const mockGetTicketPurchaseRequirement = mock(() => Promise.resolve(defaultTicketRequirement));
+const mockHasCheckedInTicketForTournament = mock(() => Promise.resolve(false));
+
+mock.module('@/lib/tickets', () => ({
+  ticketService: {
+    getTicketPurchaseRequirement: mockGetTicketPurchaseRequirement,
+    hasCheckedInTicketForTournament: mockHasCheckedInTicketForTournament,
+  },
+}));
+
 describe('/api/tournaments/[id]/participants', () => {
   const tournamentId = 'test-tournament-123';
   const mockParams = Promise.resolve({ id: tournamentId });
 
   beforeEach(() => {
+    mockGetTicketPurchaseRequirement.mockClear();
+    mockGetTicketPurchaseRequirement.mockImplementation(() => Promise.resolve(defaultTicketRequirement));
+    mockHasCheckedInTicketForTournament.mockClear();
+    mockHasCheckedInTicketForTournament.mockImplementation(() => Promise.resolve(false));
+
     // Reset all mocks before each test
     mock.module('@/lib/services/participantManagement', () => ({
       participantManagement: {
@@ -154,6 +175,139 @@ describe('/api/tournaments/[id]/participants', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockParticipant);
+    });
+
+    it('should reject registration when the tournament requires a ticket that has not been purchased', async () => {
+      const mockIsRegistered = mock(() => Promise.resolve(false));
+      const mockRegister = mock(() => Promise.resolve({ success: true, participant: {} }));
+
+      mock.module('@/lib/services/participantManagement', () => ({
+        participantManagement: {
+          listByTournament: mock(() => Promise.resolve({})),
+          isRegistered: mockIsRegistered,
+          register: mockRegister,
+        },
+      }));
+
+      mockGetTicketPurchaseRequirement.mockImplementation(() => Promise.resolve({
+        requiresTicket: true,
+        hasPaidTicket: false,
+        hasPendingPurchase: false,
+      }));
+
+      const request = new NextRequest('http://localhost:3000/api/tournaments/test/participants', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request, { params: mockParams });
+
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('TICKET_REQUIRED');
+      expect(data.ticketUrl).toBe(`/events/${tournamentId}`);
+      expect(mockRegister).not.toHaveBeenCalled();
+    });
+
+    it('should reject registration while ticket payment is still pending', async () => {
+      const mockRegister = mock(() => Promise.resolve({ success: true, participant: {} }));
+
+      mock.module('@/lib/services/participantManagement', () => ({
+        participantManagement: {
+          listByTournament: mock(() => Promise.resolve({})),
+          isRegistered: mock(() => Promise.resolve(false)),
+          register: mockRegister,
+        },
+      }));
+
+      mockGetTicketPurchaseRequirement.mockImplementation(() => Promise.resolve({
+        requiresTicket: true,
+        hasPaidTicket: false,
+        hasPendingPurchase: true,
+      }));
+
+      const request = new NextRequest('http://localhost:3000/api/tournaments/test/participants', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request, { params: mockParams });
+
+      expect(response.status).toBe(409);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('TICKET_PAYMENT_PENDING');
+      expect(mockRegister).not.toHaveBeenCalled();
+    });
+
+    it('should allow registration when the buyer has a confirmed paid ticket', async () => {
+      const mockParticipant = {
+        id: 'paid-participant-123',
+        tournamentId,
+        playerName: 'John Doe',
+        email: 'john@example.com',
+        status: 'registered',
+      };
+
+      mock.module('@/lib/services/participantManagement', () => ({
+        participantManagement: {
+          listByTournament: mock(() => Promise.resolve({})),
+          isRegistered: mock(() => Promise.resolve(false)),
+          register: mock(() => Promise.resolve({ success: true, participant: mockParticipant })),
+        },
+      }));
+
+      mockGetTicketPurchaseRequirement.mockImplementation(() => Promise.resolve({
+        requiresTicket: true,
+        hasPaidTicket: true,
+        hasPendingPurchase: false,
+      }));
+
+      const request = new NextRequest('http://localhost:3000/api/tournaments/test/participants', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request, { params: mockParams });
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+    });
+
+    it('should fail closed when the ticket purchase cannot be verified', async () => {
+      const mockRegister = mock(() => Promise.resolve({ success: true, participant: {} }));
+
+      mock.module('@/lib/services/participantManagement', () => ({
+        participantManagement: {
+          listByTournament: mock(() => Promise.resolve({})),
+          isRegistered: mock(() => Promise.resolve(false)),
+          register: mockRegister,
+        },
+      }));
+
+      mockGetTicketPurchaseRequirement.mockImplementation(() => Promise.resolve({
+        ...defaultTicketRequirement,
+        checkFailed: true,
+      }));
+
+      const request = new NextRequest('http://localhost:3000/api/tournaments/test/participants', {
+        method: 'POST',
+        body: JSON.stringify(validPayload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await POST(request, { params: mockParams });
+
+      expect(response.status).toBe(503);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('TICKET_CHECK_FAILED');
+      expect(mockRegister).not.toHaveBeenCalled();
     });
 
     it('should reject registration for already registered email', async () => {

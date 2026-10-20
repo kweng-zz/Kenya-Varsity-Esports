@@ -130,6 +130,7 @@ class TournamentService {
       currentParticipants: doc.currentParticipants || 0,
       prizePool: doc.prizePool,
       currency: doc.currency,
+      enableTickets: doc.enableTickets === true,
       rules: [],
       requirements: [],
       awards,

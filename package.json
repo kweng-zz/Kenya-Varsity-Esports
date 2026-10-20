@@ -37,6 +37,7 @@
     "switch-env": "node scripts/switch-env.js",
     "setup:external-events": "node scripts/setup-external-events.js",
     "type-check": "tsc --noEmit",
+    "notify:unpaid-registrations": "node scripts/notify-unpaid-registrations.mjs",
     "lint:fix": "eslint --fix .",
     "test": "bun test",
     "test:e2e": "playwright test",

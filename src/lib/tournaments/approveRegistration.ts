@@ -10,6 +10,7 @@
 
 import { Client, Databases, Permission, Role } from 'node-appwrite';
 import { MailtrapClient } from 'mailtrap';
+import { ticketService } from '@/lib/tickets';
 
 export interface ApproveRegistrationPayload {
   tournamentId?: string;
@@ -20,6 +21,7 @@ export interface ApproveRegistrationPayload {
   teamName?: string;
   players?: unknown;
   registrationDate?: string;
+  userId?: string;
   [key: string]: unknown;
 }
 
@@ -34,6 +36,7 @@ export interface ApproveRegistrationArgs {
 export interface ApproveRegistrationResult {
   success: boolean;
   error?: string;
+  code?: 'TICKET_REQUIRED' | 'TICKET_CHECK_FAILED';
   participantCreated?: boolean;
 }
 
@@ -68,7 +71,8 @@ const generateSlugFromName = (name: string): string =>
 export async function approveRegistration(
   args: ApproveRegistrationArgs
 ): Promise<ApproveRegistrationResult> {
-  const { registrationId, status, registration } = args;
+  const { registrationId, status } = args;
+  let registration = args.registration;
 
   const databases = getAppwriteAdmin();
   if (!databases) {
@@ -82,6 +86,61 @@ export async function approveRegistration(
     process.env.NEXT_PUBLIC_APPWRITE_PARTICIPANTS_COLLECTION_ID || 'participants';
   const TOURNAMENTS_COLLECTION_ID =
     process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID || 'tournaments';
+
+  // Use the stored registration as the source of truth. The approval endpoint
+  // receives a client payload, so ticket matching must never trust its email,
+  // userId or tournamentId fields.
+  try {
+    const storedRegistration = await databases.getDocument(
+      DB_ID,
+      REG_COLLECTION_ID,
+      registrationId
+    );
+    registration = {
+      ...registration,
+      ...(storedRegistration as unknown as Record<string, unknown>),
+    } as ApproveRegistrationPayload;
+  } catch (error) {
+    console.error(`Could not fetch registration ${registrationId}:`, error);
+    return { success: false, error: 'Registration not found' };
+  }
+
+  // Enforce pay-before-approval for registrations created before the
+  // registration-time ticket check existed. Free events have no ticket
+  // configuration and continue to be approved normally.
+  if (status === 'approved') {
+    if (!registration.tournamentId) {
+      return {
+        success: false,
+        error: 'Missing tournament information for registration approval',
+      };
+    }
+
+    const ticketRequirement = await ticketService.getTicketPurchaseRequirement(
+      registration.tournamentId,
+      {
+        email: registration.email,
+        userId: registration.userId,
+      }
+    );
+
+    if (ticketRequirement.checkFailed) {
+      return {
+        success: false,
+        code: 'TICKET_CHECK_FAILED',
+        error: 'Could not verify the player\'s ticket payment. Please try again.',
+      };
+    }
+
+    if (ticketRequirement.requiresTicket && !ticketRequirement.hasPaidTicket) {
+      return {
+        success: false,
+        code: 'TICKET_REQUIRED',
+        error:
+          'This registration has no confirmed paid ticket. The player must buy a ticket before this registration can be approved.',
+      };
+    }
+  }
 
   // Derive tournamentSlug - fetch from tournament if not provided
   let tournamentSlug = args.tournamentSlug;

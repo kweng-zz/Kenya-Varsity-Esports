@@ -185,6 +185,7 @@ export async function POST(
               teamName: validatedData.teamName,
               players: validatedData.players,
               registrationDate: new Date().toISOString(),
+              userId: validatedData.userId,
             },
           });
           autoApproved = approval.success;

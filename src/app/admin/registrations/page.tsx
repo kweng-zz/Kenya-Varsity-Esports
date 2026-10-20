@@ -61,7 +61,7 @@ interface TournamentRegistration {
   teamName?: string;
   players?: string; // JSON string containing TeamData
   additionalInfo?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'registered' | 'approved' | 'rejected';
   registrationDate: string;
   userId: string;
 }
@@ -79,7 +79,7 @@ export default function AdminRegistrationsPage() {
   const [registrations, setRegistrations] = useState<TournamentRegistration[]>([]);
   const [tournaments, setTournaments] = useState<{ [key: string]: Tournament }>({});
   const [loadingData, setLoadingData] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'registered' | 'approved' | 'rejected'>('all');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   // Redirect if not admin
@@ -209,7 +209,8 @@ export default function AdminRegistrationsPage() {
 
     } catch (error) {
       console.error('Error updating registration status:', error);
-      alert('Failed to update status. Check console for details.');
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to update status: ${message}`);
     } finally {
       setProcessingIds(prev => {
         const newSet = new Set(prev);
@@ -264,6 +265,7 @@ export default function AdminRegistrationsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'text-yellow-400 bg-yellow-400/10';
+      case 'registered': return 'text-blue-400 bg-blue-400/10';
       case 'approved': return 'text-green-400 bg-green-400/10';
       case 'rejected': return 'text-red-400 bg-red-400/10';
       default: return 'text-gray-400 bg-gray-400/10';
@@ -315,7 +317,7 @@ export default function AdminRegistrationsPage() {
 
         {/* Filter Tabs */}
         <div className="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg w-fit">
-          {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+          {(['all', 'pending', 'registered', 'approved', 'rejected'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -467,8 +469,8 @@ export default function AdminRegistrationsPage() {
                   </div>
                   
                   <div className="flex flex-col gap-2 ml-4">
-                    {/* Status actions for pending registrations */}
-                    {registration.status === 'pending' && (
+                    {/* Status actions for registrations awaiting review */}
+                    {(registration.status === 'pending' || registration.status === 'registered') && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusUpdate(registration.$id, 'approved')}

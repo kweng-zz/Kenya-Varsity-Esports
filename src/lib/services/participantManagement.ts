@@ -32,19 +32,38 @@ export interface ExtendedTournamentRegistration extends TournamentRegistration {
 }
 
 class ParticipantManagementService {
-  private client: Client;
-  private databases: Databases;
+  private client: Client | null = null;
+  private databases: Databases | null = null;
   private dbId: string;
   private collectionId: string;
 
-  constructor() {
-    // Initialize Appwrite client
-    this.client = new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
-      .setKey(process.env.APPWRITE_API_KEY || '');
+  /**
+   * Lazily create the Appwrite client so importing this module does not
+   * require environment variables (e.g. during `next build`).
+   */
+  private getDatabases(): Databases {
+    if (!this.databases) {
+      const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+      const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
 
-    this.databases = new Databases(this.client);
+      if (!endpoint || !projectId) {
+        throw new Error(
+          'Appwrite is not configured: NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID are required'
+        );
+      }
+
+      this.client = new Client()
+        .setEndpoint(endpoint)
+        .setProject(projectId)
+        .setKey(process.env.APPWRITE_API_KEY || '');
+
+      this.databases = new Databases(this.client);
+    }
+
+    return this.databases;
+  }
+
+  constructor() {
     this.dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID || '';
     this.collectionId = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID || 'tournament_registrations';
   }
@@ -66,42 +85,90 @@ class ParticipantManagementService {
         return { success: false, error: 'Student ID is required' };
       }
 
-      // Optimize: Run both checks in parallel
-      const [hasConflict, existing] = await Promise.all([
-        this.checkStudentConflicts(registration.studentId),
-        this.getByEmailAndTournament(tournamentId, registration.email)
+      const email = (registration.email || '').toLowerCase();
+      const studentId = registration.studentId.trim();
+
+      // Fetch registrations for this tournament (by email) and all registrations
+      // for this student ID (to enforce per-tournament uniqueness). The global
+      // unique index on studentId is only dropped by a migration; we still
+      // enforce scoping in application code.
+      const [emailResult, studentResult] = await Promise.all([
+        this.getDatabases().listDocuments(this.dbId, this.collectionId, [
+          Query.equal('tournamentId', tournamentId),
+          Query.equal('email', email),
+        ]),
+        this.getDatabases().listDocuments(this.dbId, this.collectionId, [
+          Query.equal('studentId', studentId),
+        ]),
       ]);
 
-      if (hasConflict) {
-        return { success: false, error: 'Student ID already registered' };
-      }
+      const isActive = (doc: any) =>
+        doc.status !== 'rejected' && doc.status !== 'withdrawn';
 
-      if (existing) {
+      // An active registration with the same email blocks re-registration
+      const activeEmailDoc = emailResult.documents.find(isActive);
+      if (activeEmailDoc) {
         return { success: false, error: 'Email already registered for this tournament' };
       }
 
-      // Create participant record
+      // An active registration with the same student ID in this tournament blocks
+      // re-registration; a student ID used in another tournament is only allowed
+      // after the global unique index is migrated.
+      const activeStudentInTournament = studentResult.documents.find(
+        (doc: any) => isActive(doc) && doc.tournamentId === tournamentId
+      );
+      if (activeStudentInTournament) {
+        return { success: false, error: 'Student ID already registered for this tournament' };
+      }
+
+      // Re-use an existing rejected/withdrawn registration for this tournament
+      // (matched by email or student ID) to avoid creating a new document and
+      // to dodge the legacy global unique index.
+      const reusableDoc =
+        emailResult.documents.find((doc: any) => !isActive(doc)) ||
+        studentResult.documents.find(
+          (doc: any) => !isActive(doc) && doc.tournamentId === tournamentId
+        );
+
+      // Create/update participant record
       const participantData = {
         tournamentId,
         playerName: registration.playerName,
-        email: registration.email,
-        studentId: registration.studentId,
+        email,
+        studentId,
         university: registration.university,
         teamName: registration.teamName,
         players: registration.players || JSON.stringify({ players: [], substitutes: [] }),
         additionalInfo: registration.additionalInfo,
         status: 'registered',
         registrationDate: new Date().toISOString(),
-        userId: registration.userId || `user_${registration.email}`,
+        userId: registration.userId || `user_${email}`,
       };
 
-      // Save to Appwrite
-      const document = await this.databases.createDocument(
-        this.dbId,
-        this.collectionId,
-        ID.unique(),
-        participantData
-      );
+      let document: any;
+
+      if (reusableDoc) {
+        document = await this.getDatabases().updateDocument(
+          this.dbId,
+          this.collectionId,
+          reusableDoc.$id,
+          participantData
+        );
+      } else {
+        try {
+          document = await this.getDatabases().createDocument(
+            this.dbId,
+            this.collectionId,
+            ID.unique(),
+            participantData
+          );
+        } catch (error: any) {
+          if (error?.code === 409) {
+            return { success: false, error: 'Student ID already exists' };
+          }
+          throw error;
+        }
+      }
 
       const participant: TournamentParticipant = {
         id: document.$id,
@@ -139,22 +206,28 @@ class ParticipantManagementService {
     }
   }
 
-/**
-   * Check for student ID conflicts
+  /**
+   * Check for student ID conflicts (active registrations only)
    */
-  async checkStudentConflicts(studentId: string): Promise<boolean> {
+  async checkStudentConflicts(studentId: string, tournamentId?: string): Promise<boolean> {
     try {
       // Skip validation if studentId is empty or null
       if (!studentId || studentId.trim() === '') {
         return false;
       }
 
-      const result = await this.databases.listDocuments(
+      const result = await this.getDatabases().listDocuments(
         this.dbId,
         this.collectionId,
-        [Query.equal('studentId', studentId)]
+        [Query.equal('studentId', studentId.trim())]
       );
-      return result.documents.length > 0;
+
+      return result.documents.some(
+        (doc: any) =>
+          doc.status !== 'rejected' &&
+          doc.status !== 'withdrawn' &&
+          (!tournamentId || doc.tournamentId === tournamentId)
+      );
     } catch (error) {
       console.error('[ParticipantManagement] checkStudentConflicts error:', error);
       return false;
@@ -180,7 +253,7 @@ class ParticipantManagementService {
    */
   async getById(id: string): Promise<TournamentParticipant | null> {
     try {
-      const document = await this.databases.getDocument(
+      const document = await this.getDatabases().getDocument(
         this.dbId,
         this.collectionId,
         id
@@ -211,7 +284,7 @@ class ParticipantManagementService {
    */
   async getAllRegistrations(): Promise<TournamentParticipant[]> {
     try {
-      const result = await this.databases.listDocuments(
+      const result = await this.getDatabases().listDocuments(
         this.dbId,
         this.collectionId
       );
@@ -241,14 +314,14 @@ class ParticipantManagementService {
   }
 
 /**
-   * Get participant by email and tournament
+   * Get participant by email and tournament (returns an active registration only)
    */
   async getByEmailAndTournament(
     tournamentId: string,
     email: string
   ): Promise<TournamentParticipant | null> {
     try {
-      const result = await this.databases.listDocuments(
+      const result = await this.getDatabases().listDocuments(
         this.dbId,
         this.collectionId,
         [
@@ -257,11 +330,15 @@ class ParticipantManagementService {
         ]
       );
 
-      if (result.documents.length === 0) {
+      const activeDoc = result.documents.find(
+        (doc: any) => doc.status !== 'rejected' && doc.status !== 'withdrawn'
+      );
+
+      if (!activeDoc) {
         return null;
       }
 
-      const doc = result.documents[0] as any;
+      const doc = activeDoc as any;
       return {
         id: doc.$id,
         tournamentId: doc.tournamentId,
@@ -297,7 +374,7 @@ class ParticipantManagementService {
       }
 
       // Get all documents for this tournament
-      const result = await this.databases.listDocuments(
+      const result = await this.getDatabases().listDocuments(
         this.dbId,
         this.collectionId,
         queries
@@ -385,7 +462,7 @@ class ParticipantManagementService {
       }
 
       // Update status in Appwrite
-      await this.databases.updateDocument(
+      await this.getDatabases().updateDocument(
         this.dbId,
         this.collectionId,
         id,
@@ -446,11 +523,11 @@ class ParticipantManagementService {
   }
 
 /**
-   * Get participant count for tournament
+   * Get participant count for tournament (active registrations only)
    */
   async getCount(tournamentId: string): Promise<number> {
     try {
-      const result = await this.databases.listDocuments(
+      const result = await this.getDatabases().listDocuments(
         this.dbId,
         this.collectionId,
         [
@@ -458,9 +535,31 @@ class ParticipantManagementService {
           Query.notEqual('status', 'withdrawn')
         ]
       );
-      return result.documents.length;
+      // Exclude rejected registrations from capacity counts.
+      return result.documents.filter((doc: any) => doc.status !== 'rejected').length;
     } catch (error) {
       console.error('[ParticipantManagement] getCount error:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get active participant count for tournament (registered/confirmed)
+   */
+  async getActiveCount(tournamentId: string): Promise<number> {
+    try {
+      const result = await this.getDatabases().listDocuments(
+        this.dbId,
+        this.collectionId,
+        [
+          Query.equal('tournamentId', tournamentId),
+        ]
+      );
+      return result.documents.filter(
+        (doc: any) => doc.status !== 'rejected' && doc.status !== 'withdrawn'
+      ).length;
+    } catch (error) {
+      console.error('[ParticipantManagement] getActiveCount error:', error);
       return 0;
     }
   }
@@ -484,7 +583,7 @@ class ParticipantManagementService {
       }
 
       // Delete from Appwrite
-      await this.databases.deleteDocument(
+      await this.getDatabases().deleteDocument(
         this.dbId,
         this.collectionId,
         id

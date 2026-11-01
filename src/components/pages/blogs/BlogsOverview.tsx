@@ -430,7 +430,7 @@ const BlogsOverviewSectionInner = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12">
           <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder="Search articles..." />
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <FilterDropdown
               value={selectedCategory}
               onChange={setSelectedCategory}

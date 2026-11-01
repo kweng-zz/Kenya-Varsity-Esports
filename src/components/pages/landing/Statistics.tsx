@@ -120,7 +120,7 @@ const SeasonStatistics = () => {
   }
 
   return (
-    <section className="w-full bg-black py-16 sm:py-24 relative">
+    <section className="w-full bg-black py-16 sm:py-24 relative overflow-hidden">
       {/* Background images */}
       <div
         className="absolute pointer-events-none"

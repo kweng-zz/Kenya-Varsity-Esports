@@ -108,6 +108,9 @@ export const RegistrationFormSection = () => {
         {
           fullname: formData.fullName,
           email: formData.email,
+          username: formData.username,
+          dob: formData.dob,
+          gender: formData.gender,
           university: formData.university.trim(),
           student_id: formData.studentId.trim(),
           phone_number: formData.phoneNumber,

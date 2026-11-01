@@ -58,6 +58,9 @@ export type AppwriteProfile = {
   $permissions: string[];
   fullname: string;
   email: string;
+  username?: string;
+  dob?: string;
+  gender?: string;
   university?: string;
   student_id?: string;
   phone_number?: string;
@@ -560,6 +563,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           password,
           fullname: userData.fullname,
+          username: userData.username || '',
+          dob: userData.dob || '',
+          gender: userData.gender || '',
           university: userData.university || '',
           student_id: userData.student_id || '',
           phone_number: userData.phone_number || '',

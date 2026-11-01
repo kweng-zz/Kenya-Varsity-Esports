@@ -133,3 +133,15 @@ out/
 ############################
 *.tsbuildinfo
 next-env.d.ts
+
+############################
+# Environment files (never commit secrets)
+############################
+
+.env
+.env.*
+.env.backup.*
+!.env.example
+!.env.production.example
+!*.env.example
+!*.env.production.template

@@ -466,7 +466,7 @@ const ParticipationGuidePage = () => {
           </section>
 
           {/* ====== CONCLUSION ====== */}
-          <section className="relative">
+          <section className="relative overflow-hidden">
             <div className="h-px bg-gradient-to-r from-transparent via-[#8c110d]/50 to-transparent mb-16" />
 
             <div className="relative max-w-3xl mx-auto text-center">

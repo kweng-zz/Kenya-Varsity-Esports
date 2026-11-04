@@ -57,8 +57,8 @@ export type AppwriteProfile = {
   $collectionId: string;
   $permissions: string[];
   fullname: string;
-  email: string;
   username?: string;
+  email: string;
   dob?: string;
   gender?: string;
   university?: string;

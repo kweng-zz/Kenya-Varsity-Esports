@@ -15,7 +15,8 @@ import { normalizeStudentId, validateStudentId } from '@/lib/validation/studentI
 const RegistrationSchema = z.object({
   email: z.string().trim().email('Please enter a valid email address.').transform((value) => value.toLowerCase()),
   password: z.string().min(8, 'Password must be at least 8 characters.'),
-  fullname: z.string().trim().min(1, 'Full name is required.').max(255),
+  fullname: z.string().trim().max(255).optional().default(''),
+  username: z.string().trim().max(100).optional().default(''),
   university: z.string().trim().max(255).optional().default(''),
   student_id: z.string().trim().max(100).optional().default(''),
   phone_number: z.string().trim().max(20).optional().default(''),
@@ -144,9 +145,13 @@ const findStudentIdConflict = async (
 const buildProfileData = (input: RegistrationInput) => {
   const isParticipant = input.user_type === 'participant';
 
+  const gamertag = input.username.trim();
+  const displayName = gamertag || input.fullname.trim() || input.email.split('@')[0];
+
   return {
-    fullname: input.fullname.trim(),
+    fullname: displayName,
     email: input.email.trim(),
+    username: gamertag,
     university: isParticipant ? input.university.trim() : '',
     student_id: isParticipant ? input.student_id.trim() : '',
     phone_number: input.phone_number.trim(),
@@ -368,7 +373,7 @@ export async function POST(request: NextRequest) {
         userId: ID.unique(),
         email: input.email.trim(),
         password: input.password,
-        name: input.fullname.trim().slice(0, 128),
+        name: (input.username.trim() || input.fullname.trim() || input.email.split('@')[0]).slice(0, 128),
       });
     } catch (error) {
       if (isConflict(error)) {

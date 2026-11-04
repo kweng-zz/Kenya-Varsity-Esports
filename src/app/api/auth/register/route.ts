@@ -69,6 +69,16 @@ const isConflict = (error: unknown): boolean =>
   (error as { code?: number })?.code === 409;
 
 /**
+ * Appwrite returns 401/403 when the server API key is not allowed to perform
+ * the write. That can happen when the key was rotated with a narrower scope
+ * set (for example users.write but not documents.write).
+ */
+const isPermissionError = (error: unknown): boolean => {
+  const code = (error as { code?: number })?.code;
+  return code === 401 || code === 403;
+};
+
+/**
  * Verify that an existing account belongs to the person submitting the form.
  * A temporary session is created and immediately removed.
  */
@@ -154,6 +164,12 @@ const buildProfileData = (input: RegistrationInput) => {
   };
 };
 
+const profilePermissions = (userId: string) => [
+  Permission.read(Role.user(userId)),
+  Permission.update(Role.user(userId)),
+  Permission.delete(Role.user(userId)),
+];
+
 const createProfile = async (
   databases: Databases,
   config: AppwriteConfig,
@@ -165,12 +181,62 @@ const createProfile = async (
     collectionId: config.profileCollectionId,
     documentId: userId,
     data,
-    permissions: [
-      Permission.read(Role.user(userId)),
-      Permission.update(Role.user(userId)),
-      Permission.delete(Role.user(userId)),
-    ],
+    permissions: profilePermissions(userId),
   });
+};
+
+/**
+ * Create the profile as the user themselves, using a short-lived JWT issued by
+ * the Users API. This path only needs users.write on the server key and relies
+ * on the profile collection's `create("users")` permission, which makes
+ * registration resilient to a key that can manage users but not documents.
+ */
+const createProfileAsUser = async (
+  config: AppwriteConfig,
+  users: Users,
+  userId: string,
+  data: ReturnType<typeof buildProfileData>
+) => {
+  const jwt = await users.createJWT({ userId, duration: 15 * 60 });
+  const userClient = new Client()
+    .setEndpoint(config.endpoint)
+    .setProject(config.projectId)
+    .setJWT(jwt.jwt);
+  const userDatabases = new Databases(userClient);
+
+  return userDatabases.createDocument({
+    databaseId: config.databaseId,
+    collectionId: config.profileCollectionId,
+    documentId: userId,
+    data,
+    permissions: profilePermissions(userId),
+  });
+};
+
+/**
+ * Prefer the admin client, but do not fail registration when the production
+ * API key is missing documents.write. Fall back to a user-scoped write.
+ */
+const createProfileResilient = async (
+  config: AppwriteConfig,
+  users: Users,
+  databases: Databases,
+  userId: string,
+  data: ReturnType<typeof buildProfileData>
+) => {
+  try {
+    return await createProfile(databases, config, userId, data);
+  } catch (error) {
+    if (!isPermissionError(error)) throw error;
+
+    console.warn(
+      '[Auth Register] Profile write denied for the server API key, retrying as the user:',
+      (error as { code?: number; type?: string })?.code,
+      (error as { type?: string })?.type
+    );
+
+    return createProfileAsUser(config, users, userId, data);
+  }
 };
 
 const fail = (status: number, code: string, message: string, extra?: Record<string, unknown>) =>
@@ -292,7 +358,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
-      await createProfile(databases, config, existingUser.$id, buildProfileData(input));
+      await createProfileResilient(config, users, databases, existingUser.$id, buildProfileData(input));
 
       return NextResponse.json({
         success: true,
@@ -322,7 +388,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await createProfile(databases, config, user.$id, buildProfileData(input));
+      await createProfileResilient(config, users, databases, user.$id, buildProfileData(input));
     } catch (profileError) {
       console.error('[Auth Register] Profile creation failed, rolling back account:', profileError);
 

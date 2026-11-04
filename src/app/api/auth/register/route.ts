@@ -398,10 +398,17 @@ export async function POST(request: NextRequest) {
         console.error('[Auth Register] Account rollback failed:', rollbackError);
       }
 
+      const underlying =
+        (profileError as { code?: number; type?: string; message?: string }) || {};
       return fail(
         500,
         'REGISTRATION_FAILED',
-        'We could not finish creating your account. Please try again.'
+        'We could not finish creating your account. Please try again.',
+        {
+          appwriteCode: underlying.code ?? null,
+          appwriteType: underlying.type ?? null,
+          appwriteMessage: underlying.message ?? null,
+        }
       );
     }
 

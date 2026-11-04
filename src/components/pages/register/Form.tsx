@@ -61,7 +61,7 @@ export const RegistrationFormSection = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.username.trim()) newErrors.username = 'Username/Gamertag is required';
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -201,7 +201,7 @@ export const RegistrationFormSection = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Full Name */}
           <div className="space-y-2">
-            <Label htmlFor="fullName" className="font-['Hind',Helvetica] font-medium text-[#961c18] text-base">Full Name</Label>
+            <Label htmlFor="fullName" className="font-['Hind',Helvetica] font-medium text-[#961c18] text-base">Full Name (optional)</Label>
             <input id="fullName" type="text" value={formData.fullName} onChange={(e) => handleInputChange('fullName', e.target.value)} style={{ width: '100%', height: '36px', borderRadius: '8px', border: `2px solid ${errors.fullName ? '#ef4444' : '#961c18'}`, backgroundColor: 'black', color: 'white', padding: '0 12px', outline: 'none' }} placeholder="Enter your full name" disabled={isLoading} />
             {errors.fullName && (<p className="text-red-400 text-sm">{errors.fullName}</p>)}
           </div>

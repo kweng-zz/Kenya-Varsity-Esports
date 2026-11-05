@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image'; // Import Next.js Image component
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { useSeason } from '@/hooks/useSeason';
 
 
@@ -104,7 +105,7 @@ export const HeroSection: React.FC = () => {
     // Set client flag and initial time
     setIsClient(true);
     
-    const targetDate = registrationStartDate || "2026-02-01T00:00:00";
+    const targetDate = registrationStartDate || "2026-11-28T07:00:00";
     setTimeLeft(calculateTimeLeft(targetDate));
 
     const timer = setInterval(() => {
@@ -271,6 +272,19 @@ export const HeroSection: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Registration CTA */}
+        <div className="w-full max-w-4xl mt-8 flex justify-center">
+          <Link
+            href="/tournament-registration"
+            className="inline-flex items-center px-10 py-4 bg-gradient-to-r from-[#8c110d] to-[#b91c17] hover:from-[#b91c17] hover:to-[#8c110d] text-white font-black text-lg uppercase tracking-wider transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-[#8c110d]/50"
+          >
+            <span>Register for Tournament</span>
+            <svg className="w-6 h-6 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </Link>
         </div>
       </div>
     </section>

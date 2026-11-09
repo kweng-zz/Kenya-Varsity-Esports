@@ -577,7 +577,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!response.ok || !result?.success) {
         const error = new Error(
-          result?.message || 'Registration failed. Please try again.'
+          result?.appwriteMessage || result?.message || 'Registration failed. Please try again.'
         ) as Error & { code?: string; field?: string };
         error.code = result?.code;
         error.field = result?.field;

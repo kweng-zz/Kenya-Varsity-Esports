@@ -226,6 +226,20 @@ const createProfileResilient = async (
   try {
     return await createProfile(databases, config, userId, data);
   } catch (error) {
+    // A profile already exists for this user (e.g. a previous partial attempt).
+    // Treat that as success so retries do not fail with a 409.
+    if (isConflict(error)) {
+      try {
+        return await databases.getDocument({
+          databaseId: config.databaseId,
+          collectionId: config.profileCollectionId,
+          documentId: userId,
+        });
+      } catch {
+        // Fall through to the original error handling below.
+      }
+    }
+
     if (!isPermissionError(error)) throw error;
 
     console.warn(
@@ -357,7 +371,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
-      await createProfileResilient(config, users, databases, existingUser.$id, buildProfileData(input));
+      try {
+        await createProfileResilient(config, users, databases, existingUser.$id, buildProfileData(input));
+      } catch (profileError) {
+        console.error('[Auth Register] Profile repair failed:', profileError);
+
+        const underlying =
+          (profileError as { code?: number; type?: string; message?: string }) || {};
+        return fail(
+          500,
+          'REGISTRATION_FAILED',
+          'We could not finish creating your account. Please try again.',
+          {
+            appwriteCode: underlying.code ?? null,
+            appwriteType: underlying.type ?? null,
+            appwriteMessage: underlying.message ?? null,
+          }
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -422,6 +453,11 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('[Auth Register] Unexpected error:', error);
-    return fail(500, 'REGISTRATION_FAILED', 'Registration failed. Please try again.');
+    const underlying = (error as { code?: number; type?: string; message?: string }) || {};
+    return fail(500, 'REGISTRATION_FAILED', 'Registration failed. Please try again.', {
+      appwriteCode: underlying.code ?? null,
+      appwriteType: underlying.type ?? null,
+      appwriteMessage: underlying.message ?? String(error),
+    });
   }
 }

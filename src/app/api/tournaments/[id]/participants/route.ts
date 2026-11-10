@@ -333,16 +333,20 @@ export async function POST(
       );
     }
 
-    // Auto-approve when the player already checked in a ticket for this
-    // tournament. The gate scanner records check-ins; a registration arriving
-    // afterwards is approved immediately instead of waiting in the pending queue.
+    // Auto-approve when the player already has a paid ticket for this
+    // tournament. Ticketed buyers should not wait in the pending queue, so a
+    // confirmed paid purchase (or an already checked-in ticket) promotes the
+    // registration to approved and creates the participant record immediately.
     let autoApproved = false;
     if (result.participant) {
       try {
-        const checkedIn = await ticketService.hasCheckedInTicketForTournament(tournamentId, {
-          email: validatedData.email,
-          userId: validatedData.userId,
-        });
+        const hasPaidTicket = ticketRequirement.hasPaidTicket;
+        const checkedIn = hasPaidTicket
+          ? true
+          : await ticketService.hasCheckedInTicketForTournament(tournamentId, {
+              email: validatedData.email,
+              userId: validatedData.userId,
+            });
 
         if (checkedIn) {
           const approval = await approveRegistration({

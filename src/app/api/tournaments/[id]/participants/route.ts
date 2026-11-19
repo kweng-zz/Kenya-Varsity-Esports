@@ -290,18 +290,20 @@ export async function POST(
       );
     }
 
-    if (ticketRequirement.requiresTicket && !ticketRequirement.hasPaidTicket) {
-      const paymentPending = ticketRequirement.hasPendingPurchase;
+    // Allow registration even when the ticket payment is still pending; the
+    // participant will appear in the participants list with a pending payment
+    // status, and the user is alerted to complete the payment.
+    const paymentPending = ticketRequirement.requiresTicket && !ticketRequirement.hasPaidTicket && ticketRequirement.hasPendingPurchase;
+
+    if (ticketRequirement.requiresTicket && !ticketRequirement.hasPaidTicket && !ticketRequirement.hasPendingPurchase) {
       return NextResponse.json(
         {
           success: false,
-          error: paymentPending ? 'TICKET_PAYMENT_PENDING' : 'TICKET_REQUIRED',
-          message: paymentPending
-            ? 'Your ticket payment is still being processed. Please wait for the payment to be confirmed before registering.'
-            : 'You must purchase a ticket for this tournament before you can register.',
+          error: 'TICKET_REQUIRED',
+          message: 'You must purchase a ticket for this tournament before you can register.',
           ticketUrl: `/events/${tournamentId}`,
         },
-        { status: paymentPending ? 409 : 403 }
+        { status: 403 }
       );
     }
 
@@ -384,6 +386,7 @@ export async function POST(
       success: true,
       data: result.participant,
       autoApproved,
+      paymentPending,
     }, { status: 201 });
 
   } catch (error) {

@@ -39,7 +39,7 @@ export default function TournamentRegistrationPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
   const [loadingTournaments, setLoadingTournaments] = useState(true);
   const [isTeamCaptain, setIsTeamCaptain] = useState<boolean | null>(null);
   const [checkingCaptainStatus, setCheckingCaptainStatus] = useState(true);
@@ -197,13 +197,24 @@ export default function TournamentRegistrationPage() {
         return;
       }
 
-      setTicketNotice(null);
-      setMessage({ 
-        type: 'success', 
-        text: result.autoApproved
-          ? 'Registration submitted and approved! Your ticket check-in confirmed your spot.'
-          : 'Registration submitted successfully! Your registration is pending approval.' 
-      });
+      if (result.paymentPending) {
+        setTicketNotice({
+          tournamentId: tournament.id,
+          paymentPending: true,
+        });
+        setMessage({
+          type: 'warning',
+          text: 'Registration submitted. Your ticket payment is still pending — please complete payment to secure your spot. You are listed as pending until payment is confirmed.'
+        });
+      } else {
+        setTicketNotice(null);
+        setMessage({ 
+          type: 'success', 
+          text: result.autoApproved
+            ? 'Registration submitted and approved! Your ticket check-in confirmed your spot.'
+            : 'Registration submitted successfully! Your registration is pending approval.' 
+        });
+      }
 
     } catch (error) {
       console.error('Registration error:', error);
@@ -303,6 +314,8 @@ export default function TournamentRegistrationPage() {
             className={`mb-8 p-4 rounded-xl border ${
               message.type === 'success' 
                 ? 'bg-green-500 bg-opacity-20 border-green-500 text-green-300' 
+                : message.type === 'warning'
+                ? 'bg-yellow-500 bg-opacity-20 border-yellow-500 text-yellow-300'
                 : 'bg-red-500 bg-opacity-20 border-red-500 text-red-300'
             }`}
           >

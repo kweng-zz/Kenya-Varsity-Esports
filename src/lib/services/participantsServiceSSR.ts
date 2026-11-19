@@ -387,6 +387,48 @@ class ParticipantsServiceSSR {
         }
       }
 
+      // Also include legacy participants from the "participants" collection (if any)
+      // so registrations made through the older flow still appear.
+      try {
+        const LEGACY_PARTICIPANTS_COLLECTION_ID = 'participants';
+        const legacyResp = await db.listDocuments(
+          DB_ID,
+          LEGACY_PARTICIPANTS_COLLECTION_ID,
+          [Query.equal('tournamentSlug', tournamentSlug), Query.orderDesc('registrationDate')]
+        );
+        for (const doc of legacyResp.documents) {
+          // Avoid duplicates already present in approved/pending lists
+          const exists = [...approvedTeams, ...pendingRegistrations].some((t) => t.$id === doc.$id);
+          if (exists) continue;
+          let members = doc.members;
+          if (typeof members === 'string') {
+            try { members = JSON.parse(members); } catch { members = doc.members; }
+          }
+          const legacyParticipant: Participant = {
+            $id: doc.$id,
+            tournamentId: doc.tournamentId || tournamentId || '',
+            tournamentSlug,
+            teamName: doc.teamName || doc.teamLeader || 'Team',
+            teamLeader: doc.teamLeader || '',
+            teamLeaderEmail: doc.teamLeaderEmail || '',
+            teamLeaderPhone: doc.teamLeaderPhone,
+            university: doc.university,
+            members: members || '{"players":[],"substitutes":[]}',
+            registrationDate: doc.registrationDate || doc.$createdAt,
+            status: (doc.status === 'approved' ? 'approved' : 'pending'),
+            paymentStatus: doc.paymentStatus || 'pending',
+            totalMembers: doc.totalMembers || 1,
+          };
+          if (legacyParticipant.status === 'approved') {
+            approvedTeams.push(legacyParticipant);
+          } else {
+            pendingRegistrations.push(legacyParticipant);
+          }
+        }
+      } catch (legacyError) {
+        // Legacy collection may not exist or be inaccessible; ignore.
+      }
+
       // Combine and return
       return [...approvedTeams, ...pendingRegistrations];
     } catch (error) {

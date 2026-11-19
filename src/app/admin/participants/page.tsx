@@ -141,8 +141,27 @@ export default function ParticipantsAdminPage() {
 
       console.log(`✅ [Admin Participants] Found ${response.documents.length} registrations`);
 
+      // Also fetch legacy participants (old "participants" collection) for this tournament
+      let legacyDocs: any[] = [];
+      try {
+        const tournamentDoc = await db.getDocument(DB_ID, process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENTS_COLLECTION_ID || 'tournaments', tournamentId);
+        const slug = tournamentDoc.slug;
+        if (slug) {
+          const legacyResp = await db.listDocuments(
+            DB_ID,
+            'participants',
+            [Query.equal('tournamentSlug', slug), Query.orderDesc('$createdAt'), Query.limit(100)]
+          );
+          legacyDocs = legacyResp.documents || [];
+        }
+      } catch (e) {
+        // ignore
+      }
+
       // Transform registrations to participant format for ParticipantsTable
-      const teams = response.documents.map((doc: any) => ({
+      const teams = [
+        ...response.documents.map((doc: any) => ({
+
         $id: doc.$id,
         id: doc.$id,
         tournamentId: doc.tournamentId,
@@ -157,7 +176,24 @@ export default function ParticipantsAdminPage() {
         status: doc.status,
         paymentStatus: doc.paymentStatus || 'pending',
         totalMembers: 1
-      }));
+      })),
+        ...legacyDocs.map((doc: any) => ({
+          $id: doc.$id,
+          id: doc.$id,
+          tournamentId: tournamentId,
+          teamName: doc.teamName || doc.teamLeader,
+          playerName: doc.teamLeader,
+          teamLeader: doc.teamLeader,
+          email: doc.teamLeaderEmail,
+          teamLeaderEmail: doc.teamLeaderEmail,
+          university: doc.university,
+          members: doc.members || '{"players":[],"substitutes":[]}',
+          registrationDate: doc.registrationDate || doc.$createdAt,
+          status: doc.status || 'approved',
+          paymentStatus: doc.paymentStatus || 'pending',
+          totalMembers: doc.totalMembers || 1
+        }))
+      ].filter((t, i, arr) => arr.findIndex(x => x.$id === t.$id) === i);
 
       const approvedTeams = teams.filter((t: any) => t.status === 'approved').length;
       const pendingTeams = teams.filter((t: any) => t.status === 'pending' || t.status === 'registered').length;

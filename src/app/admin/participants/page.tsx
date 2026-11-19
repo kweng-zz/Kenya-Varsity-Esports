@@ -264,11 +264,14 @@ export default function ParticipantsAdminPage() {
       const db = initializeAppwrite();
       if (!db) return;
 
-      await db.deleteDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DB_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!,
-        participantId
-      );
+      const dbId = process.env.NEXT_PUBLIC_APPWRITE_DB_ID!;
+      const regCollection = process.env.NEXT_PUBLIC_APPWRITE_TOURNAMENT_REGISTRATIONS_COLLECTION_ID!;
+      try {
+        await db.deleteDocument(dbId, regCollection, participantId);
+      } catch (err) {
+        // Fall back to legacy participants collection
+        await db.deleteDocument(dbId, 'participants', participantId);
+      }
       await fetchParticipants(selectedTournamentId);
     } catch (err: any) {
       setError(err.message || 'Failed to delete participant');

@@ -197,6 +197,9 @@ export default function TournamentRegistrationPage() {
         return;
       }
 
+      const participantsSlug = tournament.slug || tournament.id;
+      const redirectUrl = `/games/${participantsSlug}/participants`;
+
       if (result.paymentPending) {
         setTicketNotice({
           tournamentId: tournament.id,
@@ -206,6 +209,7 @@ export default function TournamentRegistrationPage() {
           type: 'warning',
           text: 'Registration submitted. Your ticket payment is still pending — please complete payment to secure your spot. You are listed as pending until payment is confirmed.'
         });
+        setTimeout(() => router.push(redirectUrl), 1500);
       } else {
         setTicketNotice(null);
         setMessage({ 
@@ -214,6 +218,7 @@ export default function TournamentRegistrationPage() {
             ? 'Registration submitted and approved! Your ticket check-in confirmed your spot.'
             : 'Registration submitted successfully! Your registration is pending approval.' 
         });
+        setTimeout(() => router.push(redirectUrl), 1500);
       }
 
     } catch (error) {
